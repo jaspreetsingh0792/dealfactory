@@ -1,0 +1,76 @@
+# DealFactory environment profile - PRIVATE. Copy to private/environment.yaml (git-ignored) and edit.
+#
+# Any value can be written plainly (= stated by you, confirmed) or as a block with provenance:
+#   key: {value: ..., source: stated|email|receipt|inferred|example, confidence: 0-1,
+#         status: confirmed|unconfirmed|rejected, note: "...", private: true}
+# Values marked `source: example` are placeholders - replace them with your real situation.
+# Postcode/address facts are always private: they never appear on a public page.
+
+user_id: me
+
+location:
+  country: NL
+  language: nl
+  currency: EUR
+  city: {value: "CHANGE ME", source: example, confidence: 0.0, status: unconfirmed, private: true}
+  postcode_area: {value: "1000", source: example, confidence: 0.0, status: unconfirmed, private: true}
+  climate: "Temperate maritime: mild, wet and windy; winters around 0-7 °C with wind chill"
+  nearby_stores: {value: [], source: example, status: unconfirmed, note: "e.g. Coolblue winkel, MediaMarkt, Babydump"}
+
+home:
+  type: apartment
+  size_m2: {value: 75, source: example, confidence: 0.0, status: unconfirmed}
+  floors_in_home: {value: 1, source: example, confidence: 0.0, status: unconfirmed}
+  floor_types: {value: [laminate, tiles], source: example, confidence: 0.0, status: unconfirmed}
+  rugs: {value: "one low-pile rug in the living room", source: example, confidence: 0.0, status: unconfirmed}
+  thresholds_cm: {value: 1.5, source: example, confidence: 0.0, status: unconfirmed, note: "height of door sills"}
+  storage_space: {value: "small hallway cupboard", source: example, confidence: 0.0, status: unconfirmed}
+  rooms: {value: [living room, kitchen, bedroom, nursery, bathroom], source: example, status: unconfirmed}
+  internet: {value: "2.4 + 5 GHz Wi-Fi", source: example, status: unconfirmed}
+  power: "230 V, type F (Schuko) sockets"
+
+ecosystems:
+  smart_home: {value: Home Assistant, source: inferred, confidence: 0.7, status: unconfirmed,
+               note: "fixture"}
+  smart_home_protocols: {value: [Wi-Fi], source: inferred, confidence: 0.4, status: unconfirmed,
+                         note: "Add Matter / Zigbee / Thread if you have a coordinator"}
+  phone_os: {value: Android (Samsung), source: inferred, confidence: 0.7, status: unconfirmed}
+  car: {value: null, source: example, status: unconfirmed, note: "exact model, if you have one"}
+
+household:
+  adults: {value: 2, source: example, confidence: 0.0, status: unconfirmed}
+  children: {value: ["young child who rides in the stroller"], source: inferred, confidence: 0.8,
+             status: unconfirmed, note: "add age in months - it matters for footmuff size"}
+  pets: {value: [], source: example, status: unconfirmed}
+  accessibility: {value: [], source: example, status: unconfirmed}
+
+preferences:
+  quality_vs_price: {value: "buy once, buy quality", source: example, status: unconfirmed}
+  preferred_retailers: {value: [coolblue.nl, bol.com], source: example, status: unconfirmed}
+  avoided_retailers: {value: [], source: example, status: unconfirmed}
+  favourite_brands: {value: [], source: example, status: unconfirmed}
+  condition: {value: "new only", source: example, status: unconfirmed, note: "or: second-hand OK"}
+  sustainability: {value: "prefer repairable products with spare parts available", source: example, status: unconfirmed}
+  delivery: {value: "next-day nice to have, not required", source: example, status: unconfirmed}
+  noise_sensitivity: {value: "child naps during the day", source: example, status: unconfirmed}
+
+constraints:
+  must_be_eu_plug: true
+
+owned_products:
+  - id: stroller-cybex-balios-s-lux
+    category: stroller
+    brand: Cybex
+    model: Balios S Lux
+    aliases: ["my stroller", "the buggy", "kinderwagen"]
+    notes: "Add the model year/generation if you know it (e.g. 2023+), straps differ between versions."
+    source: stated
+  - id: tv-tcl
+    category: tv
+    brand: TCL
+    model: "(model unknown)"
+    room: living room
+    source: inferred
+    confidence: 0.6
+    status: unconfirmed
+    notes: "fixture: inferred, unconfirmed TV"

@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "PickDraft": {
+      "properties": {
+        "role": {
+          "enum": [
+            "top",
+            "budget",
+            "premium",
+            "if_you_care"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "care_about": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "For role if_you_care: the thing, e.g. \"quiet operation\"; else null",
+          "title": "Care About"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "offer_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Best offer id for this pick, or null if none known",
+          "title": "Offer Id"
+        },
+        "headline": {
+          "title": "Headline",
+          "type": "string"
+        },
+        "why_fits_you": {
+          "description": "Plain language, second person, tied to the user's setup",
+          "title": "Why Fits You",
+          "type": "string"
+        },
+        "tradeoffs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tradeoffs",
+          "type": "array"
+        },
+        "would_change_if": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Would Change If",
+          "type": "array"
+        },
+        "profile_fact_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Profile Fact Ids",
+          "type": "array"
+        },
+        "spec_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Spec Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "care_about",
+        "candidate_id",
+        "offer_id",
+        "headline",
+        "why_fits_you",
+        "tradeoffs",
+        "would_change_if",
+        "profile_fact_ids",
+        "spec_keys"
+      ],
+      "title": "PickDraft",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "need_id": {
+      "title": "Need Id",
+      "type": "string"
+    },
+    "user_id": {
+      "default": "me",
+      "title": "User Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "profile_version": {
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "picks": {
+      "items": {
+        "$ref": "#/$defs/PickDraft"
+      },
+      "title": "Picks",
+      "type": "array"
+    },
+    "not_recommended": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Not Recommended",
+      "type": "array"
+    },
+    "caveats": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Caveats",
+      "type": "array"
+    },
+    "warnings": {
+      "description": "Problems found by code validation",
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "need_id",
+    "generated_at",
+    "profile_version",
+    "run_id",
+    "summary",
+    "picks",
+    "not_recommended",
+    "caveats"
+  ],
+  "title": "Recommendation",
+  "type": "object"
+}

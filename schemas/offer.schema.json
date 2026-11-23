@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "SourcedValue": {
+      "description": "A factual value. Either known (with a source) or explicitly unknown.",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "status": {
+          "enum": [
+            "known",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieved At"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text on the source page that supports the value",
+          "title": "Quote"
+        },
+        "verification": {
+          "default": "unverified",
+          "enum": [
+            "quote_verified",
+            "jsonld",
+            "cited",
+            "unverified"
+          ],
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "status"
+      ],
+      "title": "SourcedValue",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "need_id": {
+      "title": "Need Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "retailer": {
+      "title": "Retailer",
+      "type": "string"
+    },
+    "url": {
+      "title": "Url",
+      "type": "string"
+    },
+    "title_on_page": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title On Page"
+    },
+    "price": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "currency": {
+      "default": "EUR",
+      "title": "Currency",
+      "type": "string"
+    },
+    "in_stock": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "shipping": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "delivery": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "returns": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "pickup": {
+      "$ref": "#/$defs/SourcedValue"
+    },
+    "condition": {
+      "default": "new",
+      "enum": [
+        "new",
+        "used",
+        "refurbished",
+        "unknown"
+      ],
+      "title": "Condition",
+      "type": "string"
+    },
+    "retrieved_at": {
+      "format": "date-time",
+      "title": "Retrieved At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "need_id",
+    "candidate_id",
+    "retailer",
+    "url",
+    "price",
+    "in_stock",
+    "shipping",
+    "delivery",
+    "returns",
+    "pickup",
+    "retrieved_at"
+  ],
+  "title": "Offer",
+  "type": "object"
+}

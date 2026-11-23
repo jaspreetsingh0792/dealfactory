@@ -1,0 +1,193 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ v.spec.text }} · DealFactory{% endblock %}
+
+{% macro sv(val, kind="text", currency="EUR") -%}
+  {%- if val is none or val.status != "known" -%}<span class="cell-unknown">unknown</span>
+  {%- else -%}
+    <span class="v-{{ val.verification }}" title="{{ VERIFY_LABEL[val.verification] }}{% if val.quote %} — “{{ val.quote }}”{% endif %} · read {{ val.retrieved_at|dt }}">
+    {%- if kind == "money" -%}{{ val.value|float|money(currency) }}{%- else -%}{{ val.value }}{% if val.unit and val.unit not in val.value %} {{ val.unit }}{% endif %}{%- endif -%}
+    </span>{% if val.source_url %}<a class="src" href="{{ val.source_url }}" rel="noopener nofollow" target="_blank" title="{{ val.source_url }}">↗</a>{% endif %}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro score(n, scale=10) -%}
+  {%- set pct = (n / scale * 100) if scale else 0 -%}
+  <span class="score {{ 'hi' if pct >= 70 else ('mid' if pct >= 45 else 'lo') }}">{{ n|round(0)|int }}{% if scale == 100 %}{% else %}/{{ scale }}{% endif %}</span>
+{%- endmacro %}
+
+{% block body %}
+<p class="small"><a href="../index.html">← All needs</a></p>
+<h1>{{ v.spec.text }}</h1>
+<p class="lede">
+  <span class="status {{ v.spec.status }}">● {{ v.spec.status }}</span>
+  {% if v.need %} · {{ v.need.parsed.category_label }}{% endif %}
+  {% if v.spec.budget_max %} · budget {{ v.spec.budget_max|money }}{% endif %}
+  {% if v.spec.target_price %} · alert below {{ v.spec.target_price|money }}{% endif %}
+  {% if v.run_id %} · run {{ v.run_id }}{% endif %}
+</p>
+
+{% if not v.need %}
+  <div class="notice info">This need hasn't been run yet. Run <code>dealfactory run {{ v.spec.id }}</code>.</div>
+{% else %}
+
+{% if v.need.parsed.resolved_references %}
+<div class="card small">
+  <strong>How we read your request:</strong>
+  {% for r in v.need.parsed.resolved_references %}
+    “{{ r.phrase }}” →
+    {% if r.kind == "unresolved" %}<span class="tag warn">not in your profile</span>{% else %}<code>{{ r.ref_id }}</code>{% endif %}
+    <span class="muted">{{ r.explanation }}</span>{% if not loop.last %}<br>{% endif %}
+  {% endfor %}
+  {% if v.need.parsed.open_questions %}<br><strong>Open questions:</strong> {{ v.need.parsed.open_questions|join(" · ") }}{% endif %}
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ recommendation #}
+<h2>Recommendation <span class="tag judgement">AI judgement</span></h2>
+{% if v.rec %}
+  <p>{{ v.rec.summary }}</p>
+  {% for w in v.rec.warnings %}<div class="notice warn">⚠ {{ w }}</div>{% endfor %}
+  <div class="grid">
+  {% for p in v.rec.picks %}
+    {% set c = v.cand_by_id.get(p.candidate_id) %}
+    {% set o = v.offer(p.offer_id) or v.best_offer(p.candidate_id) %}
+    {% set a = v.fit_by_id.get(p.candidate_id) %}
+    <div class="card pick judgement-panel {{ p.role }}">
+      <span class="role">{{ ROLE_LABEL[p.role] }}{% if p.care_about %}: {{ p.care_about }}{% endif %}</span>
+      <span class="name">{{ c.name if c else p.candidate_id }}</span>
+      <span class="headline">{{ p.headline }}</span>
+      <div class="price">
+        {% if o and o.price_amount is not none %}
+          <span class="tag fact">fact</span><strong>{{ o.price_amount|money(o.currency) }}</strong>
+          <a href="{{ o.url }}" rel="noopener nofollow" target="_blank">{{ o.retailer }}</a>
+          <span class="muted small">read {{ o.retrieved_at|dt }}</span>
+        {% else %}<span class="muted">No verified price found</span>{% endif %}
+        {% if a %}<span class="small muted" style="margin-left:auto">fit {{ score(a.overall_score, 100) }}</span>{% endif %}
+      </div>
+      <div><strong>Why it fits your setup.</strong> {{ p.why_fits_you }}</div>
+      {% if p.tradeoffs %}<div><strong>Trade-offs</strong><ul>{% for t in p.tradeoffs %}<li>{{ t }}</li>{% endfor %}</ul></div>{% endif %}
+      {% if p.would_change_if %}<div><strong>Would change if</strong><ul>{% for t in p.would_change_if %}<li>{{ t }}</li>{% endfor %}</ul></div>{% endif %}
+      {% if p.profile_fact_ids and not public %}<div class="small muted">Based on: {% for f in p.profile_fact_ids %}<code>{{ f }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+  {% if v.rec.not_recommended %}
+  <details style="margin-top:12px"><summary>Not recommended ({{ v.rec.not_recommended|length }})</summary>
+    <ul>{% for n in v.rec.not_recommended %}<li>{{ n }}</li>{% endfor %}</ul></details>
+  {% endif %}
+  {% if v.rec.caveats %}<details style="margin-top:8px"><summary>Caveats</summary><ul>{% for n in v.rec.caveats %}<li>{{ n }}</li>{% endfor %}</ul></details>{% endif %}
+{% else %}<div class="notice info">No recommendation yet for this run.</div>{% endif %}
+
+{# ------------------------------------------------------------ fit #}
+{% if v.fit %}
+<h2>Fit with your environment <span class="tag judgement">AI judgement</span></h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Candidate</th><th class="num">Fit</th><th>Dimensions</th><th>Dealbreakers &amp; cautions</th></tr></thead>
+  <tbody>
+  {% for a in v.fit %}
+    {% set c = v.cand_by_id.get(a.candidate_id) %}
+    <tr>
+      <td><strong>{{ c.name if c else a.candidate_id }}</strong></td>
+      <td class="num">{{ score(a.overall_score, 100) }}</td>
+      <td class="small">{% for d in a.dimensions %}<div title="{{ d.rationale }}"><strong>{{ d.dimension|replace('_',' ') }}</strong> {{ score(d.score) }} <span class="muted">{{ d.rationale }}</span></div>{% endfor %}</td>
+      <td class="small">
+        {% for d in a.dealbreakers %}<div><span class="tag bad">dealbreaker</span> {{ d.text }}</div>{% endfor %}
+        {% for d in a.cautions %}<div><span class="tag warn">caution</span> {{ d }}</div>{% endfor %}
+        {% if not a.dealbreakers and not a.cautions %}<span class="muted">none</span>{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+
+{# ------------------------------------------------------------ matrix #}
+{% if v.matrix %}
+<h2>Feature matrix <span class="tag fact">facts</span></h2>
+<p class="small muted">Hover a value for its quote and when it was read; ↗ opens the source. <span style="color:var(--warn)">*</span> = from a search snippet, not checked against the full page.</p>
+<div class="table-wrap"><table class="matrix">
+  <thead><tr><th class="feat">Feature</th>{% for cid in v.matrix.candidate_ids %}<th>{{ v.cand_by_id[cid].name if cid in v.cand_by_id else cid }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for f in v.matrix.features %}
+    <tr>
+      <th class="feat" scope="row" title="{{ f.why_it_matters }}">{{ f.label }}{% if f.unit %} <span class="muted small">({{ f.unit }})</span>{% endif %}</th>
+      {% for cid in v.matrix.candidate_ids %}<td>{{ sv(v.matrix.cell(cid, f.key)) }}</td>{% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<details style="margin-top:8px"><summary>Why these features matter</summary>
+  <ul>{% for f in v.matrix.features %}<li><strong>{{ f.label }}</strong> — {{ f.why_it_matters }}
+    {% for s in f.sources %}<a class="src" href="{{ s }}" rel="noopener nofollow" target="_blank">{{ s|host }}</a>{% endfor %}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+
+{# ------------------------------------------------------------ offers #}
+{% if v.offers is not none %}
+<h2>Offers <span class="tag fact">facts</span></h2>
+{% if not v.offers %}<div class="notice info">No matching product pages found at {{ v.need.retailers|join(", ") }}.</div>{% else %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Product</th><th>Retailer</th><th class="num">Price</th><th>Stock</th><th>Shipping</th><th>Delivery</th><th>Returns</th><th>Pickup</th><th>Read</th></tr></thead>
+  <tbody>
+  {% for o in v.offers %}
+    <tr>
+      <td>{{ v.cand_by_id[o.candidate_id].name if o.candidate_id in v.cand_by_id else o.candidate_id }}{% if o.condition != "new" %} <span class="tag plain">{{ o.condition }}</span>{% endif %}</td>
+      <td><a href="{{ o.url }}" rel="noopener nofollow" target="_blank">{{ o.retailer }}</a></td>
+      <td class="num">{{ sv(o.price, "money", o.currency) }}</td>
+      <td>{{ sv(o.in_stock) }}</td>
+      <td class="small">{{ sv(o.shipping) }}</td>
+      <td class="small">{{ sv(o.delivery) }}</td>
+      <td class="small">{{ sv(o.returns) }}</td>
+      <td class="small">{{ sv(o.pickup) }}</td>
+      <td class="small muted">{{ o.retrieved_at|dt }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+{% endif %}
+
+{# ------------------------------------------------------------ price history #}
+<h2>Price history <span class="tag fact">facts</span></h2>
+{% set series = v.history_series() %}
+{% if not series %}<p class="muted">No verified prices recorded yet.</p>{% else %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Product</th><th>Retailer</th><th class="num">Latest</th><th class="num">Lowest</th><th class="num">Highest</th><th>Trend</th><th class="num">Observations</th></tr></thead>
+  <tbody>
+  {% for s in series %}
+    <tr><td>{{ v.cand_by_id[s.candidate_id].name if s.candidate_id in v.cand_by_id else s.candidate_id }}</td><td>{{ s.retailer }}</td>
+      <td class="num">{{ s.last|money }}</td><td class="num">{{ s.min|money }}</td><td class="num">{{ s.max|money }}</td>
+      <td>{% if s.spark %}{{ s.spark|safe }}{% else %}<span class="muted small">one observation</span>{% endif %}</td>
+      <td class="num">{{ s.rows|length }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+
+{# ------------------------------------------------------------ category notes #}
+{% if v.research %}
+<h2>About this category <span class="tag fact">sourced</span></h2>
+<div class="grid">
+  <div class="card"><h3>Common pitfalls</h3>
+    {% if v.research.pitfalls %}<ul>{% for p in v.research.pitfalls %}<li>{{ p.text }} {% for s in p.sources %}<a class="src" href="{{ s }}" rel="noopener nofollow" target="_blank">{{ s|host }}</a>{% endfor %}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">No sourced pitfalls.</p>{% endif %}</div>
+  <div class="card"><h3>Price tiers in {{ v.research.country }}</h3>
+    <ul>{% for t in v.research.price_tiers %}<li><strong>{{ t.tier|capitalize }}</strong>:
+      {% if t.min_price is not none or t.max_price is not none %}{{ t.min_price|money(t.currency) if t.min_price is not none else '?' }} – {{ t.max_price|money(t.currency) if t.max_price is not none else '?' }}{% else %}<span class="cell-unknown">range unknown</span>{% endif %}
+      <span class="muted">· {{ t.typical }}</span>
+      {% for s in t.sources %}<a class="src" href="{{ s }}" rel="noopener nofollow" target="_blank">{{ s|host }}</a>{% endfor %}</li>{% endfor %}</ul>
+    <p class="small muted">Category research from {{ v.research.generated_at|dt }} (cached per category).</p></div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ sources + audit #}
+<h2>Sources</h2>
+<details><summary>{{ v.all_sources|length }} pages searched or read</summary>
+<ul class="sources small">{% for s in v.all_sources %}<li><a href="{{ s.url }}" rel="noopener nofollow" target="_blank">{{ s.title or s.url }}</a> <span class="muted">· {{ s.kind|replace('_',' ') }} · {{ s.retrieved_at|dt }}</span></li>{% endfor %}</ul>
+</details>
+{% if not public %}
+<p class="small muted">Audit: every prompt, input and output for this run is in <code>runs/{{ v.spec.id }}/{{ v.run_id }}/llm_log.jsonl</code>; stage outputs sit next to it. Profile version {{ v.need.profile_version }}.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

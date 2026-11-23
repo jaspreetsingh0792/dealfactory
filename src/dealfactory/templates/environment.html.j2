@@ -1,0 +1,50 @@
+{% extends "base.html.j2" %}
+{% block title %}My environment · DealFactory{% endblock %}
+{% block body %}
+<h1>My environment <span class="tag bad">private</span></h1>
+<p class="lede">Everything DealFactory knows about your setup, with where each fact came from. Edit
+<code>private/environment.yaml</code> to correct anything: set <code>status: confirmed</code> or
+<code>status: rejected</code> on inferred facts. Every recommendation is recomputed from the latest version
+(currently <code>{{ profile.version }}</code>).</p>
+
+{% if unconfirmed %}
+<div class="notice warn"><strong>{{ unconfirmed|length }} to confirm or reject:</strong>
+  {% for f in unconfirmed %}<code>{{ f.id }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+{% endif %}
+
+{% for group, facts in groups.items() %}
+<h2>{{ group|replace('_',' ')|capitalize }}</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Fact</th><th>Value</th><th>Source</th><th class="num">Confidence</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for f in facts %}
+    <tr class="fact-row {{ f.status }}">
+      <td><code>{{ f.id }}</code>{% if f.private %} <span class="tag plain">private</span>{% endif %}</td>
+      <td>{% if f.value is iterable and f.value is not string %}{{ f.value|join(", ") }}{% else %}{{ f.value }}{% endif %}{% if f.note %}<div class="small muted">{{ f.note }}</div>{% endif %}</td>
+      <td>{{ f.source }}</td>
+      <td class="num">{{ (f.confidence * 100)|round|int }}%</td>
+      <td>{% if f.status == "unconfirmed" %}<span class="tag warn">unconfirmed</span>{% elif f.status == "rejected" %}<span class="tag plain">rejected</span>{% else %}<span class="tag fact">confirmed</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endfor %}
+
+<h2>Owned products</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Product</th><th>Category</th><th>Room</th><th>Bought</th><th>Source</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for p in profile.owned_products %}
+    <tr class="fact-row {{ p.status }}">
+      <td><strong>{{ p.brand }} {{ p.model }}</strong>{% if p.variant %} {{ p.variant }}{% endif %}<div class="small muted"><code>{{ p.id }}</code>{% if p.aliases %} · “{{ p.aliases|join('”, “') }}”{% endif %}</div></td>
+      <td>{{ p.category }}</td>
+      <td>{{ p.room or "–" }}</td>
+      <td class="small">{{ p.purchase_date or "–" }}{% if p.retailer %} · {{ p.retailer }}{% endif %}{% if p.price %} · {{ p.price.amount|money(p.price.currency) }}{% endif %}</td>
+      <td>{{ p.source }} <span class="muted small">{{ (p.confidence * 100)|round|int }}%</span></td>
+      <td>{% if p.status == "unconfirmed" %}<span class="tag warn">unconfirmed</span>{% elif p.status == "rejected" %}<span class="tag plain">rejected</span>{% else %}<span class="tag fact">confirmed</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="small muted">See or delete everything stored about you: <code>dealfactory export</code> / <code>dealfactory forget</code>.</p>
+{% endblock %}

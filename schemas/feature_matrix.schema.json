@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "Feature": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "why_it_matters": {
+          "title": "Why It Matters",
+          "type": "string"
+        },
+        "sources": {
+          "description": "Source URLs",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "why_it_matters"
+      ],
+      "title": "Feature",
+      "type": "object"
+    },
+    "MatrixCell": {
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "status": {
+          "enum": [
+            "known",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieved At"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text on the source page that supports the value",
+          "title": "Quote"
+        },
+        "verification": {
+          "default": "unverified",
+          "enum": [
+            "quote_verified",
+            "jsonld",
+            "cited",
+            "unverified"
+          ],
+          "title": "Verification",
+          "type": "string"
+        },
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "feature_key": {
+          "title": "Feature Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "status",
+        "candidate_id",
+        "feature_key"
+      ],
+      "title": "MatrixCell",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "need_id": {
+      "title": "Need Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "features": {
+      "items": {
+        "$ref": "#/$defs/Feature"
+      },
+      "title": "Features",
+      "type": "array"
+    },
+    "candidate_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Candidate Ids",
+      "type": "array"
+    },
+    "cells": {
+      "items": {
+        "$ref": "#/$defs/MatrixCell"
+      },
+      "title": "Cells",
+      "type": "array"
+    }
+  },
+  "required": [
+    "need_id",
+    "generated_at",
+    "features",
+    "candidate_ids",
+    "cells"
+  ],
+  "title": "FeatureMatrix",
+  "type": "object"
+}

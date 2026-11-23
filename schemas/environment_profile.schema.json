@@ -1,0 +1,303 @@
+{
+  "$defs": {
+    "Money": {
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "currency": {
+          "default": "EUR",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "OwnedProduct": {
+      "properties": {
+        "id": {
+          "description": "Stable slug, e.g. stroller-cybex-balios-s-lux",
+          "title": "Id",
+          "type": "string"
+        },
+        "user_id": {
+          "default": "me",
+          "title": "User Id",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "brand": {
+          "title": "Brand",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "purchase_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purchase Date"
+        },
+        "retailer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retailer"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Money"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "room": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room"
+        },
+        "aliases": {
+          "description": "Ways the user refers to it, e.g. \"my stroller\"",
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "source": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "email",
+            "receipt",
+            "inferred",
+            "example"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "default": "confirmed",
+          "enum": [
+            "confirmed",
+            "unconfirmed",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "brand",
+        "model"
+      ],
+      "title": "OwnedProduct",
+      "type": "object"
+    },
+    "ProfileFact": {
+      "description": "One fact about the user's environment, with provenance.\n\nids are dotted paths, e.g. `location.country`, `home.floor_types`,\n`ecosystems.smart_home`, `household.children`.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "source": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "email",
+            "receipt",
+            "inferred",
+            "example"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "default": "confirmed",
+          "enum": [
+            "confirmed",
+            "unconfirmed",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "private": {
+          "default": false,
+          "description": "Never rendered on the public site (e.g. postcode)",
+          "title": "Private",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "value"
+      ],
+      "title": "ProfileFact",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "user_id": {
+      "default": "me",
+      "title": "User Id",
+      "type": "string"
+    },
+    "version": {
+      "description": "Content hash; recommendations record which version they used",
+      "title": "Version",
+      "type": "string"
+    },
+    "loaded_at": {
+      "format": "date-time",
+      "title": "Loaded At",
+      "type": "string"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/ProfileFact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "owned_products": {
+      "items": {
+        "$ref": "#/$defs/OwnedProduct"
+      },
+      "title": "Owned Products",
+      "type": "array"
+    }
+  },
+  "required": [
+    "version",
+    "loaded_at",
+    "facts",
+    "owned_products"
+  ],
+  "title": "EnvironmentProfile",
+  "type": "object"
+}

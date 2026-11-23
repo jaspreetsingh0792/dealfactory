@@ -1,0 +1,14 @@
+# Your shopping needs. Copy to private/needs.yaml (git-ignored) and edit.
+# status: active | paused | closed
+# Optional: budget_max, target_price, deadline, notes, retailers (overrides config.yaml default_retailers).
+needs:
+  - id: robot-vacuum
+    text: robot vacuum for my apartment
+    status: active
+    budget_max: 600
+
+  - id: stroller-footmuff
+    text: fleece footmuff for my stroller
+    status: active
+    budget_max: 120
+    notes: For winter walks; should be easy to get the child in and out.

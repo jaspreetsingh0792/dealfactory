@@ -1,0 +1,47 @@
+# DealFactory settings (safe to commit; secrets go in .env)
+user_id: me
+
+# Claude model for every step. Opus 5.5 is the default; set DEALFACTORY_MODEL=claude-sonnet-5-5 in .env
+# for cheaper runs.
+model: claude-opus-5-5
+
+# Reasoning effort per stage (low | medium | high | xhigh | max).
+effort:
+  default: medium
+  intake: low
+  structure: low       # turning research notes into JSON
+  research: medium
+  candidates: medium
+  fit: high
+  offers: low
+  recommend: high
+  import: low          # Phase 2: reading purchase emails and receipts
+
+max_candidates: 5
+web_search_max_uses: 6   # per research call
+web_fetch_max_uses: 6
+research_cache_days: 30
+
+# Direct, polite fetch of retailer product pages to double-check prices against schema.org JSON-LD.
+# robots.txt is honoured and requests are rate-limited per host. Set to false to rely only on Claude's
+# web_fetch reading of the page.
+direct_fetch: true
+min_seconds_between_requests: 4
+user_agent: "DealFactory/0.1 (personal shopping assistant; low-volume)"
+
+# Retailers that ship to the user. A need uses default_retailers unless needs.yaml lists its own.
+default_retailers: [coolblue.nl, bol.com, amazon.nl]
+retailers:
+  - {domain: bol.com, name: bol}
+  - {domain: coolblue.nl, name: Coolblue}
+  - {domain: amazon.nl, name: Amazon.nl}
+  - {domain: mediamarkt.nl, name: MediaMarkt}
+  - {domain: babydump.nl, name: Babydump, categories: [baby]}
+  - {domain: kruidvat.nl, name: Kruidvat}
+  - {domain: beslist.nl, name: beslist.nl}
+
+# Phase 2: Gmail import (read-only scope; only messages matching the query are read).
+# Leave `query` out to use the built-in purchase filter (see src/dealfactory/imports/gmail.py).
+gmail:
+  since: 2y            # Gmail newer_than: syntax (e.g. 6m, 1y, 3y)
+  max_messages: 150    # per import run; already-imported messages are skipped and cost nothing

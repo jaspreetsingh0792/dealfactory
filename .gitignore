@@ -1,0 +1,11 @@
+# secrets and private data - never commit
+.env
+private/
+data/
+runs/
+site/
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

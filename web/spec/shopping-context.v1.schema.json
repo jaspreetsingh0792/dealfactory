@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dealfactory.dev/spec/shopping-context.v1.schema.json",
+  "$defs": {
+    "CtxFact": {
+      "properties": {
+        "id": {
+          "description": "Dotted path, e.g. home.floor_types, ecosystems.smart_home, household.pets",
+          "title": "Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "source": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "email",
+            "receipt",
+            "inferred",
+            "example"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "status": {
+          "default": "confirmed",
+          "enum": [
+            "confirmed",
+            "unconfirmed",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "id",
+        "value"
+      ],
+      "title": "CtxFact",
+      "type": "object"
+    },
+    "CtxLocation": {
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 3166-1 alpha-2, e.g. NL",
+          "title": "Country"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 4217, e.g. EUR",
+          "title": "Currency"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "BCP 47, e.g. nl",
+          "title": "Language"
+        }
+      },
+      "title": "CtxLocation",
+      "type": "object"
+    },
+    "CtxNeed": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "description": "In the user's words, e.g. \"fleece footmuff for my stroller\"",
+          "title": "Text",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "paused",
+            "closed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "budget_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Budget Max"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "CtxNeed",
+      "type": "object"
+    },
+    "CtxOwned": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "brand": {
+          "title": "Brand",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "room": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "purchase_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purchase Date"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "source": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "email",
+            "receipt",
+            "inferred",
+            "example"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "default": "confirmed",
+          "enum": [
+            "confirmed",
+            "unconfirmed",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "brand",
+        "model"
+      ],
+      "title": "CtxOwned",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "format": {
+      "const": "shopping-context",
+      "default": "shopping-context",
+      "title": "Format",
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    },
+    "generator": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Tool that wrote this document",
+      "title": "Generator"
+    },
+    "location": {
+      "$ref": "#/$defs/CtxLocation"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/CtxFact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "owned": {
+      "items": {
+        "$ref": "#/$defs/CtxOwned"
+      },
+      "title": "Owned",
+      "type": "array"
+    },
+    "needs": {
+      "items": {
+        "$ref": "#/$defs/CtxNeed"
+      },
+      "title": "Needs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "updated_at"
+  ],
+  "title": "ShoppingContext",
+  "type": "object"
+}

@@ -1,0 +1,447 @@
+import { emptyContext, exportPrompt, IMPORT_PROMPT, mergeContext, normalizeContext, nowIso, parseAssistantReply,
+         shareable, slug, SUGGESTED_FACTS, uniqueId } from "./lib/context.js";
+import { findDeals } from "./lib/deals.js";
+import { client, LLMError, PROVIDERS } from "./lib/llm.js";
+import { countryName, currencyFor, guessFromDevice, languageFor, preciseLocation, searchPlace } from "./lib/location.js";
+
+// ------------------------------------------------------------------ storage (never throws)
+const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v1" };
+const store = {
+  get(k, area = localStorage) { try { return JSON.parse(area.getItem(k)); } catch { return null; } },
+  set(k, v, area = localStorage) { try { area.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k, area = localStorage) { try { area.removeItem(k); } catch { /* ignore */ } },
+};
+const session = (() => { try { return sessionStorage; } catch { return null; } })();
+
+let ctx = (() => { try { return normalizeContext(store.get(KEYS.ctx) || emptyContext()); } catch { return emptyContext(); } })();
+let ai = store.get(KEYS.ai) || { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false };
+ai.key = store.get(KEYS.key) || (session && store.get(KEYS.key, session)) || "";
+let results = store.get(KEYS.results) || {};
+const audits = {};
+let running = null;
+
+function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
+function saveResults() {
+  // Keep the last result per need, without the bulky audit trail.
+  const slim = Object.fromEntries(Object.entries(results).slice(-12).map(([k, v]) => [k, { ...v, audit: undefined }]));
+  if (!store.set(KEYS.results, slim)) store.set(KEYS.results, {});
+}
+
+// ------------------------------------------------------------------ tiny DOM helper (textContent only)
+const $ = (sel) => document.querySelector(sel);
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "href") { if (/^https?:\/\//i.test(v) || v.startsWith("#")) el.setAttribute("href", v); }
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : String(kid));
+  return el;
+}
+const tag = (cls, text) => h("span", { class: `tag ${cls}` }, text);
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { t.hidden = true; }, 2600);
+}
+async function copy(text, what) {
+  try { await navigator.clipboard.writeText(text); toast(`${what} copied`); }
+  catch { toast("Copy failed: select and copy manually"); }
+}
+function download(name, data) {
+  const blob = new Blob([typeof data === "string" ? data : JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = h("a", { download: name });
+  a.href = URL.createObjectURL(blob);
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function money(amount, currency) {
+  if (amount == null) return null;
+  try {
+    return new Intl.NumberFormat(ctx.location.language || navigator.language || "en",
+      { style: "currency", currency: currency || ctx.location.currency || "EUR" }).format(amount);
+  } catch {
+    return `${currency || ""} ${amount}`.trim();
+  }
+}
+const when = (iso) => { try { return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch { return iso; } };
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+
+// ------------------------------------------------------------------ location
+function renderLocation() {
+  const l = ctx.location;
+  const label = l.country
+    ? [l.city, countryName(l.country)].filter(Boolean).join(", ") + (l.currency ? ` · ${l.currency}` : "")
+    : "Location unknown: set your city";
+  $("#loc-label").textContent = label;
+  $("#loc-label").title = l._how ? `Guessed from your ${l._how}` : "";
+  renderMcp();
+}
+function setLocation(loc, how) {
+  ctx.location = Object.fromEntries(Object.entries({
+    country: loc.country, region: loc.region || null, city: loc.city || null,
+    currency: loc.currency || currencyFor(loc.country), language: loc.language || languageFor(loc.country),
+  }).filter(([, v]) => v));
+  if (how) ctx.location._how = how;
+  saveCtx();
+  renderLocation();
+}
+function initLocation() {
+  if (!ctx.location.country) {
+    const g = guessFromDevice();
+    if (g) setLocation(g, g.how);
+    else { renderLocation(); $("#loc-editor").hidden = false; }
+  } else renderLocation();
+  $("#loc-change").onclick = () => { $("#loc-editor").hidden = !$("#loc-editor").hidden; $("#loc-q").focus(); };
+  $("#loc-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const q = $("#loc-q").value.trim();
+    if (!q) return;
+    const list = $("#loc-results");
+    list.replaceChildren(h("li", { class: "muted small" }, "Searching…"));
+    try {
+      const rows = await searchPlace(q, navigator.language);
+      list.replaceChildren(...(rows.length ? rows.map((r) => h("li", {},
+        h("button", { type: "button", class: "choice", onclick: () => { setLocation(r, null); list.replaceChildren(); $("#loc-editor").hidden = true; toast(`Location set to ${r.city || r.country}`); } }, r.label)))
+        : [h("li", { class: "muted small" }, "No places found.")]));
+    } catch (err) {
+      list.replaceChildren(h("li", { class: "error small" }, err.message));
+    }
+  };
+  $("#loc-precise").onclick = async () => {
+    const btn = $("#loc-precise");
+    btn.disabled = true;
+    btn.textContent = "Locating…";
+    try {
+      const r = await preciseLocation(navigator.language);
+      setLocation(r, null);
+      $("#loc-editor").hidden = true;
+      toast(`Location set to ${r.city || r.country}`);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Use my location";
+    }
+  };
+}
+
+// ------------------------------------------------------------------ setup: facts + owned
+function statusControls(item, onChange) {
+  if (item.status !== "unconfirmed") return null;
+  return h("span", { class: "confirm" },
+    tag("warn", item.source === "inferred" ? "inferred" : "unconfirmed"),
+    h("button", { type: "button", class: "icon", title: "Confirm", "aria-label": "Confirm", onclick: () => { item.status = "confirmed"; item.confidence = 1; onChange(); } }, "✓"),
+    h("button", { type: "button", class: "icon", title: "Reject", "aria-label": "Reject", onclick: () => { item.status = "rejected"; onChange(); } }, "✕"));
+}
+function renderFacts() {
+  const box = $("#facts");
+  const byId = new Map(ctx.facts.map((f) => [f.id, f]));
+  const rows = SUGGESTED_FACTS.map(([id, label, ph]) => {
+    const f = byId.get(id);
+    const val = f && f.status !== "rejected" ? (Array.isArray(f.value) ? f.value.join(", ") : f.value ?? "") : "";
+    const input = h("input", { value: val, placeholder: ph, "aria-label": label });
+    input.addEventListener("change", () => {
+      const v = input.value.trim();
+      const listy = /floor_types|pets|children|priorities|retailers/.test(id);
+      const value = listy ? v.split(",").map((s) => s.trim()).filter(Boolean) : (/size_m2/.test(id) && v && !Number.isNaN(+v) ? +v : v);
+      if (!v) ctx.facts = ctx.facts.filter((x) => x.id !== id);
+      else if (f) Object.assign(f, { value, source: "stated", status: "confirmed", confidence: 1 });
+      else ctx.facts.push({ id, value, source: "stated", status: "confirmed", confidence: 1 });
+      saveCtx();
+      renderFacts();
+    });
+    return h("label", { class: `fact-row ${f?.status || ""}` }, h("span", { class: "fact-label" }, label), input,
+      f ? statusControls(f, () => { saveCtx(); renderFacts(); }) : null);
+  });
+  const known = new Set(SUGGESTED_FACTS.map(([id]) => id));
+  const extra = ctx.facts.filter((f) => !known.has(f.id) && f.status !== "rejected").map((f) =>
+    h("div", { class: `fact-row ${f.status}` }, h("span", { class: "fact-label" }, h("code", {}, f.id)),
+      h("span", { class: "fact-value" }, Array.isArray(f.value) ? f.value.join(", ") : String(f.value ?? "")),
+      statusControls(f, () => { saveCtx(); renderFacts(); }),
+      h("button", { type: "button", class: "icon", title: "Remove", "aria-label": `Remove ${f.id}`, onclick: () => { ctx.facts = ctx.facts.filter((x) => x !== f); saveCtx(); renderFacts(); } }, "🗑")));
+  box.replaceChildren(...rows, ...extra);
+}
+function renderOwned() {
+  const list = $("#owned");
+  const items = ctx.owned.filter((o) => o.status !== "rejected");
+  list.replaceChildren(...(items.length ? items.map((o) => h("li", { class: o.status },
+    h("div", {}, h("strong", {}, `${o.brand} ${o.model}`), h("span", { class: "muted small" }, ` · ${o.category}`),
+      o.notes ? h("div", { class: "small muted" }, o.notes) : null),
+    h("div", { class: "owned-actions" }, statusControls(o, () => { saveCtx(); renderOwned(); }),
+      h("button", { type: "button", class: "icon", title: "Remove", "aria-label": `Remove ${o.brand} ${o.model}`, onclick: () => { ctx.owned = ctx.owned.filter((x) => x !== o); saveCtx(); renderOwned(); } }, "🗑"))))
+    : [h("li", { class: "muted small empty" }, "Nothing yet. Add the things new purchases must work with: stroller, TV, phone, robot vacuum, coffee machine…")]));
+}
+function initSetup() {
+  $("#owned-form").onsubmit = (e) => {
+    e.preventDefault();
+    const category = $("#owned-category").value.trim(), brand = $("#owned-brand").value.trim(), model = $("#owned-model").value.trim();
+    const id = uniqueId(`${category} ${brand} ${model}`, new Set(ctx.owned.map((o) => o.id)));
+    ctx.owned.push({ id, category: slug(category), brand, model, aliases: [`my ${category.toLowerCase()}`], source: "stated", status: "confirmed", confidence: 1 });
+    saveCtx();
+    e.target.reset();
+    renderOwned();
+  };
+  $("#fact-form").onsubmit = (e) => {
+    e.preventDefault();
+    const id = $("#fact-id").value.trim(), value = $("#fact-value").value.trim();
+    ctx.facts = ctx.facts.filter((f) => f.id !== id);
+    ctx.facts.push({ id, value, source: "stated", status: "confirmed", confidence: 1 });
+    saveCtx();
+    e.target.reset();
+    renderFacts();
+  };
+  renderFacts();
+  renderOwned();
+}
+
+// ------------------------------------------------------------------ AI settings
+function renderAi() {
+  const sel = $("#ai-provider");
+  sel.replaceChildren(...Object.entries(PROVIDERS).map(([k, p]) => h("option", { value: k, selected: ai.provider === k }, p.label)));
+  const p = PROVIDERS[ai.provider] || PROVIDERS.anthropic;
+  $("#ai-models").replaceChildren(...p.models.map((m) => h("option", { value: m })));
+  $("#ai-model").value = ai.model || p.defaultModel;
+  $("#ai-base").value = ai.baseUrl || "";
+  $("#ai-base-wrap").hidden = ai.provider !== "compatible";
+  $("#ai-key").value = ai.key || "";
+  $("#ai-key").placeholder = ai.provider === "compatible" ? "Optional for local models" : "Paste your key";
+  $("#ai-remember").checked = !!ai.remember;
+  $("#ai-help").textContent = `Key: ${p.keyHelp}.` + (p.search ? "" : " This kind of model can't search the web, so you'll get a buying checklist and search links instead of products and prices.");
+  $("#ai-status").textContent = ai.key || ai.provider === "compatible" ? `Connected: ${p.label}${ai.model ? ` · ${ai.model}` : ""}` : "Not connected";
+}
+function initAi() {
+  $("#ai-provider").onchange = (e) => { ai.provider = e.target.value; ai.model = PROVIDERS[ai.provider].defaultModel; renderAi(); };
+  $("#ai-form").onsubmit = (e) => {
+    e.preventDefault();
+    ai = { ...ai, model: $("#ai-model").value.trim(), baseUrl: $("#ai-base").value.trim(), key: $("#ai-key").value.trim(), remember: $("#ai-remember").checked };
+    const { key, ...rest } = ai;
+    store.set(KEYS.ai, rest);
+    store.del(KEYS.key);
+    if (session) store.del(KEYS.key, session);
+    if (key) store.set(KEYS.key, key, ai.remember ? localStorage : session || localStorage);
+    renderAi();
+    toast("AI settings saved");
+  };
+  $("#ai-forget").onclick = () => {
+    ai.key = "";
+    store.del(KEYS.key);
+    if (session) store.del(KEYS.key, session);
+    renderAi();
+    toast("Key forgotten");
+  };
+  renderAi();
+}
+
+// ------------------------------------------------------------------ needs + results
+function renderChips() {
+  const box = $("#need-chips");
+  const active = ctx.needs.filter((n) => n.status === "active");
+  box.replaceChildren(...active.map((n) => h("span", { class: "chip" },
+    h("button", { type: "button", class: "chip-main", onclick: () => run(n) }, n.text + (n.budget_max ? ` · ≤ ${money(n.budget_max, n.currency)}` : "")),
+    h("button", { type: "button", class: "chip-x", title: "Remove", "aria-label": `Remove ${n.text}`, onclick: () => { ctx.needs = ctx.needs.filter((x) => x !== n); delete results[n.id]; saveCtx(); saveResults(); renderChips(); renderResults(); } }, "×"))));
+}
+
+function noAiPanel(need) {
+  return h("div", { class: "card notice-card" },
+    h("h3", {}, "Connect an AI to search live deals"),
+    h("p", {}, "DealFactory uses your own AI. Add a Claude or OpenAI key below, or point it at a local model. Prefer your usual chat? Copy this prompt into ChatGPT, Claude or Gemini. It includes your setup and the honesty rules."),
+    h("div", { class: "row" },
+      h("button", { type: "button", class: "primary", onclick: () => copy(exportPrompt(ctx, need.text), "Prompt") }, "Copy prompt for my chat"),
+      h("a", { class: "button secondary", href: "#ai" }, "Connect my AI")));
+}
+
+async function run(need) {
+  if (running) running.abort();
+  let llm;
+  try {
+    llm = client(ai);
+  } catch (e) {
+    results[need.id] = { kind: "noai", need };
+    renderResults(need.id);
+    return;
+  }
+  const ctrl = new AbortController();
+  running = ctrl;
+  const started = Date.now();
+  const status = h("p", { class: "step" }, "Starting…");
+  const timer = h("span", { class: "muted small" });
+  const tick = setInterval(() => { timer.textContent = ` ${Math.round((Date.now() - started) / 1000)} s`; }, 1000);
+  $("#results").replaceChildren(h("div", { class: "card running" }, h("h2", {}, need.text),
+    h("div", { class: "spinner", "aria-hidden": "true" }), status, timer,
+    h("button", { type: "button", class: "secondary", onclick: () => ctrl.abort() }, "Stop")));
+  $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    const res = await findDeals(llm, ctx, need, { onStep: (s) => { status.textContent = s; }, signal: ctrl.signal });
+    audits[need.id] = res.audit;
+    results[need.id] = res;
+    saveResults();
+    renderResults(need.id);
+  } catch (e) {
+    $("#results").replaceChildren(h("div", { class: "card error-card" }, h("h3", {}, e.name === "AbortError" ? "Stopped." : "Something went wrong"),
+      e.name === "AbortError" ? null : h("p", {}, e instanceof LLMError ? e.message : `${e.message}`),
+      h("button", { type: "button", class: "secondary", onclick: () => run(need) }, "Try again")));
+  } finally {
+    clearInterval(tick);
+    if (running === ctrl) running = null;
+  }
+}
+
+function sourceLink(url, label) {
+  return h("a", { href: url, target: "_blank", rel: "noopener noreferrer nofollow", class: "src" }, label || host(url));
+}
+function verif(v) {
+  return v === "cited" ? h("span", { class: "cited", title: "Cited from a search result; the page itself wasn't read" }, "*") : null;
+}
+
+const ROLE = { top: "Top pick", budget: "Budget pick", premium: "Premium pick", alternative: "Alternative" };
+
+function renderPick(p) {
+  const ownedName = (id) => { const o = ctx.owned.find((x) => x.id === id); return o ? `${o.brand} ${o.model}` : id; };
+  const best = p.offers.find((o) => o.price != null);
+  return h("article", { class: `card pick ${p.role}` },
+    h("div", { class: "pick-head" }, h("span", { class: "role" }, ROLE[p.role] || p.role), tag("judgement", "AI judgement")),
+    h("h3", { class: "name" }, p.product),
+    (p.brand || p.model) ? h("div", { class: "small muted" }, [p.brand, p.model].filter(Boolean).join(" · ")) : null,
+    best ? h("div", { class: "price" }, tag("fact", "fact"), h("strong", {}, money(best.price, best.currency)), verif(best.priceVerification),
+      h("span", { class: "small" }, " at ", sourceLink(best.url, best.retailer)), h("span", { class: "small muted" }, ` · read ${when(best.retrievedAt)}`))
+      : h("div", { class: "price" }, h("span", { class: "cell-unknown" }, "price unknown"), p.offers[0] ? h("span", { class: "small" }, " · ", sourceLink(p.offers[0].url, p.offers[0].retailer)) : null),
+    h("p", { class: "why" }, p.whyItFits),
+    p.compat.length ? h("ul", { class: "compat" }, p.compat.map((c) => h("li", {},
+      c.status === "compatible" ? h("span", { class: "ok" }, "✓ ") : c.status === "incompatible" ? h("span", { class: "bad" }, "✕ ") : h("span", { class: "cell-unknown" }, "? "),
+      `${c.status === "unknown" ? "Fit with" : c.status === "compatible" ? "Works with" : "Does not work with"} ${ownedName(c.ownedId)}`,
+      c.status === "unknown" ? h("span", { class: "cell-unknown" }, ": unknown") : [" ", tag("fact", "fact"), verif(c.verification), " ", sourceLink(c.url),
+        c.quote ? h("div", { class: "quote" }, `“${c.quote}”`) : null]))) : null,
+    p.specs.length ? h("details", {}, h("summary", {}, `Specs (${p.specs.filter((s) => s.status === "known").length}/${p.specs.length} sourced)`),
+      h("dl", { class: "specs" }, p.specs.map((s) => [h("dt", {}, s.name), h("dd", {}, s.status === "known"
+        ? [s.value, verif(s.verification), " ", sourceLink(s.url)] : h("span", { class: "cell-unknown" }, "unknown"))]))) : null,
+    p.offers.length > 1 ? h("details", {}, h("summary", {}, `${p.offers.length} offers`),
+      h("table", { class: "offers" }, h("tbody", {}, p.offers.map((o) => h("tr", {},
+        h("td", {}, sourceLink(o.url, o.retailer)),
+        h("td", { class: "num" }, o.price != null ? [money(o.price, o.currency), verif(o.priceVerification)] : h("span", { class: "cell-unknown" }, "unknown")),
+        h("td", { class: "small muted" }, o.inStock === "yes" ? "in stock" : o.inStock === "no" ? "out of stock" : "stock unknown")))))) : null,
+    p.tradeoffs.length ? h("div", { class: "tradeoffs" }, h("span", { class: "small muted" }, "Trade-offs: "), p.tradeoffs.join(" · ")) : null);
+}
+
+function renderResult(res) {
+  const n = res.need;
+  if (res.kind === "noai") return noAiPanel(n);
+  const head = h("div", { class: "result-head" }, h("h2", {}, n.text),
+    h("div", { class: "small muted" }, [res.location?.city, res.location?.country].filter(Boolean).join(", "),
+      res.finishedAt ? ` · ${when(res.finishedAt)}` : "",
+      " · ", h("button", { type: "button", class: "link", onclick: () => run(n) }, "Refresh"),
+      audits[n.id] ? [" · ", h("button", { type: "button", class: "link", onclick: () => download(`dealfactory-run-${n.id}.json`, { ...res, audit: audits[n.id] }) }, "Download audit")] : null));
+  if (res.kind === "checklist") {
+    const c = res.checklist;
+    const gl = (ctx.location.country || "").toLowerCase();
+    const list = (title, items) => items?.length ? [h("h3", {}, title), h("ul", {}, items.map((i) => h("li", {}, typeof i === "string" ? i : i.check)))] : null;
+    return h("div", {}, head, h("div", { class: "card judgement-panel" }, tag("judgement", "AI judgement · no live data"),
+      list("Must have", c.must_have), list("Nice to have", c.nice_to_have), list("Avoid", c.avoid),
+      list("Check against what you own", c.compatibility_checks), list("Questions to answer first", c.questions_for_you),
+      c.search_terms?.length ? [h("h3", {}, "Search"), h("div", { class: "row wrap-row" }, c.search_terms.map((t) =>
+        sourceLink(`https://www.google.com/search?tbm=shop&gl=${gl}&q=${encodeURIComponent(t)}`, `${t} ↗`)))] : null));
+  }
+  const top = res.picks.find((p) => p.role === "top");
+  const rest = res.picks.filter((p) => p !== top);
+  return h("div", {}, head,
+    res.warnings?.length ? h("div", { class: "notice warn" }, res.warnings.map((w) => h("div", {}, `⚠ ${w}`))) : null,
+    !res.picks.length ? h("div", { class: "card" }, h("p", {}, "No product survived the source checks. Your AI didn't find pages that back up its suggestions. Try again, give more detail, or switch to a model with web search.")) : null,
+    top ? renderPick(top) : null,
+    rest.length ? h("div", { class: "grid picks" }, rest.map(renderPick)) : null,
+    res.caveats?.length ? h("div", { class: "card small judgement-panel" }, tag("judgement", "AI judgement"), h("ul", {}, res.caveats.map((c) => h("li", {}, c)))) : null,
+    res.notRecommended?.length ? h("details", { class: "card small" }, h("summary", {}, "Not recommended"),
+      h("ul", {}, res.notRecommended.map((x) => h("li", {}, h("strong", {}, x.product_name), `: ${x.reason}`)))) : null,
+    res.dropped?.length ? h("details", { class: "card small" }, h("summary", {}, `${res.dropped.length} suggestion(s) dropped: no source`),
+      h("ul", {}, res.dropped.map((d) => h("li", {}, `${d.product}: ${d.reason}`)))) : null,
+    res.sources?.length ? h("details", { class: "card small" }, h("summary", {}, `${res.sources.length} sources`),
+      h("ol", { class: "sources" }, res.sources.map((s) => h("li", {}, sourceLink(s.url, s.title || s.url), h("span", { class: "muted" }, ` · ${s.hasPage ? "page read" : "search result"}`))))) : null);
+}
+
+function renderResults(focusId) {
+  const box = $("#results");
+  const id = focusId || Object.keys(results).at(-1);
+  box.replaceChildren(id && results[id] ? renderResult(results[id]) : "");
+}
+
+function initNeeds() {
+  $("#need-form").onsubmit = (e) => {
+    e.preventDefault();
+    const text = $("#need-text").value.trim();
+    if (!text) return;
+    const budget = $("#need-budget").value ? Number($("#need-budget").value) : null;
+    let need = ctx.needs.find((n) => n.text.toLowerCase() === text.toLowerCase());
+    if (!need) {
+      need = { id: uniqueId(text, new Set(ctx.needs.map((n) => n.id))), text, status: "active", budget_max: budget,
+               currency: budget ? ctx.location.currency || null : null };
+      ctx.needs.push(need);
+    } else if (budget != null) {
+      need.budget_max = budget;
+      need.currency = ctx.location.currency || null;
+    }
+    saveCtx();
+    renderChips();
+    $("#need-text").value = "";
+    $("#need-budget").value = "";
+    run(need);
+  };
+  renderChips();
+  renderResults();
+}
+
+// ------------------------------------------------------------------ portability
+function renderMcp() {
+  const cfg = { mcpServers: { dealfactory: { command: "dealfactory", args: ["mcp", "--context", "/path/to/shopping-context.json"] } } };
+  $("#mcp-snippet").textContent = `# install once (needs Python + uv):\n#   uv tool install git+https://github.com/jaspreetsingh0792/dealfactory\n${JSON.stringify(cfg, null, 2)}`;
+}
+function initPortability() {
+  $("#export-copy").onclick = () => copy(exportPrompt(ctx), "Prompt");
+  $("#export-download").onclick = () => download("shopping-context.json", shareable(ctx));
+  $("#import-prompt").onclick = () => copy(IMPORT_PROMPT, "Request");
+  const apply = (text, fromAssistant) => {
+    const st = $("#import-status");
+    try {
+      const incoming = normalizeContext(parseAssistantReply(text), { fromAssistant });
+      const { context, changes } = mergeContext(ctx, incoming);
+      ctx = context;
+      saveCtx();
+      renderLocation(); renderFacts(); renderOwned(); renderChips();
+      st.className = "small ok";
+      st.textContent = `Imported ${changes.owned} owned item(s), ${changes.facts} fact(s), ${changes.needs} need(s)` +
+        (fromAssistant ? ". Please confirm or reject them under Your setup." : ".");
+      $("#import-text").value = "";
+    } catch (e) {
+      st.className = "small error";
+      st.textContent = `Couldn't import: ${e.message}`;
+    }
+  };
+  $("#import-apply").onclick = () => apply($("#import-text").value, true);
+  $("#import-file").onchange = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const text = await f.text();
+    let raw = null;
+    try { raw = JSON.parse(text); } catch { /* handled by apply */ }
+    // A file written by DealFactory keeps its provenance; anything else counts as an assistant's guess.
+    apply(text, !(raw && /^dealfactory/.test(raw.generator || "")));
+    e.target.value = "";
+  };
+  $("#mcp-copy").onclick = () => copy($("#mcp-snippet").textContent.split("\n").filter((l) => !l.startsWith("#")).join("\n"), "MCP config");
+  $("#wipe").onclick = () => {
+    for (const k of Object.values(KEYS)) { store.del(k); if (session) store.del(k, session); }
+    ctx = emptyContext(); results = {}; ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
+    initLocation(); renderFacts(); renderOwned(); renderChips(); renderResults(); renderAi();
+    toast("Everything stored in this browser was deleted");
+  };
+}
+
+initLocation();
+initSetup();
+initAi();
+initNeeds();
+initPortability();

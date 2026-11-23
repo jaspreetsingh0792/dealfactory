@@ -1,0 +1,226 @@
+{
+  "$defs": {
+    "Money": {
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "currency": {
+          "default": "EUR",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "NeedDraft": {
+      "description": "Claude's structured reading of a free-text need.",
+      "properties": {
+        "category": {
+          "description": "Lowercase kebab-case product category, e.g. robot-vacuum, stroller-footmuff",
+          "title": "Category",
+          "type": "string"
+        },
+        "category_label": {
+          "description": "Human label, e.g. Robot vacuum",
+          "title": "Category Label",
+          "type": "string"
+        },
+        "search_query": {
+          "description": "What a shopper would type into a retailer search box, in the user's language",
+          "title": "Search Query",
+          "type": "string"
+        },
+        "resolved_references": {
+          "items": {
+            "$ref": "#/$defs/ResolvedReference"
+          },
+          "title": "Resolved References",
+          "type": "array"
+        },
+        "requirements": {
+          "description": "Concrete requirements implied by the request and the profile",
+          "items": {
+            "type": "string"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "must_work_with": {
+          "description": "OwnedProduct ids or ecosystem fact ids the product must be compatible with",
+          "items": {
+            "type": "string"
+          },
+          "title": "Must Work With",
+          "type": "array"
+        },
+        "open_questions": {
+          "description": "Things that would change the answer and are not in the profile",
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "category",
+        "category_label",
+        "search_query",
+        "resolved_references",
+        "requirements",
+        "must_work_with",
+        "open_questions"
+      ],
+      "title": "NeedDraft",
+      "type": "object"
+    },
+    "ResolvedReference": {
+      "properties": {
+        "phrase": {
+          "description": "The words in the request, e.g. \"my stroller\"",
+          "title": "Phrase",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "owned_product",
+            "profile_fact",
+            "unresolved"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "OwnedProduct.id or ProfileFact.id",
+          "title": "Ref Id"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "phrase",
+        "kind",
+        "explanation"
+      ],
+      "title": "ResolvedReference",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "user_id": {
+      "default": "me",
+      "title": "User Id",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "paused",
+        "closed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "budget_max": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "target_price": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Money"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "deadline": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deadline"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "retailers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Retailers",
+      "type": "array"
+    },
+    "parsed": {
+      "$ref": "#/$defs/NeedDraft"
+    },
+    "profile_version": {
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "text",
+    "status",
+    "retailers",
+    "parsed",
+    "profile_version",
+    "created_at"
+  ],
+  "title": "Need",
+  "type": "object"
+}

@@ -1,0 +1,46 @@
+{% extends "base.html.j2" %}
+{% block title %}Purchases · DealFactory{% endblock %}
+{% block body %}
+<h1>Imported purchases <span class="tag bad">private</span></h1>
+<p class="lede">Items read from your purchase emails and receipts. Only these fields are stored; the emails
+and files themselves are not. Durable items and accessories appear as owned products on
+<a href="environment.html">My environment</a>; consumables feed your buying habits.</p>
+
+{% set pending = purchases|selectattr("status", "equalto", "unconfirmed")|list %}
+{% if pending %}
+<div class="notice warn"><strong>{{ pending|length }} unconfirmed.</strong> Recommendations use them, labelled as
+  unconfirmed. Confirm, fix or remove with
+  <code>dealfactory inventory confirm ID</code>, <code>inventory edit ID --model "..."</code>,
+  <code>inventory reject ID</code> or <code>inventory delete ID</code>.</div>
+{% endif %}
+{% if summary %}
+<p class="small muted">Documents processed: {% for k, n in summary.items() %}{{ k|replace('_',' ') }} {{ n }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+{% endif %}
+
+{% if not purchases %}
+<div class="notice info">Nothing imported yet. Run <code>dealfactory gmail auth</code> and
+  <code>dealfactory import gmail</code>, or <code>dealfactory import files ~/Receipts</code>.</div>
+{% else %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Product</th><th>Category</th><th>Shop</th><th class="num">Price</th><th>From</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for p in purchases %}
+    <tr class="fact-row {{ p.status }}">
+      <td class="small">{{ p.order_date or "unknown" }}</td>
+      <td><strong>{{ p.product_name }}</strong>{% if p.quantity > 1 %} ×{{ p.quantity }}{% endif %}
+        <div class="small muted">{% if p.brand %}{{ p.brand }}{% else %}<span class="cell-unknown">brand unknown</span>{% endif %}
+          · {% if p.model %}{{ p.model }}{% else %}<span class="cell-unknown">model unknown</span>{% endif %}{% if p.variant %} · {{ p.variant }}{% endif %}</div>
+        <div class="small muted"><code>{{ p.id }}</code>{% if p.user_edited %} · edited by you{% endif %}</div></td>
+      <td>{{ p.category }}<div class="small muted">{{ p.kind }}{% if p.doc_type in ("return", "cancellation") %} · <span class="tag warn">{{ p.doc_type }}</span>{% endif %}</div></td>
+      <td>{{ p.merchant or "unknown" }}</td>
+      <td class="num">{% if p.unit_price is not none %}{{ p.unit_price|money(p.currency or "EUR") }}{% else %}<span class="cell-unknown">unknown</span>{% endif %}</td>
+      <td class="small">{{ p.source_kind }}</td>
+      <td>{% if p.status == "unconfirmed" %}<span class="tag warn">unconfirmed</span>{% elif p.status == "rejected" %}<span class="tag plain">rejected</span>{% else %}<span class="tag fact">confirmed</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+<p class="small muted">Prices are shown only when the code found them in the document text. Brand and model are
+shown only when written in the document. Delete everything imported: <code>dealfactory inventory forget --yes</code>.</p>
+{% endblock %}

@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "DealbreakerDraft": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "profile_fact_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Profile Fact Ids",
+          "type": "array"
+        },
+        "spec_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Spec Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "profile_fact_ids",
+        "spec_keys"
+      ],
+      "title": "DealbreakerDraft",
+      "type": "object"
+    },
+    "FitDimensionDraft": {
+      "properties": {
+        "dimension": {
+          "enum": [
+            "compatibility",
+            "physical_fit",
+            "household",
+            "climate",
+            "brand_and_price_habits",
+            "requirements",
+            "other"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "score": {
+          "description": "0-10",
+          "title": "Score",
+          "type": "integer"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "profile_fact_ids": {
+          "description": "ProfileFact.id / OwnedProduct.id values this judgement relies on",
+          "items": {
+            "type": "string"
+          },
+          "title": "Profile Fact Ids",
+          "type": "array"
+        },
+        "spec_keys": {
+          "description": "feature_keys this judgement relies on",
+          "items": {
+            "type": "string"
+          },
+          "title": "Spec Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "dimension",
+        "score",
+        "rationale",
+        "profile_fact_ids",
+        "spec_keys"
+      ],
+      "title": "FitDimensionDraft",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "candidate_id": {
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "dimensions": {
+      "items": {
+        "$ref": "#/$defs/FitDimensionDraft"
+      },
+      "title": "Dimensions",
+      "type": "array"
+    },
+    "dealbreakers": {
+      "items": {
+        "$ref": "#/$defs/DealbreakerDraft"
+      },
+      "title": "Dealbreakers",
+      "type": "array"
+    },
+    "cautions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Cautions",
+      "type": "array"
+    },
+    "overall_score": {
+      "description": "0-100, computed in code from dimension scores; 0 if any dealbreaker",
+      "title": "Overall Score",
+      "type": "number"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "dimensions",
+    "dealbreakers",
+    "cautions",
+    "overall_score"
+  ],
+  "title": "FitAssessment",
+  "type": "object"
+}

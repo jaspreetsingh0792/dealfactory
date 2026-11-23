@@ -1,0 +1,31 @@
+{% extends "base.html.j2" %}
+{% block body %}
+<h1>Your needs</h1>
+<p class="lede">Edit <code>private/needs.yaml</code> to add, pause or close a need, then run <code>dealfactory run --all</code>.</p>
+{% if not public and profile.unconfirmed() %}
+<div class="notice warn">{{ profile.unconfirmed()|length }} profile facts are inferred or placeholders and not yet confirmed.
+  <a href="private/environment.html">Review them</a>; recommendations use them, but they're labelled.</div>
+{% endif %}
+<div class="grid">
+{% for v in views %}
+  {% set top = v.top %}
+  <a class="card dash-card" href="needs/{{ v.spec.id }}.html">
+    <span class="status {{ v.spec.status }}">● {{ v.spec.status }}</span>
+    <h3>{{ v.spec.text }}</h3>
+    {% if top %}
+      {% set c = v.cand_by_id.get(top.candidate_id) %}
+      {% set o = v.offer(top.offer_id) or v.best_offer(top.candidate_id) %}
+      <div><span class="tag judgement">Top pick</span> <strong>{{ c.name if c else top.candidate_id }}</strong></div>
+      <div class="small">{% if o and o.price_amount is not none %}<span class="tag fact">fact</span> {{ o.price_amount|money(o.currency) }} at {{ o.retailer }}{% else %}<span class="muted">No verified price yet</span>{% endif %}</div>
+      {% if v.rec.warnings %}<div class="small" style="color:var(--warn)">⚠ {{ v.rec.warnings|length }} check{{ 's' if v.rec.warnings|length > 1 }}</div>{% endif %}
+    {% elif v.run_id %}
+      <div class="muted small">Last run incomplete ({{ v.run_id }}).</div>
+    {% else %}
+      <div class="muted small">Not run yet.</div>
+    {% endif %}
+    {% set bits = [] %}{% if v.run_id %}{% set _ = bits.append("Last run " ~ v.run_id) %}{% endif %}{% if v.spec.budget_max %}{% set _ = bits.append("budget " ~ (v.spec.budget_max|money)) %}{% endif %}
+    {% if bits %}<div class="muted small">{{ bits|join(" · ") }}</div>{% endif %}
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "Feature": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "why_it_matters": {
+          "title": "Why It Matters",
+          "type": "string"
+        },
+        "sources": {
+          "description": "Source URLs",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "why_it_matters"
+      ],
+      "title": "Feature",
+      "type": "object"
+    },
+    "Pitfall": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "sources"
+      ],
+      "title": "Pitfall",
+      "type": "object"
+    },
+    "PriceTier": {
+      "properties": {
+        "tier": {
+          "enum": [
+            "budget",
+            "mid",
+            "premium"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "min_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Price"
+        },
+        "max_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Price"
+        },
+        "currency": {
+          "title": "Currency",
+          "type": "string"
+        },
+        "typical": {
+          "title": "Typical",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tier",
+        "min_price",
+        "max_price",
+        "currency",
+        "typical",
+        "sources"
+      ],
+      "title": "PriceTier",
+      "type": "object"
+    },
+    "Source": {
+      "description": "A web page Claude actually searched or fetched during a run.",
+      "properties": {
+        "id": {
+          "description": "Short id used in prompts, e.g. S3",
+          "title": "Id",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "kind": {
+          "enum": [
+            "search_result",
+            "fetched_page",
+            "citation",
+            "direct_fetch"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "page_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fetched text, kept in memory for quote checks only",
+          "title": "Page Text"
+        }
+      },
+      "required": [
+        "id",
+        "url",
+        "kind",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "category": {
+      "title": "Category",
+      "type": "string"
+    },
+    "country": {
+      "title": "Country",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "features": {
+      "items": {
+        "$ref": "#/$defs/Feature"
+      },
+      "title": "Features",
+      "type": "array"
+    },
+    "pitfalls": {
+      "items": {
+        "$ref": "#/$defs/Pitfall"
+      },
+      "title": "Pitfalls",
+      "type": "array"
+    },
+    "price_tiers": {
+      "items": {
+        "$ref": "#/$defs/PriceTier"
+      },
+      "title": "Price Tiers",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "category",
+    "country",
+    "generated_at",
+    "features",
+    "pitfalls",
+    "price_tiers",
+    "sources"
+  ],
+  "title": "CategoryResearch",
+  "type": "object"
+}

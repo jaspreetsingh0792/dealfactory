@@ -1,0 +1,264 @@
+{
+  "$defs": {
+    "ReviewNote": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "sentiment": {
+          "enum": [
+            "positive",
+            "negative",
+            "neutral"
+          ],
+          "title": "Sentiment",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "sentiment",
+        "source_url"
+      ],
+      "title": "ReviewNote",
+      "type": "object"
+    },
+    "Source": {
+      "description": "A web page Claude actually searched or fetched during a run.",
+      "properties": {
+        "id": {
+          "description": "Short id used in prompts, e.g. S3",
+          "title": "Id",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "kind": {
+          "enum": [
+            "search_result",
+            "fetched_page",
+            "citation",
+            "direct_fetch"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "page_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fetched text, kept in memory for quote checks only",
+          "title": "Page Text"
+        }
+      },
+      "required": [
+        "id",
+        "url",
+        "kind",
+        "retrieved_at"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourcedValue": {
+      "description": "A factual value. Either known (with a source) or explicitly unknown.",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "status": {
+          "enum": [
+            "known",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "retrieved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieved At"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text on the source page that supports the value",
+          "title": "Quote"
+        },
+        "verification": {
+          "default": "unverified",
+          "enum": [
+            "quote_verified",
+            "jsonld",
+            "cited",
+            "unverified"
+          ],
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "status"
+      ],
+      "title": "SourcedValue",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "brand": {
+      "title": "Brand",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "variant": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Variant"
+    },
+    "why_shortlisted": {
+      "title": "Why Shortlisted",
+      "type": "string"
+    },
+    "official_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Official Url"
+    },
+    "availability_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Availability Evidence",
+      "type": "array"
+    },
+    "specs": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SourcedValue"
+      },
+      "description": "feature_key -> value",
+      "title": "Specs",
+      "type": "object"
+    },
+    "review_notes": {
+      "items": {
+        "$ref": "#/$defs/ReviewNote"
+      },
+      "title": "Review Notes",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "brand",
+    "model",
+    "why_shortlisted"
+  ],
+  "title": "Candidate",
+  "type": "object"
+}

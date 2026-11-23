@@ -1,0 +1,188 @@
+{
+  "description": "One purchased item. Extracted fields only - the email or receipt itself is never stored.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "user_id": {
+      "default": "me",
+      "title": "User Id",
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "email",
+        "receipt"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_ref": {
+      "description": "sha256 of the Gmail message id or file contents; for de-duplication only",
+      "title": "Source Ref",
+      "type": "string"
+    },
+    "doc_type": {
+      "enum": [
+        "order_confirmation",
+        "shipping",
+        "invoice",
+        "receipt",
+        "return",
+        "cancellation",
+        "other"
+      ],
+      "title": "Doc Type",
+      "type": "string"
+    },
+    "merchant": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merchant"
+    },
+    "order_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Order Date"
+    },
+    "product_name": {
+      "title": "Product Name",
+      "type": "string"
+    },
+    "brand": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Brand"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "variant": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Variant"
+    },
+    "category": {
+      "title": "Category",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "durable",
+        "accessory",
+        "consumable",
+        "clothing",
+        "service",
+        "gift_card",
+        "other"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "quantity": {
+      "default": 1,
+      "title": "Quantity",
+      "type": "integer"
+    },
+    "unit_price": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Price"
+    },
+    "currency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Currency"
+    },
+    "price_verified": {
+      "default": false,
+      "description": "The price was found in the document text by code",
+      "title": "Price Verified",
+      "type": "boolean"
+    },
+    "status": {
+      "default": "unconfirmed",
+      "enum": [
+        "confirmed",
+        "unconfirmed",
+        "rejected"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "user_edited": {
+      "default": false,
+      "title": "User Edited",
+      "type": "boolean"
+    },
+    "extracted_at": {
+      "format": "date-time",
+      "title": "Extracted At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "source_kind",
+    "source_ref",
+    "doc_type",
+    "product_name",
+    "category",
+    "kind",
+    "extracted_at"
+  ],
+  "title": "Purchase",
+  "type": "object"
+}
