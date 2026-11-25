@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 22
       - uses: astral-sh/setup-uv@v6
-      - run: node --test web/tests/
+      - run: node --test web/tests/*.test.mjs
       - run: uv run --locked pytest -q
       - run: uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory-test" --site-url https://dealfactory.example
 
