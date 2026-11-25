@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stroller footmuffs in the Netherlands | DealFactory</title>
+<meta name="description" content="Find a footmuff that fits your stroller, compare checked Dutch retailer prices, and see what to verify before ordering.">
+<link rel="canonical" href="{{ site_url }}/guides/stroller-footmuffs/">
+<link rel="stylesheet" href="../../style.css">
+<script type="module" src="../../lib/fresh-offers.js"></script>
+</head>
+<body>
+<header class="wrap"><a href="../../">DealFactory</a></header>
+<main class="wrap">
+  <h1>Stroller footmuffs in the Netherlands</h1>
+  <p>Check the exact stroller model and seat setup before comparing prices. A footmuff listed as universal may only be designed for strollers from the same brand.</p>
+  <h2>What to check before ordering</h2>
+  <ul>
+    <li>Look for the model and generation on the manufacturer's compatibility list.</li>
+    <li>Check that the harness slots line up with your stroller seat and follow the stroller manufacturer's fitting instructions.</li>
+    <li>Compare delivery charges and return terms for your postcode.</li>
+  </ul>
+  <h2>Checked retailer offers</h2>
+  <p id="unverified-offers">There are no current prices to show. Check the retailer pages below.</p>
+  {% if offers %}
+  <div hidden data-offers-checked="{{ checked_at }}">
+  <p>Checked <time datetime="{{ checked_at }}">{{ checked_at }}</time>. Prices are in euros, before delivery. Confirm price and stock at the retailer.</p>
+  <ul>
+    {% for offer in offers %}
+    <li><a href="{{ offer.url }}">{{ offer.name }} at {{ offer.retailer }}</a> · €{{ offer.price }}</li>
+    {% endfor %}
+  </ul>
+  </div>
+  {% endif %}
+  <h2>Retailer product pages</h2>
+  <ul>
+    {% for source in sources %}
+    <li><a href="{{ source.url }}">{{ source.name }} at {{ source.retailer }}</a></li>
+    {% endfor %}
+  </ul>
+</main>
+</body>
+</html>
