@@ -1,0 +1,49 @@
+import importlib.util
+import json
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+SITEMAP_NS = {"map": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+spec = importlib.util.spec_from_file_location(
+    "build_public", Path(__file__).resolve().parents[1] / "ops" / "build_public.py"
+)
+public = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(public)
+
+
+def product_page(**overrides):
+    offer = {
+        "@type": "Offer", "price": "89,95", "priceCurrency": "EUR",
+        "availability": "https://schema.org/InStock",
+    }
+    data = {"@type": "Product", "offers": {**offer, **overrides}}
+    return '<script type="application/ld+json">' + json.dumps(data) + "</script>"
+
+
+def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
+    class Fetcher:
+        def get(self, url):
+            return (200, product_page()) if "joolz.com" in url else None
+
+    output = tmp_path / "public"
+    assert public.build(output, "https://example.com", Fetcher(), "public-example") == 1
+    assert not (output / "tests").exists()
+    assert not (output / "private").exists()
+    html = (output / public.GUIDE / "index.html").read_text()
+    assert 'hidden data-offers-checked=' in html
+    assert "€89,95" in html
+    assert 'href="guides/stroller-footmuffs/"' in (output / "index.html").read_text()
+    assert "static.cloudflareinsights.com" in (output / "index.html").read_text()
+    sitemap = ET.parse(output / "sitemap.xml")
+    assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
+
+
+def test_missing_ambiguous_or_unavailable_prices_are_omitted():
+    for page in (
+        product_page(priceCurrency=None),
+        product_page(availability="https://schema.org/OutOfStock"),
+        product_page(price="NaN"),
+        product_page(**{"@type": "AggregateOffer"}),
+        product_page() + product_page(price="99.50"),
+    ):
+        assert public.exact_stock_price(page) is None
