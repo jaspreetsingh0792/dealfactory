@@ -61,21 +61,40 @@ jobs:
           node-version: 22
       - uses: astral-sh/setup-uv@v6
         if: steps.pages.outputs.ready == 'true'
+      - name: Prepare aggregate traffic measurement
+        id: traffic
+        if: steps.pages.outputs.ready == 'true'
+        env:
+          PAGES_CREDENTIALS: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 ops/traffic.py
       - name: Verify and publish current offers
         if: steps.pages.outputs.ready == 'true'
         env:
           PAGES_URL: ${{ steps.pages.outputs.url }}
         run: |
           set -o pipefail
+          flags=()
+          if [[ -f "$RUNNER_TEMP/dealfactory-traffic.json" ]]; then
+            flags+=(--traffic-file "$RUNNER_TEMP/dealfactory-traffic.json")
+          fi
           uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory" \
-            --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh | tee -a "$GITHUB_STEP_SUMMARY"
+            --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh --history-url "$PAGES_URL/offer-history.json" "${flags[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Deploy tested public assets
         if: steps.pages.outputs.ready == 'true'
         env:
           PAGES_PROJECT: ${{ steps.pages.outputs.project }}
+          DATABASE_ID: ${{ steps.traffic.outputs.database }}
           CLOUDFLARE_ACCOUNT_ID: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').account_id || vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').api_token || secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          if [[ -n "$DATABASE_ID" ]]; then
+            jq -n --arg project "$PAGES_PROJECT" --arg db "$DATABASE_ID" \
+              --arg assets "$RUNNER_TEMP/dealfactory" \
+              '{name:$project,pages_build_output_dir:$assets,compatibility_date:"2025-04-01",
+              d1_databases:[{binding:"TRAFFIC",database_name:"dealfactory-traffic",database_id:$db}]}' > wrangler.json
+          fi
           npm exec --yes --package=wrangler@4 -- wrangler pages deploy "${RUNNER_TEMP}/dealfactory" \
             --project-name "$PAGES_PROJECT" --branch main
       - name: Check production routes
@@ -89,6 +108,11 @@ jobs:
             curl --fail --silent --show-error --location --max-time 20 --retry 3 --output /dev/null "$url"
             printf 'Reachable: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"
           done
+          python3 ops/check_live.py "$RUNNER_TEMP/dealfactory" "$origin"
+          if [[ -f "$RUNNER_TEMP/dealfactory-traffic.json" ]]; then
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Origin: $origin" -H "DNT: 1" "$origin/events?page=home&event=view")
+            test "$code" = 204
+          fi
       - name: Record production check
         if: always()
         env:

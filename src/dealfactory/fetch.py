@@ -55,8 +55,8 @@ class PoliteFetcher:
                 with self._client() as c:
                     r = c.get(f"{host}/robots.txt")
                 if r.status_code >= 400:
-                    # 4xx: no robots file -> allowed; 401/403: treat as disallowed
-                    rp.parse([] if r.status_code not in (401, 403) else ["User-agent: *", "Disallow: /"])
+                    # An absent file permits crawling. Back off on transient errors and access denials.
+                    rp.parse([] if r.status_code in (404, 410) else ["User-agent: *", "Disallow: /"])
                 else:
                     rp.parse(r.text.splitlines())
                 self._robots[host] = rp

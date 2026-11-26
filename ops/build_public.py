@@ -1,18 +1,24 @@
 """Build only the public frontend and its curated Netherlands buying guide."""
 
 import argparse
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html import escape
 import json
 from pathlib import Path
 import re
 import shutil
+import xml.etree.ElementTree as ET
+from email.utils import format_datetime
 from urllib.parse import urlsplit
+from urllib.request import urlopen
+from urllib.error import URLError
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from dealfactory.fetch import JSONLD_RE, PoliteFetcher, _iter_nodes
+
+from dealfactory.public_catalog import discover, product_name
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
@@ -62,15 +68,22 @@ def collect_offers(sources, fetcher):
     for source in sources:
         response = fetcher.get(source["url"])
         price = exact_stock_price(response[1]) if response and response[0] == 200 else None
-        if price is not None:
-            offers.append((price, source))
+        if price is None:
+            continue
+        if source.get("discovered"):
+            name = product_name(response[1])
+            if not name:
+                continue
+            source = {**source, "name": name}
+        offers.append((price, source))
     return [
         {**source, "price": f"{price:.2f}".replace(".", ",")}
         for price, source in sorted(offers, key=lambda pair: pair[0])
     ]
 
 
-def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "") -> int:
+def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", *,
+          history=None, traffic=None, collect_traffic=False) -> int:
     site_url = site_url.rstrip("/")
     parsed = urlsplit(site_url)
     if not re.fullmatch(r"https://[a-zA-Z0-9.-]+", site_url) or not parsed.hostname:
@@ -79,7 +92,10 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "") 
         raise ValueError("Invalid public Web Analytics beacon token")
 
     sources = json.loads((ROOT / "ops/offer-sources.json").read_text())
-    offers = collect_offers(sources, fetcher) if fetcher else []
+    candidates = list(sources)
+    if fetcher:
+        candidates.extend(discover(fetcher, {source["url"] for source in sources}))
+    offers = collect_offers(candidates, fetcher) if fetcher else []
     templates = Environment(
         loader=FileSystemLoader(ROOT / "ops"), autoescape=select_autoescape(default=True)
     )
@@ -91,19 +107,74 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "") 
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
 
+    today = datetime.now(UTC).date()
+    observations = {}
+    for offer in offers:
+        url = offer["url"]
+        price = Decimal(offer["price"].replace(",", "."))
+        prices = {}
+        for day, old in (history or {}).get(url, {}).items():
+            try:
+                recent = today - timedelta(days=7) <= date.fromisoformat(day) < today
+                if recent and re.fullmatch(r"[0-9]{1,7}\.[0-9]{2}", str(old)):
+                    prices[day] = str(old)
+            except ValueError:
+                continue
+        if prices:
+            prior = Decimal(prices[max(prices)])
+            if prior > price:
+                offer["previous"] = f"{prior:.2f}".replace(".", ",")
+                offer["previous_date"] = max(prices)
+        prices[today.isoformat()] = f"{price:.2f}"
+        observations[url] = prices
+    (output / "offer-history.json").write_text(json.dumps(observations, ensure_ascii=False))
+    feed = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(feed, "channel")
+    ET.SubElement(channel, "title").text = "DealFactory | Dutch stroller footmuffs"
+    ET.SubElement(channel, "link").text = site_url + "/" + GUIDE
+    ET.SubElement(channel, "description").text = "Current retailer offers verified by DealFactory."
+    ET.SubElement(channel, "lastBuildDate").text = format_datetime(datetime.now(UTC))
+    for offer in offers:
+        item = ET.SubElement(channel, "item")
+        ET.SubElement(item, "title").text = f"{offer['name']} at {offer['retailer']} · €{offer['price']}"
+        ET.SubElement(item, "link").text = site_url + "/" + GUIDE + "?utm_source=rss&utm_medium=feed"
+        ET.SubElement(item, "guid", isPermaLink="false").text = offer["url"] + "#" + offer["price"]
+        ET.SubElement(item, "description").text = f"Price checked on {today.isoformat()}. Confirm availability at the retailer."
+    ET.ElementTree(feed).write(output / "offers.xml", encoding="utf-8", xml_declaration=True)
+    counts = {(r["page"], r["event"]): int(r["n"]) for r in traffic or []}
+    guide_views = counts.get(("footmuffs", "view"), 0)
+    show_offers_first = guide_views >= 30 and counts.get(("footmuffs", "outbound"), 0) < guide_views / 10
     guide = output / GUIDE
     guide.mkdir(parents=True)
     (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(
-        site_url=site_url, offers=offers, sources=sources,
+        site_url=site_url, offers=offers, sources=sources, offers_first=show_offers_first,
         checked_at=datetime.now(UTC).isoformat(timespec="minutes").replace("+00:00", "Z"),
     ), encoding="utf-8")
 
     homepage = output / "index.html"
     html = homepage.read_text(encoding="utf-8")
     html = html.replace("</head>", f'<link rel="canonical" href="{site_url}/">\n</head>', 1)
-    html = html.replace("</main>", f'<p class="wrap"><a href="{GUIDE}">Stroller footmuffs in the Netherlands</a></p>\n</main>', 1)
+    guide_link = f'<a href="{GUIDE}">Stroller footmuffs in the Netherlands</a>'
+    if '<section class="hero">' in html:
+        start = html.index('<section class="hero">')
+        end = html.index("</p>", start) + len("</p>")
+        html = html[:end] + f'<p>{guide_link}</p>' + html[end:]
+    else:
+        html = html.replace("</main>", f"<p>{guide_link}</p>\n</main>", 1)
     homepage.write_text(html, encoding="utf-8")
 
+    for page_path in (homepage, guide / "index.html"):
+        markup = page_path.read_text(encoding="utf-8")
+        prefix = "./" if page_path == homepage else "../../"
+        script = f'<script type="module" src="{prefix}lib/guide-events.js"></script>'
+        script += '<link rel="alternate" type="application/rss+xml" title="Checked offers" href="/offers.xml">'
+        if collect_traffic:
+            script += '<meta name="dealfactory-counts" content="aggregate">'
+            markup = markup.replace("</main>", '<p class="small muted">DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies.</p>\n</main>', 1)
+        page_path.write_text(markup.replace("</head>", script + "\n</head>", 1), encoding="utf-8")
+    if collect_traffic:
+        shutil.copyfile(ROOT / "ops/events-worker.js", output / "_worker.js")
+        (output / "_routes.json").write_text(json.dumps({"version": 1, "include": ["/events"], "exclude": []}))
     if analytics_token:
         beacon = (
             f'<script defer src="{ANALYTICS_SCRIPT}" '
@@ -127,6 +198,12 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "") 
         + "".join(f"<url><loc>{escape(site_url + path)}</loc></url>" for path in ("/", f"/{GUIDE}"))
         + "</urlset>\n", encoding="utf-8"
     )
+    print(f"Retailer pages checked: {len(candidates)}. New product links found: {len(candidates) - len(sources)}.")
+    print(f"Guide layout: {'prices first' if show_offers_first else 'compatibility first'}.")
+    if offers:
+        print(f"Organic campaign draft: Compare {len(offers)} checked stroller footmuff "
+              f"{'offer' if len(offers) == 1 else 'offers'} for shoppers in the Netherlands. "
+              f"{site_url}/{GUIDE}?utm_source=campaign&utm_medium=organic")
     return len(offers)
 
 
@@ -136,12 +213,25 @@ def main():
     parser.add_argument("--site-url", required=True)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--analytics-token", default="")
+    parser.add_argument("--history-url")
+    parser.add_argument("--traffic-file", type=Path)
     args = parser.parse_args()
+    history = {}
+    if args.history_url:
+        try:
+            with urlopen(args.history_url, timeout=10) as response:
+                data = json.load(response)
+                if isinstance(data, dict):
+                    history = {key: value for key, value in data.items() if isinstance(value, dict)}
+        except (ValueError, URLError, TimeoutError):
+            pass
+    traffic = json.loads(args.traffic_file.read_text()) if args.traffic_file else []
     import tempfile
 
     with tempfile.TemporaryDirectory() as cache:
         fetcher = PoliteFetcher(Path(cache), "DealFactoryOfferCheck/1.0") if args.refresh else None
-        count = build(args.output, args.site_url, fetcher, args.analytics_token)
+        count = build(args.output, args.site_url, fetcher, args.analytics_token,
+                      history=history, traffic=traffic, collect_traffic=bool(args.traffic_file))
     print(f"Verified in-stock offers: {count}")
 
 
