@@ -17,6 +17,7 @@ test("counts only allowlisted events and respects privacy signals", async () => 
   assert.equal((await send(endpoint, {Origin: origin, DNT: "1"})).status, 204);
   assert.equal((await send(endpoint, {Origin: "https://elsewhere.example"})).status, 403);
   assert.equal((await send(endpoint.replace("outbound", "unknown"), {Origin: origin})).status, 400);
+  assert.equal((await send(endpoint + "&channel=unexpected", {Origin: origin})).status, 400);
   assert.equal(writes.length, 1);
-  assert.deepEqual(writes[0].slice(1), ["outbound", "footmuffs"]);
+  assert.deepEqual(writes[0].slice(1), ["outbound/direct", "footmuffs"]);
 });
