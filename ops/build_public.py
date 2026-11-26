@@ -8,11 +8,10 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import xml.etree.ElementTree as ET
 from email.utils import format_datetime
 from urllib.parse import urlsplit
-from urllib.request import urlopen
-from urllib.error import URLError
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -219,11 +218,11 @@ def main():
     history = {}
     if args.history_url:
         try:
-            with urlopen(args.history_url, timeout=10) as response:
-                data = json.load(response)
-                if isinstance(data, dict):
-                    history = {key: value for key, value in data.items() if isinstance(value, dict)}
-        except (ValueError, URLError, TimeoutError):
+            payload = subprocess.check_output(["curl", "-fsSL", "--max-time", "10", args.history_url])
+            data = json.loads(payload)
+            if isinstance(data, dict):
+                history = {key: value for key, value in data.items() if isinstance(value, dict)}
+        except (ValueError, OSError, subprocess.CalledProcessError):
             pass
     traffic = json.loads(args.traffic_file.read_text()) if args.traffic_file else []
     import tempfile
