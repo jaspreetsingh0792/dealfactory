@@ -45,7 +45,7 @@ Build into a new output directory. Add `--refresh` to check retailers. Pass a re
 
 ## Automated discovery, measurement and promotion
 
-The daily release checks the Babycare and Jollein footmuff departments for new product links, then verifies individual offers. The public offer history records checked prices for comparisons across the last seven days. The RSS feed at `/offers.xml` and the guide's share link distribute the latest offers. The build writes a suggested organic campaign to its Actions summary.
+The daily release checks the Babycare, Koeka and Jollein footmuff departments for new product links, then verifies individual offers. The public offer history records checked prices for comparisons across the last seven days. The RSS feed at `/offers.xml` and the guide's share link distribute the latest offers. The build writes a suggested organic campaign to its Actions summary.
 
 The workflow registers `deals.agentsealteam.com` on the owner's Pages project. Once the domain is active, releases use it in canonical URLs and the sitemap. If domain verification is waiting for DNS, add the `deals` CNAME at the authoritative DNS provider using the Pages hostname printed in the production log.
 
@@ -54,3 +54,5 @@ Traffic measurement uses a Cloudflare D1 database named `dealfactory-traffic`. T
 The daily job evaluates page views and retailer clicks over seven complete UTC days. Read the underlying totals in Cloudflare's D1 console by grouping the daily_events table by page and event. Once the guide has at least 30 views in that period, a click-to-view ratio under 10% moves verified offers above the compatibility advice. This is a simple layout adjustment. The workflow has no advertising credentials or paid spend.
 
 The editorial agent runs Qwen2.5-0.5B-Instruct locally on the standard Actions runner. It chooses among factual editorial angles using the current offer count, observed price drops and guide layout. Each eligible angle has a reviewed search title, description and social preview. A comparison needs multiple verified offers. A price-drop headline needs a recorded decrease. When model inference is unavailable, publishing still uses the guide's default copy. The workflow records the editorial result and campaign draft in its run summary.
+
+After the public content checks pass, the workflow submits changed page URLs to IndexNow. It compares content fingerprints, excluding the check timestamp, with the last accepted submission. The sitemap remains available to other crawlers.
