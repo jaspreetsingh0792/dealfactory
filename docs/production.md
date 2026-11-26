@@ -42,3 +42,13 @@ uv run --locked python ops/build_public.py /tmp/dealfactory-public --site-url ht
 ```
 
 Build into a new output directory. Add `--refresh` to check retailers. Pass a real production HTTPS origin for a release.
+
+## Automated discovery, measurement and promotion
+
+The daily release checks the Babycare and Jollein footmuff departments for new product links, then verifies individual offers. The public offer history records checked prices for comparisons across the last seven days. The RSS feed at `/offers.xml` and the guide's share link distribute the latest offers. The build writes a suggested organic campaign to its Actions summary.
+
+The workflow registers `deals.agentsealteam.com` on the owner's Pages project. Once the domain is active, releases use it in canonical URLs and the sitemap. If domain verification is waiting for DNS, add the `deals` CNAME at the authoritative DNS provider using the Pages hostname printed in the production log.
+
+Traffic measurement uses a Cloudflare D1 database named `dealfactory-traffic`. The deployment token needs D1 Edit to create the database and read aggregate reports. With that permission, the workflow provisions the database, applies the table schema, and binds the counter to the site. The browser respects Do Not Track and Global Privacy Control. The counter stores only UTC day, page group, event type, and count. Outbound clicks are a measure of retailer interest. Confirmed sales require a participating retailer's conversion data.
+
+The daily summary reports page views and retailer clicks over seven complete UTC days. Once the guide has at least 30 views in that period, a click-to-view ratio under 10% moves verified offers above the compatibility advice. This is a simple layout adjustment. The workflow has no advertising credentials or paid spend.
