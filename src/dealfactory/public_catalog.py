@@ -30,6 +30,8 @@ class ProductLinks(HTMLParser):
 
 def discover(fetcher, known):
     departments = (
+        ("https://koeka.com/nl/collections/buggy-voetenzakken", "Koeka",
+         r"/nl/products/(?:buggy|kinderwagen)-voetenzak-[a-z0-9-]+"),
         (CATEGORY, "Babycare", r"/en/[a-z0-9-]*(?:footmuff|voetenzak)[a-z0-9-]*\.html"),
         ("https://jollein.nl/collections/voetenzakken", "Jollein",
          r"/products/voetenzak-[a-z0-9-]*(?:buggy|kinderwagen)[a-z0-9-]*"),
