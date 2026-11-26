@@ -348,7 +348,18 @@ function renderImports() {
 async function connectGmail(grant) {
   const st = $("#gm-status");
   let llm;
-  try { llm = client(ai); } catch (e) { st.className = "small error"; st.textContent = `Connect your AI first: it reads the emails. (${e.message})`; return; }
+  try { llm = client(ai); } catch (e) {
+    st.className = "small error";
+    st.replaceChildren(
+      "Connect your AI first so it can extract items from receipts: ",
+      h("button", { type: "button", class: "link", onclick: () => $("#or-signin").click() }, "Sign in with OpenRouter"),
+      " or ",
+      h("button", { type: "button", class: "link", onclick: () => { $("#ai-advanced").open = true; $("#ai-key").focus(); } }, "add an API key"),
+      `. (${e.message})`
+    );
+    toast("Connect your AI first (OpenRouter or API key) to import from Gmail");
+    return;
+  }
   try {
     grant = grant || await googleSignIn(CONFIG.googleClientId);
   } catch (e) { st.className = "small error"; st.textContent = e.message; return; }

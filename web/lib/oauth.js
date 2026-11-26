@@ -38,14 +38,20 @@ function popup(url, flow) {
     return new Promise(() => {});
   }
   return new Promise((resolve, reject) => {
-    const onMsg = (e) => {
-      if (e.source !== w || e.origin !== location.origin || e.data?.type !== "dealfactory-oauth") return;
+    const ch = typeof BroadcastChannel === "function" ? new BroadcastChannel("dealfactory-oauth") : null;
+    const accept = (data) => {
+      if (data?.type !== "dealfactory-oauth") return false;
+      if (flow?.state && params(data).get("state") !== flow.state) return false;
       cleanup();
-      resolve(e.data);
+      resolve(data);
+      return true;
     };
+    const onMsg = (e) => { if (e.source === w && e.origin === location.origin) accept(e.data); };
+    const onBc = (e) => { accept(e.data); };
     const timer = setInterval(() => { if (w.closed) { cleanup(); reject(new Error("Sign-in window was closed.")); } }, 700);
-    const cleanup = () => { clearInterval(timer); window.removeEventListener("message", onMsg); takeFlow(); };
+    const cleanup = () => { clearInterval(timer); window.removeEventListener("message", onMsg); ch?.removeEventListener("message", onBc); ch?.close(); takeFlow(); };
     window.addEventListener("message", onMsg);
+    ch?.addEventListener("message", onBc);
   });
 }
 
