@@ -43,12 +43,8 @@ def main():
         return
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as out:
         print(f"database={db}", file=out)
-    counts = {(row["page"], row["event"]): int(row["n"]) for row in rows}
     with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
-        print("### Traffic over the last seven complete UTC days", file=summary)
-        for page in ("home", "footmuffs"):
-            print(f"- {page}: {counts.get((page, 'view'), 0)} page views, "
-                  f"{counts.get((page, 'outbound'), 0)} retailer clicks", file=summary)
+        print("Aggregate traffic reporting is active. Seven complete UTC days were evaluated.", file=summary)
     Path(os.environ["RUNNER_TEMP"], "dealfactory-traffic.json").write_text(json.dumps(rows))
 
 
