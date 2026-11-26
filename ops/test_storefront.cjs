@@ -16,7 +16,7 @@ async function main() {
       const page = await browser.newPage({ viewport: { width, height } });
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
-      for (const [route, screen] of [["/", "home"], ["/deals/", "deals"], ["/guides/stroller-footmuffs/", "guide"], ["/about/", "about"]]) {
+      for (const [route, screen] of [["/", "home"], ["/guides/smart-home-compatibility/", "smarthome"], ["/deals/", "deals"], ["/guides/stroller-footmuffs/", "guide"], ["/about/", "about"]]) {
         await page.goto(origin + route, { waitUntil: "domcontentloaded" });
         await page.evaluate(() => document.fonts.ready);
         assert(await page.locator("h1").isVisible());

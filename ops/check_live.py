@@ -26,6 +26,8 @@ for attempt in range(8):
             raise ValueError("The advisor-first homepage or shopping advisor link is missing")
         if 'id="cover-title"' not in read_route("/deals/").decode():
             raise ValueError("The checked deals page is missing")
+        if 'id="sh-title"' not in read_route("/guides/smart-home-compatibility/").decode():
+            raise ValueError("The smart home compatibility guide is missing")
         for route in ("/about/", "/terms/"):
             read_route(route)
         missing = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "15",

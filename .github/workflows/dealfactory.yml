@@ -156,7 +156,7 @@ jobs:
           PAGES_URL: ${{ steps.pages.outputs.url }}
         run: |
           origin="${SITE_URL:-$PAGES_URL}"
-          for route in / /deals/ /guides/stroller-footmuffs/ /about/ /terms/ /sitemap.xml /robots.txt; do
+          for route in / /guides/smart-home-compatibility/ /deals/ /guides/stroller-footmuffs/ /about/ /terms/ /sitemap.xml /robots.txt; do
             url="${origin%/}${route}"
             curl --fail --silent --show-error --location --max-time 20 --retry 3 --output /dev/null "$url"
             printf 'Reachable: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"

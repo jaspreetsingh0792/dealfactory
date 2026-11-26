@@ -1,4 +1,4 @@
-const page = location.pathname === "/" ? "home" : location.pathname.startsWith("/deals") ? "deals" : "footmuffs";
+const page = location.pathname === "/" ? "home" : location.pathname.startsWith("/deals") ? "deals" : location.pathname.includes("smart-home") ? "smarthome" : "footmuffs";
 const enabled = document.querySelector('meta[name="dealfactory-counts"]') !== null;
 function arrivalChannel() {
   const source = new URL(location.href).searchParams.get("utm_source");
