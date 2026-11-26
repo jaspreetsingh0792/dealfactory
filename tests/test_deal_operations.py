@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 import json
 import sqlite3
 import sys
@@ -24,7 +24,7 @@ def test_discover_check_and_compare(tmp_path):
                 return 200, '<script type="application/ld+json">' + json.dumps(info) + "</script>"
             return None
 
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
     output = tmp_path / "release"
     assert build(output, "https://example.com", Fetcher(), history={url: {yesterday: "23.00"}},
                  traffic=[{"page": "footmuffs", "event": "view", "n": 50}], collect_traffic=True) == 1

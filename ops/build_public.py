@@ -270,8 +270,13 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             page.write_text(html.replace("</body>", f"{beacon}\n</body>", 1), encoding="utf-8")
 
     (output / "_headers").write_text(
-        "/*\n  Content-Security-Policy: frame-ancestors 'none'\n"
-        "  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n"
+        "/*\n"
+        "  Content-Security-Policy: frame-ancestors 'none'; object-src 'none'; base-uri 'none'\n"
+        "  Strict-Transport-Security: max-age=31536000; includeSubDomains\n"
+        "  X-Frame-Options: DENY\n"
+        "  X-Content-Type-Options: nosniff\n"
+        "  Referrer-Policy: strict-origin-when-cross-origin\n"
+        "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n"
         "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n"
         "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
         encoding="utf-8",

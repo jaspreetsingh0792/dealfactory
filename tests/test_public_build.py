@@ -45,6 +45,12 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert '"@type": "FAQPage"' in smarthome
     for page in ("about/index.html", "terms/index.html", "404.html"):
         assert "<h1>" in (output / page).read_text()
+    headers = (output / "_headers").read_text()
+    assert "Strict-Transport-Security:" in headers
+    assert "Permissions-Policy:" in headers
+    assert "X-Frame-Options: DENY" in headers
+    assert 'http-equiv="Content-Security-Policy"' in home
+    assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
     assert "your home." in (output / "advisor.html").read_text()
     sitemap = ET.parse(output / "sitemap.xml")
