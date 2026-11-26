@@ -4,19 +4,24 @@ This deployment uses Cloudflare Pages Direct Upload and GitHub Actions. Only the
 
 ## Connect production
 
-1. In Cloudflare Workers & Pages, create a Pages Direct Upload project and use `main` as the production branch. The project name determines its free `pages.dev` address. Keep the generated address until a custom domain is ready.
-2. Create a Cloudflare API token restricted to the account, with Cloudflare Pages Edit permission. Save it as the GitHub Actions secret `CLOUDFLARE_API_TOKEN`. Set these GitHub Actions variables:
+1. Create an account-scoped Cloudflare API token with **Cloudflare Pages → Edit**. Under GitHub Actions secrets, add `CLOUDFLARE_PAGES_DEPLOY` with this JSON value, replacing both placeholder values:
 
-   | Variable | Value |
-   | --- | --- |
-   | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-   | `CLOUDFLARE_PAGES_PROJECT` | Pages project name |
-   | `SITE_URL` | Production HTTPS origin, without a path |
-   | `CLOUDFLARE_WEB_ANALYTICS_TOKEN` | Optional public beacon token from a manually configured Cloudflare Web Analytics site |
+   ```json
+   {"account_id":"your Cloudflare account ID","api_token":"your Cloudflare Pages Edit token"}
+   ```
 
-   Use manual Web Analytics setup for this deployment so the build can manage the beacon. The beacon token is public by design. Keep the API token in Actions secrets.
-3. Run **DealFactory site** on `main`. The workflow runs on pushes and once a day. Its summary reports how many offers passed verification and which production routes responded.
-4. Open the homepage and the guide on mobile and desktop. Check the shopping brief, private data controls, guide links, and retailer prices. If Cloudflare Web Analytics is enabled, check that it receives page views. Verify the site in Google Search Console and submit `/sitemap.xml`.
+2. In the repository's Actions tab, run **DealFactory site** on `main`. It creates or reuses the `dealfactory` Pages project, uses its assigned `pages.dev` hostname, deploys, and checks the live routes. It also runs on pushes and once a day.
+3. Check the homepage and guide on mobile and desktop. Verify the site in Google Search Console and submit `/sitemap.xml`.
+
+Optional GitHub Actions variables:
+
+| Variable | Value |
+| --- | --- |
+| `CLOUDFLARE_PAGES_PROJECT` | Override the default project name `dealfactory`. An existing project must use `main` as its production branch. |
+| `SITE_URL` | Override the production HTTPS origin once a custom domain is active in Pages. |
+| `CLOUDFLARE_WEB_ANALYTICS_TOKEN` | Public beacon token from a manually configured Cloudflare Web Analytics site. |
+
+For an existing setup, `CLOUDFLARE_ACCOUNT_ID` and the `CLOUDFLARE_API_TOKEN` secret also remain supported.
 
 Cloudflare documents [CI uploads](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/) and [manual Web Analytics](https://developers.cloudflare.com/web-analytics/get-started/).
 
@@ -31,7 +36,7 @@ Cloudflare documents [CI uploads](https://developers.cloudflare.com/pages/how-to
 ## Local release build
 
 ```sh
-node --test web/tests/
+node --test web/tests/*.test.mjs
 uv run --locked pytest -q
 uv run --locked python ops/build_public.py /tmp/dealfactory-public --site-url https://dealfactory.example
 ```
