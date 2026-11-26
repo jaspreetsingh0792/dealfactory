@@ -46,15 +46,20 @@ export class SourceRegistry {
     if (!canon || !/^https?:/.test(canon)) return null;
     let s = this.byUrl.get(canon);
     if (!s) {
-      s = { id: `S${this.byId.size + 1}`, url: canon, title: title || null, kind, texts: [],
+      s = { id: `S${this.byId.size + 1}`, url: canon, title: title || null, kind, texts: [], pages: [],
             hasPage: false, retrievedAt: retrievedAt || new Date().toISOString() };
       this.byId.set(s.id, s);
       this.byUrl.set(canon, s);
     }
     if (title && !s.title) s.title = title;
-    if (text) {
+    if (typeof text === "string" && text.trim()) {
       s.texts.push(text);
-      if (kind === "fetched_page") { s.hasPage = true; s.kind = "fetched_page"; }
+      if (kind === "fetched_page") {
+        s.pages.push(text);
+        s.retrievedAt = retrievedAt || new Date().toISOString();
+        s.hasPage = true;
+        s.kind = "fetched_page";
+      }
     }
     return s;
   }
@@ -68,7 +73,9 @@ export class SourceRegistry {
     const s = this.get(id);
     if (!s || !quote) return false;
     const needle = norm(quote).replace(/^[\s."'…]+|[\s."'…]+$/g, "");
-    return needle.length > 0 && norm(s.texts.join("\n")).includes(needle);
+    if (!needle) return false;
+    const texts = s.hasPage ? s.pages : s.texts;
+    return texts.some((text) => norm(text).includes(needle));
   }
   render() {
     return [...this.byId.values()]
@@ -76,7 +83,7 @@ export class SourceRegistry {
       .join("\n");
   }
   toJSON() {
-    return [...this.byId.values()].map(({ texts, ...rest }) => ({ ...rest, evidenceChars: texts.join("").length }));
+    return [...this.byId.values()].map(({ texts, pages, ...rest }) => ({ ...rest, evidenceChars: texts.join("").length }));
   }
 }
 
@@ -106,34 +113,45 @@ export function harvestOpenAI(output, reg) {
   }
 }
 
-const NUM = /\d+(?:[.,]\d+)?/g;
+const VALUE_TOKENS = /[+-]?\d+(?:[.,]\d+)?|[\p{L}]+|[%°]/gu;
+const tokens = (text) => (norm(text).match(VALUE_TOKENS) || []).map((token) => token.replace(",", "."));
 
 export function valueInQuote(value, quote) {
-  const nums = String(value).match(NUM) || [];
-  const q = norm(quote);
-  if (nums.length) {
-    const qn = new Set((q.match(NUM) || []).map((n) => n.replace(",", ".")));
-    return nums.every((n) => qn.has(n.replace(",", ".")));
-  }
-  const words = (norm(value).match(/[\p{L}\p{N}]+/gu) || []).filter((w) => w.length > 2);
-  return words.length === 0 || words.some((w) => q.includes(w));
+  const expected = tokens(value);
+  const evidence = tokens(quote);
+  return expected.length > 0 && evidence.some((_, i) => expected.every((token, j) => token === evidence[i + j]));
 }
 
-const PRICE_TOKEN = /\d[\d.,\s  ]*/g;
+const PRICE_TOKEN = /[-−]?\d+(?:[.,]\d+)*(?:\s\d{3}(?!\d)(?:[.,]\d+)?)*/gu;
 
-// True if `price` is visibly written in `text` (1.299,00 / 1299 / 299,- / 299.99 / 1 299,00).
-export function priceInText(price, text) {
-  if (price == null || !text) return false;
-  for (const token of String(text).match(PRICE_TOKEN) || []) {
-    const t = token.trim().replace(/[\s  ]/g, "");
-    const cands = new Set();
-    if (t.includes(",")) cands.add(t.replace(/\./g, "").replace(",", "."));
-    cands.add(t.replace(/,/g, ""));
-    for (let c of cands) {
-      c = c.replace(/\.+$/, "");
-      const v = Number(c);
-      if (c && !Number.isNaN(v) && Math.abs(v - price) < 0.005) return true;
-    }
+function parseAmount(token) {
+  const text = token.replace(/\s/g, "").replace("−", "-");
+  const decimal = text.match(/[.,](\d{1,2})$/);
+  const integer = decimal ? text.slice(0, decimal.index) : text;
+  if (!/^-?(?:\d+|\d{1,3}(?:\.\d{3})+|\d{1,3}(?:,\d{3})+)$/.test(integer)) return null;
+  return Number(integer.replace(/[.,]/g, "") + (decimal ? `.${decimal[1]}` : ""));
+}
+
+export function priceInText(price, text, currency) {
+  if (!Number.isFinite(price) || price < 0 || !text) return false;
+  const evidence = norm(text);
+  const markers = /^[A-Z]{3}$/.test(currency || "") ? {
+    EUR: "€|eur\\b|euros?\\b",
+    GBP: "£|gbp\\b",
+    INR: "₹|inr\\b",
+    USD: "us\\$|usd\\b",
+    CAD: "ca\\$|cad\\b",
+    AUD: "au\\$|aud\\b",
+  }[currency] || `\\b${currency.toLowerCase()}\\b` : null;
+  if (currency !== undefined && !markers) return false;
+  for (const match of evidence.matchAll(PRICE_TOKEN)) {
+    const amount = parseAmount(match[0]);
+    if (amount === null || Math.abs(amount - price) >= 0.005) continue;
+    if (!markers) return true;
+    const before = evidence.slice(0, match.index);
+    const after = evidence.slice(match.index + match[0].length);
+    if (new RegExp(`(?:${markers})\\s*$`, "u").test(before) ||
+        new RegExp(`^\\s*(?:${markers})`, "u").test(after)) return true;
   }
   return false;
 }
@@ -146,7 +164,7 @@ function claim(reg, sourceId, quote, check) {
     if (quote && reg.quoteOnPage(s.id, quote) && check(quote)) return { status: "known", verification: "verified", ...base };
     return { status: "unknown", reason: "not found on the page that was read", url: s.url };
   }
-  if (quote && !check(quote)) return { status: "unknown", reason: "quote does not contain the value", url: s.url };
+  if (!quote || !check(quote)) return { status: "unknown", reason: "quote does not contain the value", url: s.url };
   return { status: "known", verification: "cited", ...base };
 }
 
@@ -166,7 +184,7 @@ const COMPAT = new Set(["compatible", "incompatible", "unknown"]);
 
 // Turn the model's DealsDraft into what the page shows. Nothing ungrounded is shown as a fact.
 export function groundDeals(draft, reg, ctx) {
-  const ownedIds = new Set((ctx.owned || []).map((o) => o.id));
+  const owned = new Map((ctx.owned || []).filter((o) => o.status !== "rejected").map((o) => [o.id, o]));
   const picks = [];
   const dropped = [];
   const warnings = [];
@@ -180,7 +198,7 @@ export function groundDeals(draft, reg, ctx) {
     for (const o of p.offers || []) {
       const src = reg.get(o.source_id);
       if (!src) continue; // an offer must point at a page that was actually seen
-      const price = o.price == null ? { status: "unknown" } : claim(reg, o.source_id, o.price_quote, (q) => priceInText(o.price, q));
+      const price = o.price == null ? { status: "unknown" } : claim(reg, o.source_id, o.price_quote, (q) => priceInText(o.price, q, o.currency ?? null));
       offers.push({
         retailer: hostOf(src.url) || o.retailer,
         retailerClaimed: o.retailer,
@@ -191,17 +209,18 @@ export function groundDeals(draft, reg, ctx) {
         currency: price.status === "known" ? o.currency : null,
         priceStatus: price.status,
         priceVerification: price.verification || null,
-        priceQuote: o.price_quote,
-        inStock: o.in_stock || "unknown",
+        priceQuote: price.status === "known" ? o.price_quote : null,
       });
     }
-    offers.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    const firstPriced = offers.find((offer) => offer.price !== null);
+    const comparable = offers.every((offer) => offer.price === null || offer.currency === firstPriced.currency);
+    if (firstPriced && comparable) offers.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     const compat = (p.compatible_with || [])
-      .filter((c) => ownedIds.has(c.owned_id))
+      .filter((c) => owned.has(c.owned_id))
       .map((c) => {
         const status = COMPAT.has(c.status) ? c.status : "unknown";
         if (status === "unknown") return { ownedId: c.owned_id, status: "unknown" };
-        const g = claim(reg, c.source_id, c.evidence_quote, () => true);
+        const g = claim(reg, c.source_id, c.evidence_quote, (quote) => valueInQuote(owned.get(c.owned_id).model, quote));
         return g.status === "known" ? { ...g, ownedId: c.owned_id, status } : { ownedId: c.owned_id, status: "unknown", reason: g.reason };
       });
     const grounded = offers.length > 0 || specs.some((s) => s.status === "known");

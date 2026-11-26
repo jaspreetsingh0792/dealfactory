@@ -3,6 +3,11 @@
 //
 //   anthropic  Claude with server-side web_search + web_fetch (reads pages -> strongest grounding)
 //   openai     OpenAI Responses API with web_search (citations only -> weaker grounding, marked *)
+//   openrouter One-click sign-in (OAuth PKCE) to the visitor's OpenRouter account: Claude, GPT and others,
+//              with OpenRouter's web search (search excerpts, not full pages -> marked *)
+//   chatgpt    Sign in with ChatGPT, using the visitor's ChatGPT plan. Only when DealFactory runs on their
+//              own computer (`dealfactory web`): OpenAI requires a loopback sign-in and keeps the tokens
+//              out of the browser, so the local server holds them and relays requests.
 //   compatible Any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter...). No web search, so it
 //              only produces a buying checklist + search links, never product or price claims.
 
@@ -22,6 +27,22 @@ export const PROVIDERS = {
     defaultModel: "",
     keyHelp: "platform.openai.com → API keys; use a model that supports the web_search tool",
     search: true,
+  },
+  openrouter: {
+    label: "OpenRouter (Claude, GPT and more)",
+    models: ["openrouter/auto"],
+    defaultModel: "openrouter/auto",
+    keyHelp: "use “Sign in with OpenRouter” above, or paste a key from openrouter.ai/keys",
+    search: true,
+    oauth: true,
+  },
+  chatgpt: {
+    label: "ChatGPT plan (Sign in with ChatGPT)",
+    models: [],
+    defaultModel: "",
+    keyHelp: "no key: sign in with ChatGPT above (only when DealFactory runs on your computer)",
+    search: true,
+    local: true,
   },
   compatible: {
     label: "OpenAI-compatible (Ollama, LM Studio, OpenRouter…)",
@@ -140,11 +161,84 @@ async function compatStructured(cfg, { system, prompt, schema, audit, signal, st
   return JSON.parse(text.slice(start, end + 1));
 }
 
+// ---------------------------------------------------------------- OpenRouter (Responses API + server web search)
+const OPENROUTER = "https://openrouter.ai/api/v1/responses";
+const orHeaders = (cfg) => ({ authorization: `Bearer ${cfg.key}`, "x-title": "DealFactory" });
+
+// OpenRouter returns url_citation annotations, flat or nested, sometimes with an excerpt of the page.
+export function harvestOpenRouter(output, reg) {
+  for (const item of output || []) {
+    for (const s of item?.action?.sources || []) if (s.url) reg.add(s.url, "search_result", s.title);
+    for (const c of item?.content || []) {
+      for (const a of c.annotations || []) {
+        const u = a.url_citation || a;
+        if ((a.type === "url_citation" || a.url_citation) && u.url) reg.add(u.url, "citation", u.title, u.content || null);
+      }
+    }
+  }
+}
+
+async function openrouterResearch(cfg, { system, prompt, registry, audit, signal }) {
+  const body = { model: cfg.model, instructions: system, input: prompt, max_tool_calls: 8,
+                 tools: [{ type: "openrouter:web_search", parameters: { max_results: 6 } }] };
+  const resp = await post(OPENROUTER, orHeaders(cfg), body, signal);
+  audit.push({ stage: "research", provider: "openrouter", request: body, response: resp });
+  harvestOpenRouter(resp.output, registry);
+  return outputText(resp);
+}
+
+async function openrouterStructured(cfg, { system, prompt, schema, audit, signal, stage }) {
+  const body = { model: cfg.model, instructions: system, input: prompt,
+                 text: { format: { type: "json_schema", name: stage, schema, strict: true } } };
+  const resp = await post(OPENROUTER, orHeaders(cfg), body, signal);
+  audit.push({ stage, provider: "openrouter", request: body, response: resp });
+  return parseJson(outputText(resp));
+}
+
+// ---------------------------------------------------------------- ChatGPT plan (via the local server)
+const CHATGPT = "/api/chatgpt/responses";
+
+async function chatgptResearch(cfg, { system, prompt, registry, audit, signal }) {
+  const body = { model: cfg.model, instructions: system, input: prompt, tools: [{ type: "web_search" }],
+                 include: ["web_search_call.action.sources"] };
+  const resp = await post(CHATGPT, {}, body, signal);
+  audit.push({ stage: "research", provider: "chatgpt", request: body, response: resp });
+  harvestOpenAI(resp.output, registry);
+  return outputText(resp);
+}
+
+async function chatgptStructured(cfg, { system, prompt, schema, audit, signal, stage }) {
+  const body = { model: cfg.model, instructions: system, input: prompt,
+                 text: { format: { type: "json_schema", name: stage, schema, strict: true } } };
+  const resp = await post(CHATGPT, {}, body, signal);
+  audit.push({ stage, provider: "chatgpt", request: body, response: resp });
+  return parseJson(outputText(resp));
+}
+
+function parseJson(text) {
+  try { return JSON.parse(text); } catch { /* fall through */ }
+  const start = text.indexOf("{"), end = text.lastIndexOf("}");
+  if (start < 0) throw new LLMError("The model did not return JSON.");
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+// What the local `dealfactory web` server offers (null when the site is hosted publicly).
+export async function localServer() {
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) return null;
+  try {
+    const r = await fetch("/api/local", { headers: { accept: "application/json" } });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
 export function client(cfg) {
   if (!cfg?.provider || !PROVIDERS[cfg.provider]) throw new LLMError("Choose an AI provider first.");
-  if (cfg.provider !== "compatible" && !cfg.key) throw new LLMError("Add your API key first.");
+  if (cfg.provider === "openrouter" && !cfg.key) throw new LLMError("Sign in with OpenRouter (or paste an OpenRouter key) first.");
+  if (!["compatible", "openrouter", "chatgpt"].includes(cfg.provider) && !cfg.key) throw new LLMError("Add your API key first.");
   if (!cfg.model) throw new LLMError("Choose a model first.");
   if (cfg.provider === "anthropic") return { search: true, research: (a) => anthropicResearch(cfg, a), structured: (a) => anthropicStructured(cfg, a) };
+  if (cfg.provider === "openrouter") return { search: true, research: (a) => openrouterResearch(cfg, a), structured: (a) => openrouterStructured(cfg, a) };
+  if (cfg.provider === "chatgpt") return { search: true, research: (a) => chatgptResearch(cfg, a), structured: (a) => chatgptStructured(cfg, a) };
   if (cfg.provider === "openai") return { search: true, research: (a) => openaiResearch(cfg, a), structured: (a) => openaiStructured(cfg, a) };
   return { search: false, research: null, structured: (a) => compatStructured(cfg, a) };
 }

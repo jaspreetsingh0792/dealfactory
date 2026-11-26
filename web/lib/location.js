@@ -1,9 +1,3 @@
-// Where is the visitor? Three ways, from most to least private:
-//  1. guessFromDevice(): time zone + browser language, computed locally (no network).
-//  2. searchPlace(q):    the visitor types a city; looked up on OpenStreetMap Nominatim.
-//  3. preciseLocation(): browser geolocation (asks permission), rounded, reverse-geocoded on Nominatim.
-// Only country, region and city are kept; coordinates are discarded.
-
 import { TZ_COUNTRY } from "./tz.js";
 
 const EUR = "AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK AD MC SM VA ME XK".split(" ");
@@ -54,44 +48,16 @@ export function guessFromDevice(env = globalThis) {
            how: TZ_COUNTRY[tz] ? `time zone ${tz}` : `browser language ${langs[0]}` };
 }
 
-const NOMINATIM = "https://nominatim.openstreetmap.org";
-
-function fromAddress(a, fallbackName) {
-  const country = (a.country_code || "").toUpperCase() || null;
-  return {
-    country,
-    region: a.state || a.province || a.region || null,
-    city: a.city || a.town || a.village || a.municipality || a.county || fallbackName || null,
-    currency: currencyFor(country),
-    language: country ? languageFor(country) : null,
-  };
-}
-
-// Nominatim policy: no autocomplete, max 1 request/second. We only call it on submit.
-export async function searchPlace(q, lang) {
-  const url = `${NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=5&featureType=settlement&q=${encodeURIComponent(q)}`;
-  const r = await fetch(url, { headers: { "Accept-Language": lang || "en" } });
-  if (!r.ok) throw new Error(`Place search failed (HTTP ${r.status}).`);
-  const rows = await r.json();
-  return rows.map((row) => ({ label: row.display_name, ...fromAddress(row.address || {}, row.name) }));
-}
-
-export function preciseLocation(lang) {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error("This browser has no location access."));
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      // Rounded to ~1 km before it leaves the device.
-      const lat = pos.coords.latitude.toFixed(2), lon = pos.coords.longitude.toFixed(2);
-      try {
-        const r = await fetch(`${NOMINATIM}/reverse?format=jsonv2&zoom=10&addressdetails=1&lat=${lat}&lon=${lon}`,
-          { headers: { "Accept-Language": lang || "en" } });
-        if (!r.ok) throw new Error(`Location lookup failed (HTTP ${r.status}).`);
-        const row = await r.json();
-        resolve(fromAddress(row.address || {}, row.name));
-      } catch (e) {
-        reject(e);
-      }
-    }, (err) => reject(new Error(err.code === 1 ? "Location permission was denied." : "Could not get your location.")),
-    { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
-  });
+export function countryOptions(locale = "en") {
+  const names = new Intl.DisplayNames([locale], { type: "region", fallback: "none" });
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const countries = [];
+  for (const first of alphabet) {
+    for (const second of alphabet) {
+      const code = first + second;
+      const name = names.of(code);
+      if (name && code !== "ZZ") countries.push([code, name]);
+    }
+  }
+  return countries.sort((a, b) => a[1].localeCompare(b[1], locale));
 }

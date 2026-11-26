@@ -3,47 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Open-source shopping advisor: deals near you that fit what you already own. Bring your own AI; your data stays in your browser.">
-<title>DealFactory</title>
+<meta name="description" content="Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.">
+<title>DealFactory | Shopping advice for what you own</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f6f5c'/%3E%3Cpath d='M9 17l5 5 9-12' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip-link" href="#top">Skip to shopping search</a>
 <div class="wrap">
   <header class="site">
     <a class="brand" href="#top">DealFactory</a>
-    <nav>
+    <nav aria-label="Main navigation">
+      <a href="#connect">Connect</a>
       <a href="#setup">Your setup</a>
-      <a href="#ai">Your AI</a>
       <a href="#assistant">Use with your assistant</a>
       <a href="#about">About</a>
     </nav>
   </header>
 
-  <main id="top">
+  <main id="top" tabindex="-1">
     <section class="hero">
-      <h1>Deals that fit what you already own.</h1>
-      <p class="lede">Tell it what you need. It finds products sold near you and checks them against your home and the
-        things you have, with a source for every price. Uses your own AI key. Your data stays in this browser.</p>
+      <h1>Find products that fit what you already own.</h1>
+      <p class="lede">Compare products for your home, check compatibility and follow prices back to retailer pages.
+        Connect an AI for live research, or take a shopping brief to the assistant you already use.</p>
 
       <div class="card search">
         <div class="loc-row">
           <span class="loc-pin" aria-hidden="true">📍</span>
           <span id="loc-label" class="loc-label">Finding your country…</span>
-          <button type="button" class="link" id="loc-change">Change</button>
+          <button type="button" class="link" id="loc-change" aria-controls="loc-editor" aria-expanded="false">Change location</button>
         </div>
         <div id="loc-editor" class="loc-editor" hidden>
           <form id="loc-form" class="row">
-            <label class="grow"><span class="sr">City or town</span>
-              <input id="loc-q" type="text" placeholder="City or town, e.g. Utrecht" autocomplete="address-level2"></label>
-            <button type="submit">Search</button>
-            <button type="button" id="loc-precise" class="secondary">Use my location</button>
+            <label class="grow">Shopping country
+              <select id="loc-country" autocomplete="country" required></select></label>
+            <label class="grow">City or town (optional)
+              <input id="loc-city" type="text" maxlength="100" autocomplete="address-level2"></label>
+            <button type="submit" class="secondary">Save location</button>
           </form>
-          <ul id="loc-results" class="choices"></ul>
-          <p class="small muted">City search and “Use my location” ask OpenStreetMap. Your location is rounded to about 1 km
-            first, and only country, region and city are kept.</p>
         </div>
 
         <form id="need-form" class="need-row">
@@ -55,13 +54,77 @@
           <button type="submit" class="primary" id="need-go">Find deals</button>
         </form>
         <div id="need-chips" class="chips"></div>
+        <noscript><p>Turn on JavaScript to use the shopping search.</p></noscript>
       </div>
     </section>
 
     <section id="results" aria-live="polite"></section>
 
+    <section id="connect">
+      <h2>Connect</h2>
+      <p class="lede">Research deals here with OpenRouter, or take your shopping brief to your own assistant.</p>
+      <div class="grid two">
+        <div class="card" id="ai">
+          <h3>Your AI</h3>
+          <p id="ai-connected" class="small" role="status"></p>
+          <div class="connect-buttons">
+            <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
+            <button type="button" id="cg-signin" class="secondary" hidden>Sign in with ChatGPT</button>
+            <button type="button" id="cg-signout" class="link" hidden>Sign out of ChatGPT</button>
+          </div>
+          <div class="connect-buttons">
+            <button type="button" id="open-claude" class="secondary">Open in Claude</button>
+            <button type="button" id="open-chatgpt" class="secondary">Open in ChatGPT</button>
+          </div>
+          <p class="small muted">OpenRouter gives you Claude, GPT and other models on your own OpenRouter account,
+            with no key to copy. <span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
+            DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
+          <details class="more" id="ai-advanced"><summary>Use an API key or a local model instead</summary>
+            <form id="ai-form" class="ai-grid">
+              <label>Provider
+                <select id="ai-provider"></select></label>
+              <label>Model
+                <input id="ai-model" list="ai-models" placeholder="model id" autocomplete="off">
+                <datalist id="ai-models"></datalist></label>
+              <label id="ai-base-wrap" hidden>Base URL
+                <input id="ai-base" placeholder="http://localhost:11434/v1"></label>
+              <label class="span2" id="ai-key-wrap">API key
+                <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+              <label class="check span2"><input id="ai-remember" type="checkbox"> Remember the key on this device
+                (otherwise it's forgotten when you close the tab)</label>
+              <p id="ai-help" class="small muted span2"></p>
+              <div class="span2 row"><button type="submit" class="primary">Save</button>
+                <button type="button" id="ai-forget" class="secondary">Forget key</button>
+                <span id="ai-status" class="small muted" role="status"></span></div>
+            </form>
+          </details>
+          <p class="small muted">Your browser talks to your AI provider directly. The provider may charge for each search.</p>
+        </div>
+        <div class="card" id="gmail">
+          <h3>Purchases from Gmail</h3>
+          <p class="small">Finds order confirmations and receipts, and adds what you bought to <a href="#setup">Your setup</a>
+            as <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+          <ul class="small">
+            <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
+            <li>Your browser removes recognizable personal details and sends receipt text to your selected AI provider to identify purchases. Some personal details may remain.</li>
+            <li>DealFactory saves the extracted purchases in this browser. Your provider processes the text under its own privacy terms.</li>
+          </ul>
+          <div class="row">
+            <button type="button" id="gm-connect" class="primary">Connect Gmail and import</button>
+            <label class="small">From the last
+              <select id="gm-since"><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
+          </div>
+          <p id="gm-status" class="small" role="status"></p>
+          <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
+            <ul id="gm-list" class="owned"></ul>
+            <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <section id="setup">
-      <h2>Your setup <span class="tag plain">stays in this browser</span></h2>
+      <h2>Your setup</h2>
       <p class="lede">The more it knows about your home and what you own, the better the picks. Anything
         imported from an assistant stays <span class="tag warn">unconfirmed</span> until you confirm it.</p>
       <div class="grid two">
@@ -70,8 +133,8 @@
           <div id="facts"></div>
           <details class="more"><summary>Add another fact</summary>
             <form id="fact-form" class="row">
-              <input id="fact-id" placeholder="id, e.g. home.has_stairs" pattern="[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*" required>
-              <input id="fact-value" placeholder="value" required>
+              <input id="fact-id" aria-label="Fact name" placeholder="e.g. home.has_stairs" pattern="[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*" required>
+              <input id="fact-value" aria-label="Fact value" placeholder="value" required>
               <button type="submit" class="secondary">Add</button>
             </form>
           </details>
@@ -80,38 +143,12 @@
           <h3>Things you own</h3>
           <ul id="owned" class="owned"></ul>
           <form id="owned-form" class="owned-form">
-            <input id="owned-category" placeholder="What (stroller, TV…)" required>
-            <input id="owned-brand" placeholder="Brand" required>
-            <input id="owned-model" placeholder="Model" required>
+            <input id="owned-category" aria-label="Product category" placeholder="What (stroller, TV…)" required>
+            <input id="owned-brand" aria-label="Brand" placeholder="Brand" required>
+            <input id="owned-model" aria-label="Model" placeholder="Model" required>
             <button type="submit" class="secondary">Add</button>
           </form>
         </div>
-      </div>
-    </section>
-
-    <section id="ai">
-      <h2>Your AI</h2>
-      <div class="card">
-        <form id="ai-form" class="ai-grid">
-          <label>Provider
-            <select id="ai-provider"></select></label>
-          <label>Model
-            <input id="ai-model" list="ai-models" placeholder="model id" autocomplete="off">
-            <datalist id="ai-models"></datalist></label>
-          <label id="ai-base-wrap" hidden>Base URL
-            <input id="ai-base" placeholder="http://localhost:11434/v1"></label>
-          <label class="span2">API key
-            <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
-          <label class="check span2"><input id="ai-remember" type="checkbox"> Remember the key on this device
-            (otherwise it's forgotten when you close the tab)</label>
-          <p id="ai-help" class="small muted span2"></p>
-          <div class="span2 row"><button type="submit" class="primary">Save</button>
-            <button type="button" id="ai-forget" class="secondary">Forget key</button>
-            <span id="ai-status" class="small muted"></span></div>
-        </form>
-        <p class="small muted">Your key is sent only to the provider you chose, straight from this browser. There is
-          no DealFactory server. You pay your provider for the searches; one need is usually a few cents to a few
-          tens of cents.</p>
       </div>
     </section>
 
@@ -121,25 +158,26 @@
         tool can read. Move it between this site, ChatGPT, Claude and anything else.</p>
       <div class="grid three">
         <div class="card">
-          <h3>1 · Give your context to a chat</h3>
-          <p class="small">Copy a ready-made prompt with your context and paste it into ChatGPT, Claude or Gemini.
-            They'll use it for shopping questions.</p>
+          <h3>Export your shopping setup</h3>
+          <p class="small">Copy a brief into your preferred assistant or download your setup for another tool.</p>
           <div class="row"><button type="button" id="export-copy" class="secondary">Copy prompt</button>
             <button type="button" id="export-download" class="secondary">Download JSON</button></div>
         </div>
         <div class="card">
-          <h3>2 · Let your assistant fill it in</h3>
+          <h3>Import from an assistant</h3>
           <p class="small">Your assistant may already know what you own. Copy this request, ask it, then paste its
             reply below. Everything comes in as <em>unconfirmed</em>.</p>
           <button type="button" id="import-prompt" class="secondary">Copy request</button>
-          <textarea id="import-text" rows="4" placeholder="Paste the reply (or a shopping-context.json) here"></textarea>
+          <textarea id="import-text" aria-label="Assistant reply or Shopping Context JSON" rows="4" placeholder="Paste the reply (or a shopping-context.json) here"></textarea>
           <div class="row"><button type="button" id="import-apply" class="primary">Import</button>
             <label class="file secondary">Upload file<input id="import-file" type="file" accept="application/json,.json"></label></div>
-          <p id="import-status" class="small"></p>
+          <p id="import-status" class="small" role="status"></p>
         </div>
         <div class="card">
-          <h3>3 · Connect over MCP</h3>
-          <p class="small">Let Claude Desktop, ChatGPT or any MCP client read your context directly. Download the
+          <h3>Connect over MCP</h3>
+          <p class="small" id="connector-line" hidden>Claude.ai: Settings → Connectors → Add custom connector, and paste
+            <code id="connector-url"></code>. Claude can then check prices on shop pages itself.</p>
+          <p class="small">Claude Desktop, Cursor or any local MCP client can read your context directly. Download the
             JSON, then add this server to your client's MCP settings:</p>
           <pre id="mcp-snippet" class="snippet"></pre>
           <button type="button" id="mcp-copy" class="secondary">Copy config</button>
@@ -151,22 +189,19 @@
       <h2>About</h2>
       <div class="grid two">
         <div class="card small">
-          <h3>How it stays honest</h3>
+          <h3>How to read the results</h3>
           <ul>
-            <li>Your AI first searches and reads real pages. Then it lists picks, and may cite only pages it actually read.</li>
-            <li>This page then checks every quote against the page text. Anything it can't find is shown as
-              <span class="cell-unknown">unknown</span>, not as a fact.</li>
-            <li>A product with no source page is dropped. <span class="tag fact">fact</span> means sourced;
-              <span class="tag judgement">AI judgement</span> means it's the AI's reasoning. A <span class="cited">*</span>
-              means the AI cited a search result, but the page itself wasn't read.</li>
+            <li><strong>Quote matched</strong> means the price and currency appear in a quote found in the retrieved page text.</li>
+            <li><strong>Cited price</strong> means the AI supplied a quote and a search source. Check the retailer for the current price, stock and delivery.</li>
+            <li><strong>AI assessment</strong> is the model’s interpretation. Confirm fit for your exact model before buying.</li>
           </ul>
         </div>
         <div class="card small">
           <h3>Privacy</h3>
           <ul>
-            <li>No accounts, no server, no analytics. Everything is kept in your browser (localStorage).</li>
-            <li>Sent to <em>your</em> AI provider: your need, your city and country, and your Shopping Context (minus
-              anything you reject). Sent to OpenStreetMap only if you search a city or use your location.</li>
+            <li>Your shopping setup and results are saved in this browser. Location is guessed on your device and can be edited manually.</li>
+            <li>When you start a search, your AI provider receives your request, shopping location and shareable setup.
+              Review that information before searching or copying a prompt.</li>
             <li><button type="button" class="link" id="wipe">Delete everything stored here</button></li>
           </ul>
           <p class="muted">Open source (MIT). Read the code, host your own copy, or add retailers for your country.</p>

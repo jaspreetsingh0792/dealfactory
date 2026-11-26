@@ -1,15 +1,19 @@
 import { emptyContext, exportPrompt, IMPORT_PROMPT, mergeContext, normalizeContext, nowIso, parseAssistantReply,
          shareable, slug, SUGGESTED_FACTS, uniqueId } from "./lib/context.js";
 import { findDeals } from "./lib/deals.js";
-import { client, LLMError, PROVIDERS } from "./lib/llm.js";
-import { countryName, currencyFor, guessFromDevice, languageFor, preciseLocation, searchPlace } from "./lib/location.js";
+import { client, LLMError, localServer, PROVIDERS } from "./lib/llm.js";
+import { finishGoogle, finishOpenRouter, googleSignIn, openRouterSignIn, pendingProvider, pendingResult } from "./lib/oauth.js";
+import { contextFromPurchases, importGmail } from "./lib/purchases.js";
+import { CONFIG } from "./config.js";
+import { countryName, currencyFor, guessFromDevice, languageFor, countryOptions } from "./lib/location.js";
 
 // ------------------------------------------------------------------ storage (never throws)
-const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v1" };
+const legacyResultsKey = "dealfactory.results.v1";
+const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v2", purchases: "dealfactory.purchases.v1" };
 const store = {
-  get(k, area = localStorage) { try { return JSON.parse(area.getItem(k)); } catch { return null; } },
-  set(k, v, area = localStorage) { try { area.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
-  del(k, area = localStorage) { try { area.removeItem(k); } catch { /* ignore */ } },
+  get(k, area) { try { return JSON.parse((area ?? localStorage).getItem(k)); } catch { return null; } },
+  set(k, v, area) { try { (area ?? localStorage).setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+  del(k, area) { try { (area ?? localStorage).removeItem(k); } catch { /* ignore */ } },
 };
 const session = (() => { try { return sessionStorage; } catch { return null; } })();
 
@@ -17,6 +21,8 @@ let ctx = (() => { try { return normalizeContext(store.get(KEYS.ctx) || emptyCon
 let ai = store.get(KEYS.ai) || { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false };
 ai.key = store.get(KEYS.key) || (session && store.get(KEYS.key, session)) || "";
 let results = store.get(KEYS.results) || {};
+let imported = store.get(KEYS.purchases) || { refs: [], purchases: [] };
+let local = null; // what `dealfactory web` offers when running on this computer
 const audits = {};
 let running = null;
 
@@ -81,6 +87,8 @@ function renderLocation() {
     : "Location unknown: set your city";
   $("#loc-label").textContent = label;
   $("#loc-label").title = l._how ? `Guessed from your ${l._how}` : "";
+  $("#loc-country").value = l.country || "";
+  $("#loc-city").value = l.city || "";
   renderMcp();
 }
 function setLocation(loc, how) {
@@ -93,42 +101,33 @@ function setLocation(loc, how) {
   renderLocation();
 }
 function initLocation() {
-  if (!ctx.location.country) {
-    const g = guessFromDevice();
-    if (g) setLocation(g, g.how);
-    else { renderLocation(); $("#loc-editor").hidden = false; }
-  } else renderLocation();
-  $("#loc-change").onclick = () => { $("#loc-editor").hidden = !$("#loc-editor").hidden; $("#loc-q").focus(); };
-  $("#loc-form").onsubmit = async (e) => {
-    e.preventDefault();
-    const q = $("#loc-q").value.trim();
-    if (!q) return;
-    const list = $("#loc-results");
-    list.replaceChildren(h("li", { class: "muted small" }, "Searching…"));
-    try {
-      const rows = await searchPlace(q, navigator.language);
-      list.replaceChildren(...(rows.length ? rows.map((r) => h("li", {},
-        h("button", { type: "button", class: "choice", onclick: () => { setLocation(r, null); list.replaceChildren(); $("#loc-editor").hidden = true; toast(`Location set to ${r.city || r.country}`); } }, r.label)))
-        : [h("li", { class: "muted small" }, "No places found.")]));
-    } catch (err) {
-      list.replaceChildren(h("li", { class: "error small" }, err.message));
-    }
+  const editor = $("#loc-editor");
+  const toggle = $("#loc-change");
+  const country = $("#loc-country");
+  const city = $("#loc-city");
+  country.replaceChildren(h("option", { value: "" }, "Choose a country"),
+    ...countryOptions(navigator.language).map(([code, name]) => h("option", { value: code }, name)));
+  const show = (open) => {
+    editor.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
   };
-  $("#loc-precise").onclick = async () => {
-    const btn = $("#loc-precise");
-    btn.disabled = true;
-    btn.textContent = "Locating…";
-    try {
-      const r = await preciseLocation(navigator.language);
-      setLocation(r, null);
-      $("#loc-editor").hidden = true;
-      toast(`Location set to ${r.city || r.country}`);
-    } catch (err) {
-      toast(err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Use my location";
-    }
+  if (!ctx.location.country) {
+    const guess = guessFromDevice();
+    if (guess) setLocation(guess, guess.how);
+  }
+  renderLocation();
+  show(!ctx.location.country);
+  toggle.onclick = () => {
+    show(editor.hidden);
+    if (!editor.hidden) country.focus();
+  };
+  $("#loc-form").onsubmit = (e) => {
+    e.preventDefault();
+    if (!country.value) return;
+    setLocation({ country: country.value, city: city.value.trim() }, null);
+    show(false);
+    toggle.focus();
+    toast("Shopping location saved");
   };
 }
 
@@ -202,31 +201,65 @@ function initSetup() {
 }
 
 // ------------------------------------------------------------------ AI settings
-function renderAi() {
+function saveAi(next) {
+  ai = next;
+  const { key, ...rest } = ai;
+  store.set(KEYS.ai, rest);
+  store.del(KEYS.key);
+  if (session) store.del(KEYS.key, session);
+  if (key && ai.remember) store.set(KEYS.key, key);
+  if (key && !ai.remember && session) store.set(KEYS.key, key, session);
+  renderAi();
+}
+function renderConnected() {
+  const p = PROVIDERS[ai.provider];
+  const ready = ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+  const el = $("#ai-connected");
+  el.className = `small ${ready ? "ok" : "muted"}`;
+  el.textContent = ready ? `✓ Connected: ${p?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
+    (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "") : "Not connected yet.";
+  $("#cg-signin").hidden = !local || !!local.chatgpt?.signed_in;
+  $("#cg-signout").hidden = !local?.chatgpt?.signed_in;
+  $("#cg-note").hidden = !!local;
+}
+function renderAi(settings = ai) {
   const sel = $("#ai-provider");
-  sel.replaceChildren(...Object.entries(PROVIDERS).map(([k, p]) => h("option", { value: k, selected: ai.provider === k }, p.label)));
-  const p = PROVIDERS[ai.provider] || PROVIDERS.anthropic;
+  sel.replaceChildren(...Object.entries(PROVIDERS).filter(([, p]) => !p.local || local)
+    .map(([k, p]) => h("option", { value: k, selected: settings.provider === k }, p.label)));
+  const p = PROVIDERS[settings.provider] || PROVIDERS.anthropic;
   $("#ai-models").replaceChildren(...p.models.map((m) => h("option", { value: m })));
-  $("#ai-model").value = ai.model || p.defaultModel;
-  $("#ai-base").value = ai.baseUrl || "";
-  $("#ai-base-wrap").hidden = ai.provider !== "compatible";
-  $("#ai-key").value = ai.key || "";
-  $("#ai-key").placeholder = ai.provider === "compatible" ? "Optional for local models" : "Paste your key";
-  $("#ai-remember").checked = !!ai.remember;
+  $("#ai-model").value = settings.model || p.defaultModel;
+  $("#ai-base").value = settings.baseUrl || "";
+  $("#ai-base-wrap").hidden = settings.provider !== "compatible";
+  $("#ai-key").value = settings.key || "";
+  $("#ai-key").placeholder = settings.provider === "compatible" ? "Optional for local models" : "Paste your key";
+  $("#ai-remember").checked = !!settings.remember;
   $("#ai-help").textContent = `Key: ${p.keyHelp}.` + (p.search ? "" : " This kind of model can't search the web, so you'll get a buying checklist and search links instead of products and prices.");
-  $("#ai-status").textContent = ai.key || ai.provider === "compatible" ? `Connected: ${p.label}${ai.model ? ` · ${ai.model}` : ""}` : "Not connected";
+  $("#ai-status").textContent = settings.key || ["compatible", "chatgpt"].includes(settings.provider) ? `Saved: ${p.label}${settings.model ? ` · ${settings.model}` : ""}` : "API key needed";
+  $("#ai-key-wrap").hidden = settings.provider === "chatgpt";
+  if (settings.provider === "chatgpt") loadChatgptModels(settings);
+  renderConnected();
+}
+async function loadChatgptModels(settings) {
+  if (!local?.chatgpt?.signed_in) return;
+  try {
+    const r = await fetch("/api/chatgpt/models");
+    const data = await r.json();
+    const ids = (data.models || []).map((m) => m.id);
+    $("#ai-models").replaceChildren(...ids.map((m) => h("option", { value: m })));
+    if (!$("#ai-model").value && ids[0]) $("#ai-model").value = ids[0];
+    if (settings === ai && !ai.model && ids[0]) saveAi({ ...ai, model: ids[0] });
+  } catch { /* models list is a convenience */ }
 }
 function initAi() {
-  $("#ai-provider").onchange = (e) => { ai.provider = e.target.value; ai.model = PROVIDERS[ai.provider].defaultModel; renderAi(); };
+  $("#ai-provider").onchange = (e) => {
+    const provider = e.target.value;
+    renderAi(provider === ai.provider ? ai : { provider, model: PROVIDERS[provider].defaultModel });
+    if (provider !== ai.provider) $("#ai-status").textContent = "Save to switch providers";
+  };
   $("#ai-form").onsubmit = (e) => {
     e.preventDefault();
-    ai = { ...ai, model: $("#ai-model").value.trim(), baseUrl: $("#ai-base").value.trim(), key: $("#ai-key").value.trim(), remember: $("#ai-remember").checked };
-    const { key, ...rest } = ai;
-    store.set(KEYS.ai, rest);
-    store.del(KEYS.key);
-    if (session) store.del(KEYS.key, session);
-    if (key) store.set(KEYS.key, key, ai.remember ? localStorage : session || localStorage);
-    renderAi();
+    saveAi({ provider: $("#ai-provider").value, model: $("#ai-model").value.trim(), baseUrl: $("#ai-base").value.trim(), key: $("#ai-key").value.trim(), remember: $("#ai-remember").checked });
     toast("AI settings saved");
   };
   $("#ai-forget").onclick = () => {
@@ -239,36 +272,172 @@ function initAi() {
   renderAi();
 }
 
+// ------------------------------------------------------------------ one-click connections
+function useOpenRouterKey(key) {
+  const model = ai.provider === "openrouter" && ai.model ? ai.model : PROVIDERS.openrouter.defaultModel;
+  saveAi({ provider: "openrouter", model, baseUrl: "", key, remember: ai.remember });
+  toast("Connected to OpenRouter");
+}
+async function initConnect() {
+  $("#or-signin").onclick = async () => {
+    try { useOpenRouterKey((await openRouterSignIn()).key); }
+    catch (e) { toast(e.message); }
+  };
+  $("#cg-signin").onclick = () => {
+    saveAi({ ...ai, provider: "chatgpt", model: ai.provider === "chatgpt" ? ai.model : "", key: "" });
+    location.assign("/auth/chatgpt/start");
+  };
+  $("#cg-signout").onclick = async () => {
+    await fetch("/auth/chatgpt/logout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).catch(() => {});
+    local = await localServer();
+    renderAi();
+    toast("Signed out of ChatGPT");
+  };
+  $("#gm-connect").hidden = false;
+  if (!CONFIG.googleClientId) {
+    $("#gm-connect").disabled = true;
+    $("#gm-status").textContent = "Gmail import is awaiting Google setup. You can add purchases manually under Your setup.";
+  }
+  $("#gm-connect").onclick = () => connectGmail();
+  $("#gm-forget").onclick = () => {
+    imported = { refs: [], purchases: [] };
+    store.del(KEYS.purchases);
+    applyImports();
+    toast("Imported purchases deleted");
+  };
+  renderImports();
+
+  // Coming back from a sign-in that had to use a full-page redirect (popup blocked).
+  const err = new URLSearchParams(location.search).get("chatgpt_error");
+  if (err) { toast(err); history.replaceState(null, "", location.pathname + location.hash); }
+  const provider = pendingProvider();
+  const pending = pendingResult();
+  if (pending && provider === "openrouter") finishOpenRouter(pending).then((r) => useOpenRouterKey(r.key), (e) => toast(e.message));
+  else if (pending && provider === "google") { try { connectGmail(finishGoogle(pending)); } catch (e) { toast(e.message); } }
+
+  local = await localServer();
+  if (local?.chatgpt?.signed_in && ai.provider !== "chatgpt" && !ai.key) saveAi({ ...ai, provider: "chatgpt", model: "", key: "" });
+  renderAi();
+}
+
+// ------------------------------------------------------------------ Gmail import
+function applyImports() {
+  // Replace earlier imported items, keeping whatever the user already confirmed or rejected.
+  const decided = new Map([...ctx.owned, ...ctx.facts].filter((x) => x.status !== "unconfirmed").map((x) => [x.id, x.status]));
+  const keepOwned = ctx.owned.filter((o) => !String(o.id).startsWith("imp-") || decided.has(o.id));
+  const keepFacts = ctx.facts.filter((f) => !/^habits\./.test(f.id) || f.source !== "email" || decided.has(f.id));
+  const { owned, facts } = contextFromPurchases(imported.purchases, keepOwned);
+  const has = new Set([...keepOwned, ...keepFacts].map((x) => x.id));
+  ctx.owned = [...keepOwned, ...owned.filter((o) => !has.has(o.id))];
+  ctx.facts = [...keepFacts, ...facts.filter((f) => !has.has(f.id))];
+  saveCtx();
+  renderFacts();
+  renderOwned();
+  renderImports();
+}
+function renderImports() {
+  const items = imported.purchases.filter((p) => p.status !== "rejected");
+  $("#gm-list-wrap").hidden = !items.length;
+  $("#gm-summary").textContent = `${items.length} imported purchase${items.length === 1 ? "" : "s"}`;
+  $("#gm-list").replaceChildren(...items.slice(-200).reverse().map((p) => h("li", {},
+    h("div", {}, h("strong", {}, p.productName), h("span", { class: "small muted" },
+      ` · ${[p.merchant, p.orderDate, p.unitPrice != null ? money(p.unitPrice, p.currency) : null, p.kind].filter(Boolean).join(" · ")}`)),
+    h("div", { class: "owned-actions" }, h("button", { type: "button", class: "icon", title: "Delete", "aria-label": `Delete ${p.productName}`,
+      onclick: () => { p.status = "rejected"; store.set(KEYS.purchases, imported); applyImports(); } }, "🗑")))));
+}
+async function connectGmail(grant) {
+  const st = $("#gm-status");
+  let llm;
+  try { llm = client(ai); } catch (e) { st.className = "small error"; st.textContent = `Connect your AI first: it reads the emails. (${e.message})`; return; }
+  try {
+    grant = grant || await googleSignIn(CONFIG.googleClientId);
+  } catch (e) { st.className = "small error"; st.textContent = e.message; return; }
+  const ctrl = new AbortController();
+  $("#gm-connect").disabled = true;
+  st.className = "small";
+  try {
+    const rep = await importGmail({ token: grant.token, llm, since: $("#gm-since").value, max: 150, seenRefs: new Set(imported.refs),
+      onStep: (t) => { st.textContent = t; }, signal: ctrl.signal });
+    imported.refs = [...new Set([...imported.refs, ...rep.refs])];
+    imported.purchases.push(...rep.purchases);
+    if (!store.set(KEYS.purchases, imported)) toast("Couldn't save imports in this browser (storage full or blocked)");
+    applyImports();
+    st.className = "small ok";
+    st.textContent = `Checked ${rep.listed} emails: ${rep.purchases.length} item(s) found` +
+      (rep.skippedSeen ? `, ${rep.skippedSeen} already imported` : "") + (rep.skippedNoPrice ? `, ${rep.skippedNoPrice} without prices skipped` : "") +
+      (rep.failed ? `, ${rep.failed} failed (${rep.lastError})` : "") + ". Confirm them under Your setup.";
+  } catch (e) {
+    st.className = "small error";
+    st.textContent = e.name === "AbortError" ? "Stopped." : e.message;
+  } finally {
+    $("#gm-connect").disabled = !CONFIG.googleClientId;
+  }
+}
+
+// ------------------------------------------------------------------ open in the user's own chat
+const CHAT_URLS = { claude: "https://claude.ai/new?q=", chatgpt: "https://chatgpt.com/?q=" };
+function openInChat(which, needText = null) {
+  const prompt = exportPrompt(ctx, needText);
+  if (prompt.length > 7000) {
+    copy(prompt, "Prompt (too long for a link)");
+    window.open(CHAT_URLS[which].replace(/[?]q=$/, ""), "_blank", "noopener");
+    return;
+  }
+  window.open(CHAT_URLS[which] + encodeURIComponent(prompt), "_blank", "noopener");
+}
+
 // ------------------------------------------------------------------ needs + results
+function cancelRun() {
+  const current = running;
+  running = null;
+  current?.controller.abort();
+}
+
 function renderChips() {
   const box = $("#need-chips");
   const active = ctx.needs.filter((n) => n.status === "active");
   box.replaceChildren(...active.map((n) => h("span", { class: "chip" },
     h("button", { type: "button", class: "chip-main", onclick: () => run(n) }, n.text + (n.budget_max ? ` · ≤ ${money(n.budget_max, n.currency)}` : "")),
-    h("button", { type: "button", class: "chip-x", title: "Remove", "aria-label": `Remove ${n.text}`, onclick: () => { ctx.needs = ctx.needs.filter((x) => x !== n); delete results[n.id]; saveCtx(); saveResults(); renderChips(); renderResults(); } }, "×"))));
+    h("button", { type: "button", class: "chip-x", title: "Remove", "aria-label": `Remove ${n.text}`, onclick: () => { if (running?.needId === n.id) cancelRun();
+      ctx.needs = ctx.needs.filter((x) => x.id !== n.id);
+      delete results[n.id];
+      delete audits[n.id];
+      saveCtx();
+      saveResults();
+      renderChips();
+      if (!running) renderResults(); } }, "×"))));
 }
 
-function noAiPanel(need) {
+function noAiPanel(need, message) {
   return h("div", { class: "card notice-card" },
     h("h3", {}, "Connect an AI to search live deals"),
-    h("p", {}, "DealFactory uses your own AI. Add a Claude or OpenAI key below, or point it at a local model. Prefer your usual chat? Copy this prompt into ChatGPT, Claude or Gemini. It includes your setup and the honesty rules."),
+    h("p", { class: "muted" }, message),
+    h("p", {}, "DealFactory uses your own AI. Sign in with OpenRouter in one click, or take this search to the Claude or ChatGPT you already use: it opens with your setup and the honesty rules filled in."),
     h("div", { class: "row" },
-      h("button", { type: "button", class: "primary", onclick: () => copy(exportPrompt(ctx, need.text), "Prompt") }, "Copy prompt for my chat"),
-      h("a", { class: "button secondary", href: "#ai" }, "Connect my AI")));
+      h("button", { type: "button", class: "primary", onclick: () => $("#or-signin").click() }, "Sign in with OpenRouter"),
+      h("button", { type: "button", class: "secondary", onclick: () => openInChat("claude", need.text) }, "Open in Claude"),
+      h("button", { type: "button", class: "secondary", onclick: () => openInChat("chatgpt", need.text) }, "Open in ChatGPT")),
+    h("div", { class: "row" },
+      h("button", { type: "button", class: "primary", onclick: () => {
+        const budget = money(need.budget_max, need.currency);
+        copy(exportPrompt(ctx, budget ? `${need.text} (budget ${budget})` : need.text), "Prompt");
+      } }, "Copy prompt for my chat"),
+      h("a", { class: "button secondary", href: "#connect" }, "Other ways to connect")));
 }
 
 async function run(need) {
-  if (running) running.abort();
+  cancelRun();
+  need = { ...need };
   let llm;
   try {
     llm = client(ai);
   } catch (e) {
-    results[need.id] = { kind: "noai", need };
+    results[need.id] = { kind: "noai", need, message: e.message };
     renderResults(need.id);
     return;
   }
   const ctrl = new AbortController();
-  running = ctrl;
+  running = { controller: ctrl, needId: need.id };
   const started = Date.now();
   const status = h("p", { class: "step" }, "Starting…");
   const timer = h("span", { class: "muted small" });
@@ -276,20 +445,23 @@ async function run(need) {
   $("#results").replaceChildren(h("div", { class: "card running" }, h("h2", {}, need.text),
     h("div", { class: "spinner", "aria-hidden": "true" }), status, timer,
     h("button", { type: "button", class: "secondary", onclick: () => ctrl.abort() }, "Stop")));
-  $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#results").scrollIntoView({ block: "start" });
   try {
-    const res = await findDeals(llm, ctx, need, { onStep: (s) => { status.textContent = s; }, signal: ctrl.signal });
+    const res = await findDeals(llm, structuredClone(ctx), need, { onStep: (s) => { status.textContent = s; }, signal: ctrl.signal });
+    if (running?.controller !== ctrl) return;
+    ctrl.signal.throwIfAborted();
     audits[need.id] = res.audit;
     results[need.id] = res;
     saveResults();
     renderResults(need.id);
   } catch (e) {
+    if (running?.controller !== ctrl) return;
     $("#results").replaceChildren(h("div", { class: "card error-card" }, h("h3", {}, e.name === "AbortError" ? "Stopped." : "Something went wrong"),
       e.name === "AbortError" ? null : h("p", {}, e instanceof LLMError ? e.message : `${e.message}`),
       h("button", { type: "button", class: "secondary", onclick: () => run(need) }, "Try again")));
   } finally {
     clearInterval(tick);
-    if (running === ctrl) running = null;
+    if (running?.controller === ctrl) running = null;
   }
 }
 
@@ -309,14 +481,14 @@ function renderPick(p) {
     h("div", { class: "pick-head" }, h("span", { class: "role" }, ROLE[p.role] || p.role), tag("judgement", "AI judgement")),
     h("h3", { class: "name" }, p.product),
     (p.brand || p.model) ? h("div", { class: "small muted" }, [p.brand, p.model].filter(Boolean).join(" · ")) : null,
-    best ? h("div", { class: "price" }, tag("fact", "fact"), h("strong", {}, money(best.price, best.currency)), verif(best.priceVerification),
+    best ? h("div", { class: "price" }, tag("fact", best.priceVerification === "verified" ? "Quote matched" : "Cited price"), h("strong", {}, money(best.price, best.currency)), verif(best.priceVerification),
       h("span", { class: "small" }, " at ", sourceLink(best.url, best.retailer)), h("span", { class: "small muted" }, ` · read ${when(best.retrievedAt)}`))
       : h("div", { class: "price" }, h("span", { class: "cell-unknown" }, "price unknown"), p.offers[0] ? h("span", { class: "small" }, " · ", sourceLink(p.offers[0].url, p.offers[0].retailer)) : null),
     h("p", { class: "why" }, p.whyItFits),
     p.compat.length ? h("ul", { class: "compat" }, p.compat.map((c) => h("li", {},
       c.status === "compatible" ? h("span", { class: "ok" }, "✓ ") : c.status === "incompatible" ? h("span", { class: "bad" }, "✕ ") : h("span", { class: "cell-unknown" }, "? "),
-      `${c.status === "unknown" ? "Fit with" : c.status === "compatible" ? "Works with" : "Does not work with"} ${ownedName(c.ownedId)}`,
-      c.status === "unknown" ? h("span", { class: "cell-unknown" }, ": unknown") : [" ", tag("fact", "fact"), verif(c.verification), " ", sourceLink(c.url),
+      `${c.status === "unknown" ? "Fit with" : c.status === "compatible" ? "May fit" : "May not fit"} ${ownedName(c.ownedId)}`,
+      c.status === "unknown" ? h("span", { class: "cell-unknown" }, ": unknown") : [" ", tag("judgement", "AI assessment"), verif(c.verification), " ", sourceLink(c.url),
         c.quote ? h("div", { class: "quote" }, `“${c.quote}”`) : null]))) : null,
     p.specs.length ? h("details", {}, h("summary", {}, `Specs (${p.specs.filter((s) => s.status === "known").length}/${p.specs.length} sourced)`),
       h("dl", { class: "specs" }, p.specs.map((s) => [h("dt", {}, s.name), h("dd", {}, s.status === "known"
@@ -324,14 +496,13 @@ function renderPick(p) {
     p.offers.length > 1 ? h("details", {}, h("summary", {}, `${p.offers.length} offers`),
       h("table", { class: "offers" }, h("tbody", {}, p.offers.map((o) => h("tr", {},
         h("td", {}, sourceLink(o.url, o.retailer)),
-        h("td", { class: "num" }, o.price != null ? [money(o.price, o.currency), verif(o.priceVerification)] : h("span", { class: "cell-unknown" }, "unknown")),
-        h("td", { class: "small muted" }, o.inStock === "yes" ? "in stock" : o.inStock === "no" ? "out of stock" : "stock unknown")))))) : null,
+        h("td", { class: "num" }, o.price != null ? [money(o.price, o.currency), verif(o.priceVerification)] : h("span", { class: "cell-unknown" }, "unknown"))))))) : null,
     p.tradeoffs.length ? h("div", { class: "tradeoffs" }, h("span", { class: "small muted" }, "Trade-offs: "), p.tradeoffs.join(" · ")) : null);
 }
 
 function renderResult(res) {
   const n = res.need;
-  if (res.kind === "noai") return noAiPanel(n);
+  if (res.kind === "noai") return noAiPanel(n, res.message);
   const head = h("div", { class: "result-head" }, h("h2", {}, n.text),
     h("div", { class: "small muted" }, [res.location?.city, res.location?.country].filter(Boolean).join(", "),
       res.finishedAt ? ` · ${when(res.finishedAt)}` : "",
@@ -339,7 +510,7 @@ function renderResult(res) {
       audits[n.id] ? [" · ", h("button", { type: "button", class: "link", onclick: () => download(`dealfactory-run-${n.id}.json`, { ...res, audit: audits[n.id] }) }, "Download audit")] : null));
   if (res.kind === "checklist") {
     const c = res.checklist;
-    const gl = (ctx.location.country || "").toLowerCase();
+    const gl = (res.location.country || "").toLowerCase();
     const list = (title, items) => items?.length ? [h("h3", {}, title), h("ul", {}, items.map((i) => h("li", {}, typeof i === "string" ? i : i.check)))] : null;
     return h("div", {}, head, h("div", { class: "card judgement-panel" }, tag("judgement", "AI judgement · no live data"),
       list("Must have", c.must_have), list("Nice to have", c.nice_to_have), list("Avoid", c.avoid),
@@ -375,7 +546,7 @@ function initNeeds() {
     const text = $("#need-text").value.trim();
     if (!text) return;
     const budget = $("#need-budget").value ? Number($("#need-budget").value) : null;
-    let need = ctx.needs.find((n) => n.text.toLowerCase() === text.toLowerCase());
+    let need = ctx.needs.find((n) => n.status === "active" && n.text.toLowerCase() === text.toLowerCase());
     if (!need) {
       need = { id: uniqueId(text, new Set(ctx.needs.map((n) => n.id))), text, status: "active", budget_max: budget,
                currency: budget ? ctx.location.currency || null : null };
@@ -396,11 +567,14 @@ function initNeeds() {
 
 // ------------------------------------------------------------------ portability
 function renderMcp() {
+  if (CONFIG.connectorUrl) { $("#connector-line").hidden = false; $("#connector-url").textContent = new URL(CONFIG.connectorUrl, location.origin).href; }
   const cfg = { mcpServers: { dealfactory: { command: "dealfactory", args: ["mcp", "--context", "/path/to/shopping-context.json"] } } };
   $("#mcp-snippet").textContent = `# install once (needs Python + uv):\n#   uv tool install git+https://github.com/jaspreetsingh0792/dealfactory\n${JSON.stringify(cfg, null, 2)}`;
 }
 function initPortability() {
   $("#export-copy").onclick = () => copy(exportPrompt(ctx), "Prompt");
+  $("#open-claude").onclick = () => openInChat("claude");
+  $("#open-chatgpt").onclick = () => openInChat("chatgpt");
   $("#export-download").onclick = () => download("shopping-context.json", shareable(ctx));
   $("#import-prompt").onclick = () => copy(IMPORT_PROMPT, "Request");
   const apply = (text, fromAssistant) => {
@@ -433,9 +607,12 @@ function initPortability() {
   };
   $("#mcp-copy").onclick = () => copy($("#mcp-snippet").textContent.split("\n").filter((l) => !l.startsWith("#")).join("\n"), "MCP config");
   $("#wipe").onclick = () => {
-    for (const k of Object.values(KEYS)) { store.del(k); if (session) store.del(k, session); }
-    ctx = emptyContext(); results = {}; ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
-    initLocation(); renderFacts(); renderOwned(); renderChips(); renderResults(); renderAi();
+    if (!window.confirm("Delete your shopping setup, imported purchases, searches, results and API key from this browser?")) return;
+    cancelRun();
+    for (const id of Object.keys(audits)) delete audits[id];
+    for (const k of [...Object.values(KEYS), legacyResultsKey]) { store.del(k); if (session) store.del(k, session); }
+    ctx = emptyContext(); results = {}; imported = { refs: [], purchases: [] }; renderImports(); ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
+    renderLocation(); renderFacts(); renderOwned(); renderChips(); renderResults(); renderAi();
     toast("Everything stored in this browser was deleted");
   };
 }
@@ -445,3 +622,4 @@ initSetup();
 initAi();
 initNeeds();
 initPortability();
+initConnect();

@@ -136,13 +136,15 @@ def collect_offers(sources, fetcher):
 
 
 def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", *,
-          history=None, traffic=None, collect_traffic=False) -> int:
+          history=None, traffic=None, collect_traffic=False, google_client_id="") -> int:
     site_url = site_url.rstrip("/")
     parsed = urlsplit(site_url)
     if not re.fullmatch(r"https://[a-zA-Z0-9.-]+", site_url) or not parsed.hostname:
         raise ValueError("SITE_URL must be an HTTPS origin without a path")
     if analytics_token and not re.fullmatch(r"[A-Za-z0-9_-]+", analytics_token):
         raise ValueError("Invalid public Web Analytics beacon token")
+    if google_client_id and not re.fullmatch(r"[A-Za-z0-9_-]+\.apps\.googleusercontent\.com", google_client_id):
+        raise ValueError("Expected a public Google web OAuth client ID")
 
     sources = json.loads((ROOT / "ops/offer-sources.json").read_text())
     candidates = list(sources)
@@ -159,6 +161,13 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             target = output / path.relative_to(web)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
+
+    public_config = {"callbackPath": "/oauth/callback/", "googleClientId": google_client_id, "connectorUrl": "/mcp"}
+    (output / "config.js").write_text("export const CONFIG = " + json.dumps(public_config) + ";\n")
+    callback = output / "oauth/callback"
+    callback.mkdir(parents=True)
+    callback_html = (web / "oauth.html").read_text().replace('src="oauth.js"', 'src="/oauth.js"').replace('href="style.css"', 'href="/style.css"')
+    (callback / "index.html").write_text(callback_html)
 
     today = datetime.now(UTC).date()
     observations = {}
@@ -226,9 +235,16 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             script += '<meta name="dealfactory-counts" content="aggregate">'
             markup = markup.replace("</main>", '<p class="small muted">DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies.</p>\n</main>', 1)
         page_path.write_text(markup.replace("</head>", script + "\n</head>", 1), encoding="utf-8")
-    if collect_traffic:
-        shutil.copyfile(ROOT / "ops/events-worker.js", output / "_worker.js")
-        (output / "_routes.json").write_text(json.dumps({"version": 1, "include": ["/events"], "exclude": []}))
+    worker = output / "_worker.js"
+    worker.mkdir()
+    shutil.copyfile(ROOT / "ops/pages-worker.js", worker / "index.js")
+    for module in ("ops/events-worker.js", "connector/src/index.js", "web/lib/context.js", "web/lib/ground.js",
+                   "web/lib/location.js", "web/lib/tz.js"):
+        target = worker / module
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / module, target)
+    routes = ["/mcp", "/events"] if collect_traffic else ["/mcp"]
+    (output / "_routes.json").write_text(json.dumps({"version": 1, "include": routes, "exclude": []}))
     if analytics_token:
         beacon = (
             f'<script defer src="{ANALYTICS_SCRIPT}" '
@@ -242,7 +258,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     (output / "_headers").write_text(
         "/*\n  Content-Security-Policy: frame-ancestors 'none'\n"
         "  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n"
-        "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n",
+        "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n"
+        "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
         encoding="utf-8",
     )
     (output / "robots.txt").write_text(f"User-agent: *\nSitemap: {site_url}/sitemap.xml\n")
@@ -267,6 +284,7 @@ def main():
     parser.add_argument("--site-url", required=True)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--analytics-token", default="")
+    parser.add_argument("--google-client-id", default="")
     parser.add_argument("--history-url")
     parser.add_argument("--traffic-file", type=Path)
     args = parser.parse_args()
@@ -285,7 +303,7 @@ def main():
     with tempfile.TemporaryDirectory() as cache:
         fetcher = PoliteFetcher(Path(cache), "DealFactoryOfferCheck/1.0") if args.refresh else None
         count = build(args.output, args.site_url, fetcher, args.analytics_token,
-                      history=history, traffic=traffic, collect_traffic=bool(args.traffic_file))
+                      history=history, traffic=traffic, collect_traffic=bool(args.traffic_file), google_client_id=args.google_client_id)
     print(f"Verified in-stock offers: {count}")
 
 

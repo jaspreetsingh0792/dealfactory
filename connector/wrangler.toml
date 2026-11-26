@@ -1,0 +1,7 @@
+name = "dealfactory-connector"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# Deploy:  cd connector && npx wrangler deploy
+# Then add https://dealfactory-connector.<your-subdomain>.workers.dev/mcp in Claude:
+# Settings -> Connectors -> Add custom connector.
