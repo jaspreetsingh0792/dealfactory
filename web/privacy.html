@@ -3,13 +3,25 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Shopping advisor privacy | DealFactory</title>
+<meta name="description" content="How DealFactory stores your shopping setup and what a Gmail import shares with the AI provider you choose.">
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/storefront.css">
-</head><body class="df-advisor"><div class="wrap">
-<header class="site"><a class="wordmark" href="/" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a></header>
-<main><h1>Shopping advisor privacy</h1>
+</head><body class="store">
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast"><div class="frame mast-inner">
+  <a class="wordmark" href="/" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
+  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#how">How it works</a><a class="nav-secondary" href="/guides/smart-home-compatibility/">Smart home guide</a><a class="nav-secondary" href="/deals/">Deals</a><a class="advisor-link" href="/advisor.html">Open your advisor <span aria-hidden="true">↗</span></a></nav>
+</div></header>
+<main id="main" class="frame prose">
+<div class="label"><span class="rule"></span>PRIVACY</div>
+<h1>Shopping advisor <em>privacy.</em></h1>
 <section><h2>Your shopping setup</h2><p>Your browser stores the preferences, purchases and results you save. Starting a search sends your request and shareable shopping setup to the AI provider you select. Opening a brief in Claude or ChatGPT sends that brief to the service you open.</p></section>
 <section><h2>Gmail receipt import</h2><p>If you choose to connect Gmail, DealFactory requests read-only Gmail access. Your browser reads your profile address for redaction, searches for likely receipts and order confirmations, and retrieves matching messages. It filters and redacts the text before sending excerpts to your selected AI provider to extract purchased items. Redaction can miss personal information. The provider receives those excerpts under its own privacy and retention terms.</p>
 <p>The advisor saves extracted purchase details, deduplication references and your confirmations in this browser. DealFactory's hosted server receives neither the Gmail access token nor the receipt text. Gmail import uses your emails to build your shopping setup. The site does not use those messages for advertising.</p></section>
 <section><h2>Removing data and access</h2><p>Use <strong>Delete all imported purchases</strong> in the Gmail section to remove the import history. Items you confirmed separately remain in your setup. Use <strong>Delete everything stored here</strong> in the advisor's About section to clear the advisor on this device. You can revoke Gmail access in your <a href="https://myaccount.google.com/connections">Google account connections</a>. To revoke an OpenRouter key, use your <a href="https://openrouter.ai/settings/keys">OpenRouter key settings</a>.</p></section>
 <section><h2>Deal checks and traffic</h2><p>The public shopping connector receives the retailer URL and any price or quote you ask it to check. The storefront can count page views, shares and retailer clicks in aggregate. The receipt import runs separately from those counters.</p></section>
-</main></div></body></html>
+</main>
+<footer class="foot"><div class="frame foot-inner">
+  <a class="wordmark" href="/" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
+  <nav aria-label="Footer navigation"><a href="/advisor.html">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy.html">Privacy</a><a href="/terms/">Terms</a></nav>
+</div></footer>
+</body></html>

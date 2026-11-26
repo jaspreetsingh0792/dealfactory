@@ -66,7 +66,7 @@ ${JSON.stringify(shareable({ ...ctx, needs: [] }), null, 1)}
 
 How to work:
 1. Search for current expert reviews / buying guides for this category in ${ctx.location.country || "the user's country"} and pick 3-5 strong candidates that fit the context.
-2. For anything in the need that refers to something they own (e.g. "for my stroller"), check compatibility on the manufacturer's page.
+2. For anything in the need that refers to something they own (e.g. "for my Hue bridge" or "for my boiler"), check compatibility on the manufacturer's page.
 3. For each candidate, open at least one product page at a shop that delivers to ${ctx.location.country || "them"} and note the current price and explicit currency.
 4. Write notes: for every product, list each page URL you used and copy the exact text for the price, key specs and compatibility statements.`;
   return { system, prompt };

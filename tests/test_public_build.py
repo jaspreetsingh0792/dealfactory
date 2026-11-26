@@ -38,7 +38,10 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "stroller" in html.lower()
     home = (output / "index.html").read_text()
     assert 'id="memory-title"' in home and 'href="/advisor.html#setup"' in home
-    assert 'href="/guides/stroller-footmuffs/"' in home
+    assert 'href="/guides/stroller-footmuffs/"' not in home
+    assert 'href="/guides/smart-home-compatibility/"' in home
+    assert "/media/home-setup.png" in home
+    assert "winter-walk.webp" not in home
     assert '"@type": "FAQPage"' in home
     assert "static.cloudflareinsights.com" in home
     deals = (output / public.DEALS / "index.html").read_text()
@@ -56,11 +59,17 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Strict-Transport-Security:" in headers
     assert "Permissions-Policy:" in headers
     assert "X-Frame-Options: DENY" in headers
-    assert "/config.js\n  Cache-Control: no-cache" in headers
+    assert "/config.js\n  Cache-Control: no-store" in headers
     assert 'http-equiv="Content-Security-Policy"' in home
     assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
-    assert "your home." in (output / "advisor.html").read_text()
+    advisor = (output / "advisor.html").read_text()
+    assert "your home." in advisor
+    assert 'href="/guides/smart-home-compatibility/"' in advisor
+    assert 'href="/deals/"' in advisor
+    assert "data-preset=\"apple-opentherm\"" in advisor
+    guide = (output / public.GUIDE / "index.html").read_text()
+    assert "winter-walk.webp" in guide
     sitemap = ET.parse(output / "sitemap.xml")
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None

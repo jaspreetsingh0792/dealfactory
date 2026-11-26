@@ -175,7 +175,7 @@ function renderOwned() {
       o.notes ? h("div", { class: "small muted" }, o.notes) : null),
     h("div", { class: "owned-actions" }, statusControls(o, () => { saveCtx(); renderOwned(); }),
       h("button", { type: "button", class: "icon", title: "Remove", "aria-label": `Remove ${o.brand} ${o.model}`, onclick: () => { ctx.owned = ctx.owned.filter((x) => x !== o); saveCtx(); renderOwned(); } }, "🗑"))))
-    : [h("li", { class: "muted small empty" }, "Nothing yet. Add the things new purchases must work with: stroller, TV, phone, robot vacuum, coffee machine…")]));
+    : [h("li", { class: "muted small empty" }, "Nothing yet. Add what a new purchase must work with: Hue bridge, boiler, TV, air purifier, robot vacuum…")]));
 }
 function initSetup() {
   $("#owned-form").onsubmit = (e) => {
@@ -216,8 +216,9 @@ function renderConnected() {
   const ready = ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
   const el = $("#ai-connected");
   el.className = `small ${ready ? "ok" : "muted"}`;
-  el.textContent = ready ? `✓ Connected: ${p?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
-    (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "") : "Not connected yet.";
+  el.textContent = ready ? `Step 1 done. Connected: ${p?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
+    (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "") : "Step 1: not connected yet. A preset still works without a key.";
+  renderConnectProgress();
   $("#cg-signin").hidden = !local || !!local.chatgpt?.signed_in;
   $("#cg-signout").hidden = !local?.chatgpt?.signed_in;
   $("#cg-note").hidden = !!local;
@@ -335,6 +336,78 @@ function applyImports() {
   renderOwned();
   renderImports();
 }
+const PRESETS = {
+  "apple-opentherm": {
+    label: "Apple Home + OpenTherm",
+    need: "Matter smart thermostat with OpenTherm for Apple Home",
+    owned: [
+      { category: "smart-home-hub", brand: "Apple", model: "HomePod mini", notes: "Starter preset: Thread border router. Edit if this is not yours." },
+      { category: "boiler", brand: "OpenTherm", model: "Modulating boiler", notes: "Starter preset: confirm the brand on the boiler plate." },
+    ],
+  },
+  "ha-zigbee": {
+    label: "Home Assistant + Zigbee/Matter",
+    need: "Matter smart plug that also works on Zigbee with Home Assistant",
+    owned: [
+      { category: "smart-home-hub", brand: "Home Assistant", model: "Zigbee and Thread dongle", notes: "Starter preset: edit the dongle model you actually use." },
+    ],
+  },
+};
+
+function renderConnectProgress() {
+  const el = $("#connect-progress");
+  if (!el) return;
+  const aiReady = ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+  const gmailDone = imported.purchases.some((p) => p.status !== "rejected");
+  el.className = `small ${aiReady ? "ok" : "muted"}`;
+  el.textContent = !aiReady
+    ? "Step 1 of 2: connect an AI when you want a live search. A starter preset and a copied brief need no API key."
+    : gmailDone
+      ? "Step 2 done: Gmail purchases are in your setup as unconfirmed until you approve them."
+      : "Step 1 done. Step 2 is optional: import Gmail receipts, or skip it and keep the devices you added.";
+}
+
+function applyPreset(id, needText) {
+  const preset = PRESETS[id];
+  const status = $("#preset-status");
+  if (!preset) {
+    if (status) { status.className = "small error"; status.textContent = "That starter preset is not available."; }
+    return;
+  }
+  let added = 0;
+  for (const item of preset.owned) {
+    const exists = ctx.owned.some((o) => o.status !== "rejected" && o.brand === item.brand && o.model === item.model);
+    if (exists) continue;
+    ctx.owned.push({
+      id: uniqueId(`${item.category} ${item.brand} ${item.model}`, new Set(ctx.owned.map((o) => o.id))),
+      category: slug(item.category), brand: item.brand, model: item.model, notes: item.notes,
+      aliases: [`my ${item.category.replace(/-/g, " ")}`], source: "stated", status: "confirmed", confidence: 1,
+    });
+    added++;
+  }
+  saveCtx();
+  renderOwned();
+  const need = (needText || "").trim() || preset.need;
+  const field = $("#need-text");
+  if (field && need) field.value = need;
+  if (status) {
+    status.className = "small ok";
+    status.textContent = `${preset.label} is in your setup${added ? "" : " already"}. No API key needed — copy a brief, or connect an AI for a live search.`;
+  }
+  renderConnectProgress();
+}
+
+function initDeepLink() {
+  const params = new URLSearchParams(location.search);
+  const preset = params.get("preset");
+  const need = params.get("need");
+  if (preset) applyPreset(preset, need);
+  else if (need && $("#need-text")) $("#need-text").value = need;
+  document.querySelectorAll("[data-preset]").forEach((button) => {
+    button.addEventListener("click", () => applyPreset(button.dataset.preset));
+  });
+}
+
 function renderImports() {
   const items = imported.purchases.filter((p) => p.status !== "rejected");
   $("#gm-list-wrap").hidden = !items.length;
@@ -344,6 +417,7 @@ function renderImports() {
       ` · ${[p.merchant, p.orderDate, p.unitPrice != null ? money(p.unitPrice, p.currency) : null, p.kind].filter(Boolean).join(" · ")}`)),
     h("div", { class: "owned-actions" }, h("button", { type: "button", class: "icon", title: "Delete", "aria-label": `Delete ${p.productName}`,
       onclick: () => { p.status = "rejected"; store.set(KEYS.purchases, imported); applyImports(); } }, "🗑")))));
+  renderConnectProgress();
 }
 async function connectGmail(grant) {
   const st = $("#gm-status");
@@ -630,6 +704,7 @@ function initPortability() {
 
 initLocation();
 initSetup();
+initDeepLink();
 initAi();
 initNeeds();
 initPortability();
