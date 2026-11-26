@@ -1,8 +1,18 @@
 const page = location.pathname === "/" ? "home" : "footmuffs";
 const enabled = document.querySelector('meta[name="dealfactory-counts"]') !== null;
+function arrivalChannel() {
+  const source = new URL(location.href).searchParams.get("utm_source");
+  if (source === "rss" || source === "reader" || source === "campaign") return source;
+  if (!document.referrer) return "direct";
+  const referring = new URL(document.referrer);
+  if (referring.origin === location.origin) return "internal";
+  if (/^(?:www\.)?(?:google\.[a-z.]+|bing\.com|duckduckgo\.com)$/.test(referring.hostname)) return "search";
+  return "referral";
+}
+const channel = arrivalChannel();
 function count(event) {
   if (enabled && !navigator.globalPrivacyControl && navigator.doNotTrack !== "1") {
-    navigator.sendBeacon?.(`/events?page=${page}&event=${event}`, "");
+    navigator.sendBeacon?.(`/events?page=${page}&event=${event}&channel=${channel}`, "");
   }
 }
 count("view");
