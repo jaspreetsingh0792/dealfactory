@@ -1,52 +1,27 @@
+{% from 'storefront.html.j2' import header, footer, offer_grid with context %}
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stroller footmuffs in the Netherlands | DealFactory</title>
 <meta name="description" content="Find a footmuff that fits your stroller, compare checked Dutch retailer prices, and see what to verify before ordering.">
 <meta property="og:title" content="Stroller footmuffs in the Netherlands | DealFactory">
 <meta property="og:description" content="Check stroller fit and compare in-stock retailer offers with checked prices.">
 <meta property="og:url" content="{{ site_url }}/guides/stroller-footmuffs/">
+<meta property="og:image" content="{{ site_url }}/media/winter-walk.webp">
 <link rel="canonical" href="{{ site_url }}/guides/stroller-footmuffs/">
-<link rel="stylesheet" href="../../style.css">
-<script type="module" src="../../lib/fresh-offers.js"></script>
-</head>
-<body>
-<header class="wrap"><a href="../../">DealFactory</a></header>
-{% macro offer_section() %}
-  <h2>Checked retailer offers</h2>
-  <p id="unverified-offers">There are no current prices to show. Check the retailer pages below.</p>
-  {% if offers %}
-  <div hidden data-offers-checked="{{ checked_at }}">
-  <p>Checked <time datetime="{{ checked_at }}">{{ checked_at }}</time>. Prices are in euros, before delivery. Confirm price and stock at the retailer.</p>
-  <ul>
-    {% for offer in offers %}
-    <li><a data-retailer href="{{ offer.url }}">{{ offer.name }} at {{ offer.retailer }}</a> · €{{ offer.price }}{% if offer.previous %} · previously €{{ offer.previous }} on {{ offer.previous_date }}{% endif %}</li>
-    {% endfor %}
-  </ul>
-  </div>
-  {% endif %}
-{% endmacro %}
-<main class="wrap">
-  <h1>Stroller footmuffs in the Netherlands</h1>
-  <p>Check the exact stroller model and seat setup before comparing prices. A footmuff listed as universal may only be designed for strollers from the same brand.</p>
-  {% if offers_first %}{{ offer_section() }}{% endif %}
-  <h2>What to check before ordering</h2>
-  <ul>
-    <li>Look for the model and generation on the manufacturer's compatibility list.</li>
-    <li>Check that the harness slots line up with your stroller seat and follow the stroller manufacturer's fitting instructions.</li>
-    <li>Compare delivery charges and return terms for your postcode.</li>
-  </ul>
-  {% if not offers_first %}{{ offer_section() }}{% endif %}
-  <h2>Retailer product pages</h2>
-  <ul>
-    {% for source in sources %}
-    <li><a data-retailer href="{{ source.url }}">{{ source.name }} at {{ source.retailer }}</a></li>
-    {% endfor %}
-  </ul>
-  <p><a href="../../offers.xml">Subscribe to offer updates</a></p>
-  <p><button id="share-guide" hidden>Share this guide</button></p>
-</main>
-</body>
-</html>
+<link rel="stylesheet" href="/storefront.css">
+<script type="module" src="/lib/storefront.js"></script><script type="module" src="/lib/fresh-offers.js"></script>
+</head><body class="store">
+{{ header(true) }}
+<main id="main" class="frame">
+  <section class="guide-cover">
+    <div class="guide-title"><a class="crumb" href="/">← Back to DealFactory</a><div class="label"><span class="rule"></span>BUYING GUIDE</div><h1>Stroller<br><em>footmuffs.</em></h1><p>Compare offers in the Netherlands and check the fit for your stroller before ordering.</p><a class="dark-button" href="#shortlist">Jump to offers <span aria-hidden="true">↓</span></a></div>
+    <div class="guide-photo" role="img" aria-label="Winter stroller on a woodland path"></div>
+  </section>
+  {% if offers_first %}<section class="collection">{{ offer_grid(offers, checked_at, true) }}</section>{% endif %}
+  <section class="field-notes"><div class="label"><span class="rule"></span>FIT NOTES</div><h2>What to check before ordering</h2>
+    <div class="notes-grid"><div><h3>Model &amp; generation</h3><p>Look for your exact stroller model on the manufacturer’s compatibility list.</p></div><div><h3>Harness openings</h3><p>Check that the harness slots line up with your seat and follow its fitting instructions.</p></div><div><h3>Delivered price</h3><p>Check delivery charges and return terms for your postcode before ordering.</p></div></div>
+  </section>
+  {% if not offers_first %}<section class="collection">{{ offer_grid(offers, checked_at, true) }}</section>{% endif %}
+  <section class="sources" id="retailers"><div><h2>Retailer sources</h2><p>Prices are checked in euros, before delivery. Confirm current stock at the shop.</p></div><div class="source-links">{% for source in sources %}<a data-retailer href="{{ source.url }}">{{ source.name }} at {{ source.retailer }} <span aria-hidden="true">↗</span></a>{% endfor %}<button class="dark-button" id="share-guide" hidden>Share this guide ↗</button></div></section>
+</main>{{ footer() }}</body></html>

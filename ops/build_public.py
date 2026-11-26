@@ -4,6 +4,7 @@ import argparse
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html import escape
+from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
@@ -11,7 +12,7 @@ import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 from email.utils import format_datetime
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -62,6 +63,52 @@ def exact_stock_price(html: str) -> Decimal | None:
     return next(iter(prices)) if len(prices) == 1 else None
 
 
+class ProductImage(HTMLParser):
+    """Use the retailer's own product preview image for the verified listing."""
+
+    def __init__(self):
+        super().__init__()
+        self.url = None
+
+    def handle_starttag(self, tag, attrs):
+        if self.url or tag != "meta":
+            return
+        data = dict(attrs)
+        if (data.get("property") or data.get("name")) in {"og:image", "og:image:secure_url", "twitter:image"}:
+            self.url = data.get("content")
+
+
+def listing_image(html, page_url):
+    parser = ProductImage()
+    parser.feed(html)
+    raw = parser.url
+    if not raw:
+        for script in JSONLD_RE.findall(html):
+            try:
+                data = json.loads(script)
+            except (ValueError, RecursionError):
+                continue
+            for node in _iter_nodes(data):
+                if node.get("@type") == "Product" and node.get("image"):
+                    raw = node["image"]
+                    if isinstance(raw, list):
+                        raw = raw[0] if raw else None
+                    if isinstance(raw, dict):
+                        raw = raw.get("url") or raw.get("contentUrl")
+                    break
+            if raw:
+                break
+    if isinstance(raw, str) and raw.strip():
+        try:
+            url = urljoin(page_url, raw.strip())
+            parts = urlsplit(url)
+            if parts.scheme == "https" and parts.hostname and not parts.username and not parts.password:
+                return url
+        except ValueError:
+            pass
+    return None
+
+
 def collect_offers(sources, fetcher):
     offers = []
     for source in sources:
@@ -74,7 +121,7 @@ def collect_offers(sources, fetcher):
             if not name:
                 continue
             source = {**source, "name": name}
-        offers.append((price, source))
+        offers.append((price, {**source, "image": listing_image(response[1], source["url"])}))
     return [
         {**source, "price": f"{price:.2f}".replace(".", ",")}
         for price, source in sorted(offers, key=lambda pair: pair[0])
@@ -100,7 +147,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     )
     web = ROOT / "web"
     output.mkdir(parents=True, exist_ok=False)
-    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json"):
+    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json", "media/*.webp", "media/*.ttf", "media/*-OFL.txt"):
         for path in web.glob(pattern):
             target = output / path.relative_to(web)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -145,22 +192,21 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     show_offers_first = guide_views >= 30 and counts.get(("footmuffs", "outbound"), 0) < guide_views / 10
     guide = output / GUIDE
     guide.mkdir(parents=True)
-    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(
+    checked = datetime.now(UTC)
+    context = dict(
         site_url=site_url, offers=offers, sources=sources, offers_first=show_offers_first,
-        checked_at=datetime.now(UTC).isoformat(timespec="minutes").replace("+00:00", "Z"),
-    ), encoding="utf-8")
-
+        checked_at=checked.isoformat(timespec="minutes").replace("+00:00", "Z"),
+        checked_label=checked.strftime("%d %b %Y"),
+    )
+    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**context), encoding="utf-8")
     homepage = output / "index.html"
-    html = homepage.read_text(encoding="utf-8")
-    html = html.replace("</head>", f'<link rel="canonical" href="{site_url}/">\n</head>', 1)
-    guide_link = f'<a href="{GUIDE}">Stroller footmuffs in the Netherlands</a>'
-    if '<section class="hero">' in html:
-        start = html.index('<section class="hero">')
-        end = html.index("</p>", start) + len("</p>")
-        html = html[:end] + f'<p>{guide_link}</p>' + html[end:]
-    else:
-        html = html.replace("</main>", f"<p>{guide_link}</p>\n</main>", 1)
-    homepage.write_text(html, encoding="utf-8")
+    advisor = output / "advisor.html"
+    original = homepage.read_text(encoding="utf-8")
+    original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
+    original = original.replace("<body>", '<body class="df-advisor">', 1)
+    original = original.replace('href="#top">DealFactory</a>', 'href="/">DealFactory</a>', 1)
+    advisor.write_text(original, encoding="utf-8")
+    homepage.write_text(templates.get_template("storefront.html.j2").render(home=True, **context), encoding="utf-8")
 
     for page_path in (homepage, guide / "index.html"):
         markup = page_path.read_text(encoding="utf-8")

@@ -34,6 +34,31 @@ jobs:
         run: bash ops/test_pages_counter.sh
       - run: uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory-test" --site-url https://dealfactory.example
 
+  storefront:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - name: Check desktop and mobile storefront
+        run: |
+          uv run --locked python ops/build_public.py "$RUNNER_TEMP/storefront" --refresh --site-url https://dealfactory.example
+          npm install --prefix "$RUNNER_TEMP/browser-qa" --no-save playwright-core@1.56.1
+          python3 -m http.server 8764 --bind 127.0.0.1 --directory "$RUNNER_TEMP/storefront" > "$RUNNER_TEMP/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8764/ -o /dev/null
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_storefront.cjs "$RUNNER_TEMP/screens"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storefront-previews
+          path: ${{ runner.temp }}/screens/*.jpg
+          retention-days: 3
+
   publish:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
