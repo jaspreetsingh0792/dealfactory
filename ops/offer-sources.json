@@ -1,4 +1,14 @@
 [
-  {"name": "Joolz universal footmuff", "retailer": "Joolz", "url": "https://www.joolz.com/nl/en/accessories/560350-M.html"},
-  {"name": "Joolz universal footmuff", "retailer": "Babycare", "url": "https://www.babycare.nl/en/joolz-universal-footmuff.html"}
+  {"name": "tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983933/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie.html"},
+  {"name": "tado Draadloze Slimme Thermostaat X Startpakket 2e Generatie", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983934/tado-draadloze-slimme-thermostaat-x-startpakket-2e-generatie.html"},
+  {"name": "Remeha eTwist slimme klokthermostaat V3 excl. Gateway", "retailer": "Instalpunt", "fits": "OpenTherm, Remeha Ace", "url": "https://instalpunt.nl/product/remeha-etwist-slimme-klokthermostaat-v3-excl-gateway/"},
+  {"name": "Shelly Plug S MTR Gen3", "retailer": "BlauweStroomShop", "fits": "Matter", "url": "https://www.blauwestroomshop.nl/shelly-plug-s-mtr-gen3.html"},
+  {"name": "Aqara Door and Window Sensor P2", "retailer": "Aqara", "fits": "Matter, Thread", "url": "https://eu.aqara.com/en-eu/products/aqara-door-and-window-sensor-p2"},
+  {"name": "Aqara Hub M3", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/aqara-smart-hub-m3"},
+  {"name": "Philips Hue Bridge", "retailer": "Coolblue", "fits": "Philips Hue", "url": "https://www.coolblue.nl/product/890077/philips-hue-bridge.html"},
+  {"name": "Philips Hue Bridge Pro", "retailer": "Coolblue", "fits": "Matter, Philips Hue", "url": "https://www.coolblue.nl/product/968647/philips-hue-bridge-pro.html"},
+  {"name": "Philips Hue Bewegingssensor", "retailer": "Coolblue", "fits": "Zigbee, Philips Hue", "url": "https://www.coolblue.nl/product/890049/philips-hue-bewegingssensor.html"},
+  {"name": "Sonos Beam Gen2 Zwart", "retailer": "Coolblue", "fits": "HDMI eARC", "url": "https://www.coolblue.nl/product/891435/sonos-beam-gen2-zwart.html"},
+  {"name": "Philips HEPA NanoProtect filter FY0900/30", "retailer": "Coolblue", "fits": "Philips AC0920", "url": "https://www.coolblue.nl/product/954000/philips-hepa-nanoprotect-filter-fy0900-30.html"},
+  {"name": "Philips 3in1 HEPA NanoProtect filter 1700 Serie FY1700/30", "retailer": "Coolblue", "fits": "Philips AC1715", "url": "https://www.coolblue.nl/product/901313/philips-3in1-hepa-nanoprotect-filter-1700-serie-fy1700-30.html"}
 ]

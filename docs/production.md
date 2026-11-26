@@ -45,7 +45,7 @@ Build into a new output directory. Add `--refresh` to check retailers. Pass a re
 
 ## Automated discovery, measurement and promotion
 
-The daily release checks the Babycare, Koeka and Jollein footmuff departments for new product links, then verifies individual offers. The public offer history records checked prices for comparisons across the last seven days. The RSS feed at `/offers.xml` and the guide's share link distribute the latest offers. The build writes a suggested organic campaign to its Actions summary.
+The daily release checks Coolblue tado and Hue departments and the Aqara EU catalogue for new product links, then verifies individual offers. The public offer history records checked prices for comparisons across the last seven days. The RSS feed at `/offers.xml` and the deals page distribute the latest smart-home and appliance offers. The build writes a suggested organic campaign to its Actions summary.
 
 The workflow registers `deals.agentsealteam.com` on the owner's Pages project. Once the domain is active, releases use it in canonical URLs and the sitemap. If domain verification is waiting for DNS, add the `deals` CNAME at the authoritative DNS provider using the Pages hostname printed in the production log.
 

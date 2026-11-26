@@ -28,7 +28,9 @@ async function main() {
           assert(await page.locator(".faq details").first().evaluate(d => d.open));
         }
         if (screen === "deals") {
-          assert(await page.locator(".cover-photo").evaluate(img => img.decode().then(() => img.naturalWidth > 0)));
+          assert(await page.locator("#cover-title").isVisible());
+          assert.equal(await page.locator(".cover-photo").count(), 0);
+          assert.equal(await page.locator("img[src*='winter-walk']").count(), 0);
         }
         const cards = page.locator(".product");
         if (await cards.count()) {

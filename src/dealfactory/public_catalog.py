@@ -1,4 +1,4 @@
-"""Find current product links in the retailer's stroller-footmuff department."""
+"""Find current smart-home and appliance links in retailer departments."""
 from html.parser import HTMLParser
 import json
 import re
@@ -6,7 +6,16 @@ from urllib.parse import urljoin, urlsplit
 
 from .fetch import JSONLD_RE, _iter_nodes
 
-CATEGORY = "https://www.babycare.nl/en/strollers/stroller-accessories/footmuffs.html"
+DEPARTMENTS = (
+    ("https://www.coolblue.nl/thermostaten/tado/tado-x", "Coolblue",
+     r"/product/\d+/tado-[a-z0-9-]+\.html"),
+    ("https://www.coolblue.nl/bridges/philips-hue", "Coolblue",
+     r"/product/\d+/philips-hue-[a-z0-9-]+\.html"),
+    ("https://eu.aqara.com/en-eu/collections/all", "Aqara",
+     r"/en-eu/products/[a-z0-9-]+"),
+)
+CATEGORY = DEPARTMENTS[0][0]
+BABY_GEAR = re.compile(r"footmuff|voetenzak|stroller|buggy|kinderwagen", re.I)
 
 
 class ProductLinks(HTMLParser):
@@ -29,15 +38,8 @@ class ProductLinks(HTMLParser):
 
 
 def discover(fetcher, known):
-    departments = (
-        ("https://koeka.com/nl/collections/buggy-voetenzakken", "Koeka",
-         r"/nl/products/(?:buggy|kinderwagen)-voetenzak-[a-z0-9-]+"),
-        (CATEGORY, "Babycare", r"/en/[a-z0-9-]*(?:footmuff|voetenzak)[a-z0-9-]*\.html"),
-        ("https://jollein.nl/collections/voetenzakken", "Jollein",
-         r"/products/voetenzak-[a-z0-9-]*(?:buggy|kinderwagen)[a-z0-9-]*"),
-    )
     candidates = []
-    for category, retailer, pattern in departments:
+    for category, retailer, pattern in DEPARTMENTS:
         result = fetcher.get(category)
         if not result or result[0] != 200:
             continue
@@ -63,6 +65,6 @@ def product_name(html):
                     names.add(name.strip())
     if len(names) == 1:
         name = names.pop()
-        if re.search(r"footmuff|voetenzak", name, re.I):
+        if not BABY_GEAR.search(name):
             return name[:180]
     return None

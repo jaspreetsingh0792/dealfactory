@@ -1,0 +1,35 @@
+# DealFactory continuation
+
+Owner: Jaspreet Singh. Live site: https://deals.agentsealteam.com/
+Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182e20, Warm Paper #faf9f4, Chart Lime #e0fa69.
+Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
+Never print, commit or log an OAuth client secret or token.
+
+## Status after the smart-home offer pivot
+
+Branch `cursor/smart-home-offers-cb02` pivots `/deals/`, `/offers.xml` and catalog extraction to verified NL/EU smart-home and appliance SKUs. The stroller footmuff guide stays archived and no longer receives those offers. Not deployed yet: deployment runs from `main` after the pull request merges.
+
+Verified in-stock EUR offers (live retailer JSON-LD, checked 26 Nov 2026 with the offer-check user agent):
+
+- Coolblue, tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie, €159.00, Fits: OpenTherm, Matter
+- Coolblue, tado Draadloze Slimme Thermostaat X Startpakket 2e Generatie, €174.00, Fits: OpenTherm, Matter
+- Instalpunt, Remeha eTwist V3 excl. Gateway (Ace boilers), €199.00, Fits: OpenTherm, Remeha Ace
+- BlauweStroomShop, Shelly Plug S MTR Gen3, €24.00, Fits: Matter
+- Aqara EU, Door and Window Sensor P2, €32.99, Fits: Matter, Thread
+- Aqara EU, Hub M3, €159.99, Fits: Matter, Zigbee, Thread
+- Coolblue, Philips Hue Bridge, €49.99, Fits: Philips Hue
+- Coolblue, Philips Hue Bridge Pro, €99.00, Fits: Matter, Philips Hue
+- Coolblue, Philips Hue Bewegingssensor, €43.99, Fits: Zigbee, Philips Hue
+- Coolblue, Sonos Beam Gen2 Zwart, €349.00, Fits: HDMI eARC
+- Coolblue, Philips FY0900/30, €29.99, Fits: Philips AC0920
+- Coolblue, Philips FY1700/30, €68.00, Fits: Philips AC1715
+
+Skipped because the offer checker could not confirm an in-stock euro price: Eve Energy (Matter) is OutOfStock at Coolblue (€43.99); Philips FY1410/30 is SoldOut at Coolblue (€42.99); FY2422/30 at FixPart returned 403; FY3430 had no reachable product page with schema.org price. The Coolblue Remeha eTwist page is SoldOut.
+
+## Still to do
+
+1. Unify `/advisor` and `/privacy` with the storefront, scrub remaining stroller examples, add starter presets and `?need=&preset=` links.
+2. Extensionless canonicals, sitemap lastmod, JSON-LD, and the 2026 compatibility guide.
+3. Advisor funnel telemetry with a safe D1 write.
+4. Google Limited Use privacy text, `/mcp` security headers, and fail-closed Gmail profile lookup.
+5. Owner-only: D1 Edit on the deployment token, 301 from `dealfactory-3uu.pages.dev` to `https://deals.agentsealteam.com/$1`, Search Console verification, and a confirmed privacy contact email. Do not publish `deals@agentsealteam.com` until the owner confirms it.

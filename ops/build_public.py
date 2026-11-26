@@ -28,41 +28,117 @@ SITEMAP = ("/", "/advisor.html", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}"
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
+_IN_STOCK = {"https://schema.org/InStock", "http://schema.org/InStock", "InStock"}
+_AMOUNT = re.compile(
+    r"(?:[0-9]{1,3}(?:\.[0-9]{3})+(?:,[0-9]{1,2})?"
+    r"|[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?"
+    r"|[0-9]{1,7}(?:,[0-9]{1,2})?"
+    r"|[0-9]{1,7}(?:\.[0-9]{1,2})?)"
+)
+
+
+def parse_euro_amount(raw) -> Decimal | None:
+    """Read a schema.org price, including EU thousands such as 1.299,00."""
+    text = str(raw).strip().replace(" ", "").replace("\u00a0", "")
+    if not _AMOUNT.fullmatch(text):
+        return None
+    if "," in text and "." in text:
+        text = text.replace(".", "").replace(",", ".") if text.rfind(",") > text.rfind(".") else text.replace(",", "")
+    elif "," in text:
+        text = text.replace(",", ".")
+    elif re.fullmatch(r"[0-9]{1,3}(?:\.[0-9]{3})+", text):
+        text = text.replace(".", "")
+    try:
+        price = Decimal(text)
+    except InvalidOperation:
+        return None
+    return price if price > 0 else None
+
+
+def _schema_types(node: dict) -> set[str]:
+    kind = node.get("@type")
+    if isinstance(kind, list):
+        return {str(item) for item in kind}
+    return {str(kind)} if kind else set()
+
+
+def _price_and_currency(offer: dict) -> tuple[object, str | None]:
+    raw = offer.get("price")
+    currency = offer.get("priceCurrency")
+    spec = offer.get("priceSpecification")
+    specs = spec if isinstance(spec, list) else [spec] if isinstance(spec, dict) else []
+    for item in specs:
+        if isinstance(item, dict) and item.get("price") not in (None, ""):
+            if raw in (None, ""):
+                raw = item.get("price")
+            currency = currency or item.get("priceCurrency")
+            break
+    return raw, currency
+
+
+def _in_stock_eur(offer: dict) -> Decimal | None:
+    if not isinstance(offer, dict) or offer.get("availability") not in _IN_STOCK:
+        return None
+    raw, currency = _price_and_currency(offer)
+    if currency != "EUR" or raw in (None, ""):
+        return None
+    return parse_euro_amount(raw)
+
+
+def _prices_on_product(product: dict) -> set[Decimal]:
+    offers = product.get("offers")
+    offers = [offers] if isinstance(offers, dict) else offers if isinstance(offers, list) else []
+    found: list[tuple[str | None, Decimal]] = []
+    for offer in offers:
+        if not isinstance(offer, dict):
+            continue
+        types = _schema_types(offer)
+        if "AggregateOffer" in types:
+            nested = offer.get("offers")
+            nested = nested if isinstance(nested, list) else [nested] if isinstance(nested, dict) else []
+            children = [
+                (child.get("sku"), amount)
+                for child in nested
+                if isinstance(child, dict) and "Offer" in _schema_types(child)
+                and (amount := _in_stock_eur(child)) is not None
+            ]
+            if children:
+                found.extend(children)
+                continue
+            amount = _in_stock_eur(offer)
+            low, high = parse_euro_amount(offer.get("lowPrice")), parse_euro_amount(offer.get("highPrice"))
+            if amount is None and low is not None and (high is None or high == low):
+                amount = _in_stock_eur({**offer, "price": offer.get("lowPrice")})
+            if amount is not None and (high is None or high == amount):
+                found.append((offer.get("sku"), amount))
+        elif "Offer" in types:
+            amount = _in_stock_eur(offer)
+            if amount is not None:
+                found.append((offer.get("sku"), amount))
+    prices = {price for _, price in found}
+    if len(prices) <= 1:
+        return prices
+    matched = {price for sku, price in found if product.get("sku") and sku == product.get("sku")}
+    return matched if len(matched) == 1 else set()
+
+
 def exact_stock_price(html: str) -> Decimal | None:
-    """Require an explicit euro price and in-stock offer attached to a product."""
-    prices = set()
+    """Require one explicit in-stock euro price attached to a product.
+
+    AggregateOffer, priceSpecification.price, EU thousands (1.299,00) and a
+    multi-variant page are accepted only when they collapse to a single price.
+    A variant page uses the offer whose sku matches the product sku.
+    """
+    prices: set[Decimal] = set()
     for script in JSONLD_RE.findall(html):
         try:
             data = json.loads(script)
         except (json.JSONDecodeError, RecursionError):
             continue
         for product in _iter_nodes(data):
-            product_type = product.get("@type")
-            if product_type != "Product" and not (
-                isinstance(product_type, list) and "Product" in product_type
-            ):
+            if "Product" not in _schema_types(product):
                 continue
-            offers = product.get("offers")
-            if isinstance(offers, dict):
-                offers = [offers]
-            if not isinstance(offers, list):
-                continue
-            for offer in offers:
-                if not isinstance(offer, dict) or offer.get("@type") != "Offer":
-                    continue
-                if offer.get("priceCurrency") != "EUR" or offer.get("availability") not in (
-                    "https://schema.org/InStock", "http://schema.org/InStock", "InStock"
-                ):
-                    continue
-                price_text = str(offer.get("price", ""))
-                if not re.fullmatch(r"[0-9]{1,7}(?:[.,][0-9]{1,2})?", price_text):
-                    continue
-                try:
-                    price = Decimal(price_text.replace(",", "."))
-                except InvalidOperation:
-                    continue
-                if price > 0:
-                    prices.add(price)
+            prices.update(_prices_on_product(product))
     return next(iter(prices)) if len(prices) == 1 else None
 
 
@@ -93,29 +169,36 @@ def secure_image_url(raw, page_url):
     return None
 
 
-def listing_image(html, page_url):
-    parser = ProductImage()
-    parser.feed(html)
-    for prop in ("og:image:secure_url", "og:image", "twitter:image"):
-        url = secure_image_url(parser.urls.get(prop), page_url)
-        if url:
-            return url
+def product_images(html, page_url):
+    found = []
     for script in JSONLD_RE.findall(html):
         try:
             data = json.loads(script)
         except (ValueError, RecursionError):
             continue
         for node in _iter_nodes(data):
-            kind = node.get("@type")
-            if kind != "Product" and not (isinstance(kind, list) and "Product" in kind):
+            if "Product" not in _schema_types(node):
                 continue
             images = node.get("image")
             for raw in images if isinstance(images, list) else [images]:
                 if isinstance(raw, dict):
                     raw = raw.get("contentUrl") or raw.get("url")
                 url = secure_image_url(raw, page_url)
-                if url:
-                    return url
+                if url and url not in found:
+                    found.append(url)
+    return found
+
+
+def listing_image(html, page_url):
+    images = product_images(html, page_url)
+    if images:
+        return images[0]
+    parser = ProductImage()
+    parser.feed(html)
+    for prop in ("og:image:secure_url", "og:image", "twitter:image"):
+        url = secure_image_url(parser.urls.get(prop), page_url)
+        if url:
+            return url
     return None
 
 
@@ -195,14 +278,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     (output / "offer-history.json").write_text(json.dumps(observations, ensure_ascii=False))
     feed = ET.Element("rss", version="2.0")
     channel = ET.SubElement(feed, "channel")
-    ET.SubElement(channel, "title").text = "DealFactory | Dutch stroller footmuffs"
-    ET.SubElement(channel, "link").text = site_url + "/" + GUIDE
+    ET.SubElement(channel, "title").text = "DealFactory | Smart home and appliance deals"
+    ET.SubElement(channel, "link").text = site_url + "/" + DEALS
     ET.SubElement(channel, "description").text = "Current retailer offers verified by DealFactory."
     ET.SubElement(channel, "lastBuildDate").text = format_datetime(datetime.now(UTC))
     for offer in offers:
         item = ET.SubElement(channel, "item")
         ET.SubElement(item, "title").text = f"{offer['name']} at {offer['retailer']} · €{offer['price']}"
-        ET.SubElement(item, "link").text = site_url + "/" + GUIDE + "?utm_source=rss&utm_medium=feed"
+        ET.SubElement(item, "link").text = site_url + "/" + DEALS + "?utm_source=rss&utm_medium=feed"
         ET.SubElement(item, "guid", isPermaLink="false").text = offer["url"] + "#" + offer["price"]
         ET.SubElement(item, "description").text = f"Price checked on {today.isoformat()}. Confirm availability at the retailer."
     ET.ElementTree(feed).write(output / "offers.xml", encoding="utf-8", xml_declaration=True)
@@ -217,7 +300,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         checked_at=checked.isoformat(timespec="minutes").replace("+00:00", "Z"),
         checked_label=checked.strftime("%d %b %Y"),
     )
-    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**context), encoding="utf-8")
+    archived = {**context, "offers": [], "sources": []}
+    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**archived), encoding="utf-8")
     homepage = output / "index.html"
     advisor = output / "advisor.html"
     original = homepage.read_text(encoding="utf-8")
@@ -292,9 +376,9 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     print(f"Retailer pages checked: {len(candidates)}. New product links found: {len(candidates) - len(sources)}.")
     print(f"Guide layout: {'prices first' if show_offers_first else 'compatibility first'}.")
     if offers:
-        print(f"Organic campaign draft: Compare {len(offers)} checked stroller footmuff "
-              f"{'offer' if len(offers) == 1 else 'offers'} for shoppers in the Netherlands. "
-              f"{site_url}/{GUIDE}?utm_source=campaign&utm_medium=organic")
+        print(f"Organic campaign draft: Compare {len(offers)} checked smart-home and appliance "
+              f"{'offer' if len(offers) == 1 else 'offers'} for shoppers in the Netherlands and EU. "
+              f"{site_url}/{DEALS}?utm_source=campaign&utm_medium=organic")
     return len(offers)
 
 

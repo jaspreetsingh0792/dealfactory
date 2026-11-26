@@ -95,6 +95,22 @@ test("connector: robots.txt, JSON-LD and verification", async () => {
   const bad = await verifyOnPage({ url: "https://shop2.example/p/acme", price: 79, quote: "Fits Bugaboo Fox" }, fetcher);
   assert.match(bad.verdict, /^NOT VERIFIED/);
   await assert.rejects(verifyOnPage({ url: "http://127.0.0.1/x" }, fetcher));
+  const priced = `<html><title>Filter</title><script type="application/ld+json">{"@type":"Product","name":"Filter","offers":{"@type":"Offer","priceCurrency":"EUR","availability":"https://schema.org/InStock","priceSpecification":{"price":"1.299,00","priceCurrency":"EUR"}}}</script><body>${"spec ".repeat(40)} $1299.00</body></html>`;
+  const pricedFetcher = async (u) => (String(u).endsWith("/robots.txt") ? new Response("User-agent: *\nAllow: /") : new Response(priced, { status: 200 }));
+  assert.equal(jsonLdOffers(priced)[0].price, 1299);
+  assert.equal(jsonLdOffers(priced)[0].currency, "EUR");
+  const structured = await verifyOnPage({ url: "https://shop3.example/filter", price: 1299, currency: "EUR" }, pricedFetcher);
+  assert.equal(structured.price_in_structured_data, true);
+  assert.equal(structured.price_in_text, false);
+  const dollars = `<html><title>Plug</title><body>${"word ".repeat(80)} $89.99</body></html>`;
+  const dollarFetcher = async (u) => (String(u).endsWith("/robots.txt") ? new Response("User-agent: *\nAllow: /") : new Response(dollars, { status: 200 }));
+  const wrongCurrency = await verifyOnPage({ url: "https://shop4.example/plug", price: 89.99, currency: "EUR" }, dollarFetcher);
+  assert.equal(wrongCurrency.price_in_text, false);
+  assert.equal(wrongCurrency.price_verified, false);
+  const euros = `<html><title>Plug</title><body>${"word ".repeat(80)} €89,99</body></html>`;
+  const euroFetcher = async (u) => (String(u).endsWith("/robots.txt") ? new Response("User-agent: *\nAllow: /") : new Response(euros, { status: 200 }));
+  const rightCurrency = await verifyOnPage({ url: "https://shop5.example/plug", price: 89.99, currency: "EUR" }, euroFetcher);
+  assert.equal(rightCurrency.price_verified, true);
 });
 
 test("connector speaks MCP", async () => {

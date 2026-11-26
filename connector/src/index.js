@@ -143,6 +143,18 @@ export function pageText(html) {
     .replace(/\s+/g, " ").trim();
 }
 
+export function parseSchemaPrice(raw) {
+  const text = String(raw ?? "").trim().replace(/[\s\u00a0]/g, "");
+  if (!/^(?:\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d{1,7}(?:,\d{1,2})?|\d{1,7}(?:\.\d{1,2})?)$/.test(text)) return null;
+  let normalized = text;
+  if (text.includes(",") && text.includes(".")) {
+    normalized = text.lastIndexOf(",") > text.lastIndexOf(".") ? text.replace(/\./g, "").replace(",", ".") : text.replace(/,/g, "");
+  } else if (text.includes(",")) normalized = text.replace(",", ".");
+  else if (/^\d{1,3}(?:\.\d{3})+$/.test(text)) normalized = text.replace(/\./g, "");
+  const price = Number(normalized);
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
 export function jsonLdOffers(html) {
   const out = [];
   let visited = 0;
@@ -153,9 +165,20 @@ export function jsonLdOffers(html) {
     const types = [].concat(node["@type"] || []).map(String);
     const nm = types.includes("Product") ? node.name || name : name;
     if (types.some((t) => /Offer$/.test(t))) {
-      const price = node.price ?? node.lowPrice;
-      if (price != null) out.push({ product: nm || null, price: Number(String(price).replace(",", ".")), currency: node.priceCurrency || null,
-        availability: node.availability ? String(node.availability).replace(/^https?:\/\/schema\.org\//, "") : null });
+      let currency = node.priceCurrency || null;
+      let raw = node.price;
+      const specs = [].concat(node.priceSpecification || []).filter((spec) => spec && typeof spec === "object");
+      const spec = specs.find((item) => item.price != null && item.price !== "");
+      if ((raw == null || raw === "") && spec) raw = spec.price;
+      if (!currency && spec?.priceCurrency) currency = spec.priceCurrency;
+      const low = node.lowPrice == null ? null : parseSchemaPrice(node.lowPrice);
+      const high = node.highPrice == null ? null : parseSchemaPrice(node.highPrice);
+      if ((raw == null || raw === "") && low != null && (high == null || high === low)) raw = node.lowPrice;
+      const price = raw == null || raw === "" ? null : parseSchemaPrice(raw);
+      if (price != null && !(low != null && high != null && low !== high && (raw === node.lowPrice || raw == null))) {
+        out.push({ product: nm || null, price, currency,
+          availability: node.availability ? String(node.availability).replace(/^https?:\/\/schema\.org\//, "") : null });
+      }
     }
     for (const v of Object.values(node)) if (v && typeof v === "object") visit(v, nm, depth + 1);
   };
@@ -197,7 +220,7 @@ export async function verifyOnPage({ url, price, currency, quote }, fetcher = fe
   if (price != null) {
     const inLd = offers.some((o) => Math.abs(o.price - price) < 0.005 && (!currency || !o.currency || o.currency.toUpperCase() === currency.toUpperCase()));
     res.price_in_structured_data = inLd;
-    res.price_in_text = priceInText(price, text);
+    res.price_in_text = priceInText(price, text, currency || undefined);
     res.price_verified = inLd || res.price_in_text;
   }
   const bad = (quote && !res.quote_on_page) || (price != null && !res.price_verified);
