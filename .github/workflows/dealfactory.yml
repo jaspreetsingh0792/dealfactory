@@ -33,6 +33,9 @@ jobs:
 
   publish:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      statuses: write
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -47,6 +50,7 @@ jobs:
       - name: Prepare Cloudflare Pages project
         id: pages
         env:
+          CUSTOM_DOMAIN: ${{ github.repository == 'jaspreetsingh0792/dealfactory' && 'deals.agentsealteam.com' || '' }}
           PAGES_CREDENTIALS: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -85,3 +89,16 @@ jobs:
             curl --fail --silent --show-error --location --max-time 20 --retry 3 --output /dev/null "$url"
             printf 'Reachable: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"
           done
+      - name: Record production check
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULT: ${{ job.status }}
+          READY: ${{ steps.pages.outputs.ready }}
+        run: |
+          result=failure
+          if [[ "$JOB_RESULT" == success && "$READY" == true ]]; then result=success; fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$result" -f context=dealfactory/production \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            -f description="Deployment and production route checks" --silent
