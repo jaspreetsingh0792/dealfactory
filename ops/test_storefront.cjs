@@ -50,21 +50,16 @@ async function main() {
           console.log(screen, name, "product photos loaded:", photos.filter(x => x.loaded).length, "of", await cards.count(), JSON.stringify(photos));
         }
         await page.evaluate(() => scrollTo(0, 0));
-        const capture = await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
-        if (screen === "home" || name === "desktop") {
-          const result = await page.evaluate(async data => {
-            const img = new Image(); img.src = "data:image/jpeg;base64," + data; await img.decode();
-            const canvas = document.createElement("canvas"); canvas.width = Math.min(660, img.width);
-            canvas.height = Math.round(img.height * canvas.width / img.width);
-            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL("image/jpeg", 0.64).split(",")[1];
-          }, capture.toString("base64"));
-          for (let i = 0; i < result.length; i += 1600) console.log("DFPREVIEW|" + name + screen + "|" + result.slice(i, i + 1600));
-        }
+        await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
       }
       await page.goto(origin + "/#setup");
       await page.waitForURL("**/advisor.html#setup");
       assert(await page.locator("#need-form").count());
+      await page.locator(".hero").scrollIntoViewIfNeeded();
+      assert(await page.locator(".hero h1 em").isVisible());
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+      await page.screenshot({ path: path.join(directory, name + "-advisor.jpg"), type: "jpeg", quality: 82 });
       assert.deepEqual(errors, []);
       await page.close();
     }

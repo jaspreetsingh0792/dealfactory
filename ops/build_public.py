@@ -68,44 +68,51 @@ class ProductImage(HTMLParser):
 
     def __init__(self):
         super().__init__()
-        self.url = None
+        self.urls = {}
 
     def handle_starttag(self, tag, attrs):
-        if self.url or tag != "meta":
+        if tag != "meta":
             return
         data = dict(attrs)
-        if (data.get("property") or data.get("name")) in {"og:image", "og:image:secure_url", "twitter:image"}:
-            self.url = data.get("content")
+        prop = data.get("property") or data.get("name")
+        if prop in {"og:image", "og:image:secure_url", "twitter:image"} and data.get("content"):
+            self.urls.setdefault(prop, data["content"])
+
+
+def secure_image_url(raw, page_url):
+    if isinstance(raw, str) and raw.strip():
+        try:
+            parts = urlsplit(urljoin(page_url, raw.strip()))
+            if parts.scheme in {"http", "https"} and parts.hostname and not parts.username and not parts.password:
+                return parts._replace(scheme="https").geturl()
+        except ValueError:
+            pass
+    return None
 
 
 def listing_image(html, page_url):
     parser = ProductImage()
     parser.feed(html)
-    raw = parser.url
-    if not raw:
-        for script in JSONLD_RE.findall(html):
-            try:
-                data = json.loads(script)
-            except (ValueError, RecursionError):
-                continue
-            for node in _iter_nodes(data):
-                if node.get("@type") == "Product" and node.get("image"):
-                    raw = node["image"]
-                    if isinstance(raw, list):
-                        raw = raw[0] if raw else None
-                    if isinstance(raw, dict):
-                        raw = raw.get("url") or raw.get("contentUrl")
-                    break
-            if raw:
-                break
-    if isinstance(raw, str) and raw.strip():
+    for prop in ("og:image:secure_url", "og:image", "twitter:image"):
+        url = secure_image_url(parser.urls.get(prop), page_url)
+        if url:
+            return url
+    for script in JSONLD_RE.findall(html):
         try:
-            url = urljoin(page_url, raw.strip())
-            parts = urlsplit(url)
-            if parts.scheme == "https" and parts.hostname and not parts.username and not parts.password:
-                return url
-        except ValueError:
-            pass
+            data = json.loads(script)
+        except (ValueError, RecursionError):
+            continue
+        for node in _iter_nodes(data):
+            kind = node.get("@type")
+            if kind != "Product" and not (isinstance(kind, list) and "Product" in kind):
+                continue
+            images = node.get("image")
+            for raw in images if isinstance(images, list) else [images]:
+                if isinstance(raw, dict):
+                    raw = raw.get("contentUrl") or raw.get("url")
+                url = secure_image_url(raw, page_url)
+                if url:
+                    return url
     return None
 
 
@@ -204,7 +211,9 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     original = homepage.read_text(encoding="utf-8")
     original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
     original = original.replace("<body>", '<body class="df-advisor">', 1)
-    original = original.replace('href="#top">DealFactory</a>', 'href="/">DealFactory</a>', 1)
+    brand = templates.get_template("storefront.html.j2").module.wordmark()
+    original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
+    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Deals that fit<br><em>your setup.</em></h1>', original, count=1)
     advisor.write_text(original, encoding="utf-8")
     homepage.write_text(templates.get_template("storefront.html.j2").render(home=True, **context), encoding="utf-8")
 
