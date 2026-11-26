@@ -55,6 +55,20 @@ def main():
     print(f"::add-mask::{token}")
     name = os.environ.get("PAGES_PROJECT") or "dealfactory"
     url = resolve_project(account or "", token, name)
+    custom = os.environ.get("CUSTOM_DOMAIN")
+    if custom:
+        if not re.fullmatch(r"[a-z0-9.-]+", custom):
+            raise ValueError("Expected a hostname for CUSTOM_DOMAIN")
+        endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{name}/domains"
+        domains = request(endpoint, token)
+        domain = next((item for item in domains if item["name"] == custom), None)
+        if domain is None:
+            domain = request(endpoint, token, {"name": custom})
+        print(f"Custom domain {custom}: {domain['status']}")
+        if domain["status"] == "active":
+            url = f"https://{custom}"
+        else:
+            print(f"DNS target for {custom}: {url.removeprefix('https://')}")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
         print("ready=true", f"project={name}", f"url={url}", sep="\n", file=output)
     print(f"Cloudflare Pages project is ready at {url}")
