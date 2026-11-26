@@ -22,8 +22,16 @@ def read_route(path):
 for attempt in range(8):
     try:
         home = read_route("/").decode()
-        if 'id="cover-title"' not in home or 'href="/advisor.html"' not in home:
-            raise ValueError("The redesigned storefront or shopping advisor link is missing")
+        if 'id="memory-title"' not in home or 'href="/advisor.html"' not in home:
+            raise ValueError("The advisor-first homepage or shopping advisor link is missing")
+        if 'id="cover-title"' not in read_route("/deals/").decode():
+            raise ValueError("The checked deals page is missing")
+        for route in ("/about/", "/terms/"):
+            read_route(route)
+        missing = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "15",
+                                  origin + "/this-page-does-not-exist"], capture_output=True, text=True).stdout
+        if missing != "404":
+            raise ValueError(f"Unknown pages should return 404, got {missing}")
         advisor = read_route("/advisor.html")
         for marker in (b'need-form', b'or-signin', b'gm-connect', b'open-chatgpt', b'open-claude'):
             if b'id="' + marker + b'"' not in advisor:

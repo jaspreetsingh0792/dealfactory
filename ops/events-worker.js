@@ -1,4 +1,4 @@
-const pages = new Set(["home", "footmuffs"]);
+const pages = new Set(["home", "deals", "footmuffs"]);
 const channels = new Set(["rss", "reader", "campaign", "internal", "search", "referral", "direct"]);
 const events = new Set(["view", "outbound", "share"]);
 

@@ -32,10 +32,21 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     html = (output / public.GUIDE / "index.html").read_text()
     assert 'hidden data-offers-checked=' in html
     assert "€89,95" in html
-    assert 'href="guides/stroller-footmuffs/"' in (output / "index.html").read_text()
-    assert "static.cloudflareinsights.com" in (output / "index.html").read_text()
+    home = (output / "index.html").read_text()
+    assert 'id="memory-title"' in home and 'href="/advisor.html#setup"' in home
+    assert 'href="/guides/stroller-footmuffs/"' in home
+    assert '"@type": "FAQPage"' in home
+    assert "static.cloudflareinsights.com" in home
+    deals = (output / public.DEALS / "index.html").read_text()
+    assert "€89,95" in deals and 'id="cover-title"' in deals
+    assert "static.cloudflareinsights.com" in deals
+    for page in ("about/index.html", "terms/index.html", "404.html"):
+        assert "<h1>" in (output / page).read_text()
+    assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
+    assert "what you own." in (output / "advisor.html").read_text()
     sitemap = ET.parse(output / "sitemap.xml")
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
+    assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
 
 
 def test_missing_ambiguous_or_unavailable_prices_are_omitted():

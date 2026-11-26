@@ -10,7 +10,8 @@ from urllib.parse import urlsplit
 
 
 def fingerprints(release):
-    paths = {"/": release / "index.html", "/guides/stroller-footmuffs/": release / "guides/stroller-footmuffs/index.html"}
+    paths = {"/": release / "index.html", "/deals/": release / "deals/index.html",
+             "/guides/stroller-footmuffs/": release / "guides/stroller-footmuffs/index.html"}
     result = {}
     for route, path in paths.items():
         content = re.sub(r"\d{4}-\d\d-\d\dT\d\d:\d\dZ", "CHECKED", path.read_text())
