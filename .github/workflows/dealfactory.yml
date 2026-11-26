@@ -92,6 +92,18 @@ jobs:
         timeout-minutes: 6
         continue-on-error: true
         run: bash ops/run_editor.sh "$RUNNER_TEMP/dealfactory"
+      - name: Restore search submission history
+        if: steps.pages.outputs.ready == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/dealfactory-search
+          key: search-submissions-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: search-submissions-
+      - name: Publish search ownership file
+        if: steps.pages.outputs.ready == 'true'
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: python3 ops/search_updates.py prepare "$RUNNER_TEMP/dealfactory" "$RUNNER_TEMP/dealfactory-search" "${SITE_URL:-$PAGES_URL}"
       - name: Deploy tested public assets
         if: steps.pages.outputs.ready == 'true'
         env:
@@ -124,6 +136,18 @@ jobs:
             code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Origin: $origin" -H "DNT: 1" "$origin/events?page=home&event=view")
             test "$code" = 204
           fi
+      - name: Notify search engines of changed pages
+        if: steps.pages.outputs.ready == 'true'
+        continue-on-error: true
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: python3 ops/search_updates.py submit "$RUNNER_TEMP/dealfactory" "$RUNNER_TEMP/dealfactory-search" "${SITE_URL:-$PAGES_URL}"
+      - name: Save search submission history
+        if: steps.pages.outputs.ready == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/dealfactory-search
+          key: search-submissions-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Record production check
         if: always()
         env:
