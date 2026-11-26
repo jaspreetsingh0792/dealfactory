@@ -1,0 +1,78 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% set faqs = [
+  ("Is DealFactory free?", "Yes. DealFactory is free, open source and has no ads. If you connect a paid AI provider, that provider may charge for the searches you run."),
+  ("Does DealFactory read my email?", "Only if you connect Gmail. Your browser searches for receipts with read-only access, removes recognizable personal details and sends excerpts to the AI provider you choose. DealFactory's server never receives your Gmail access or receipt text."),
+  ("Do I need an account?", "No. Your setup is saved in your browser. You can export it as a file at any time or delete it with one click."),
+  ("Does DealFactory sell products?", "No. It suggests products that fit what you own and links to the retailer, so you can buy wherever you like."),
+  ("Which AI does it use?", "The one you choose. Sign in with OpenRouter, open your brief in Claude or ChatGPT, or connect any MCP tool."),
+  ("Where does it work?", "Your setup and suggestions work in any country. The checked deals and buying guide currently cover the Netherlands."),
+] %}
+<!doctype html><html lang="en"><head>
+{{ head("DealFactory | Shopping suggestions that fit what you own", "DealFactory remembers what you've bought, from Gmail receipts or items you add yourself, and checks every suggestion against it. Private, free and works with your own AI.", "/") }}
+<script type="module" src="/lib/storefront.js"></script>
+{% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entries} | tojson }}</script>
+</head><body class="store home">
+{{ header() }}
+<main id="main" class="frame">
+  <section class="memory-hero" aria-labelledby="memory-title">
+    <div class="memory-copy">
+      <div class="label light"><span class="rule"></span>YOUR SHOPPING MEMORY</div>
+      <h1 id="memory-title">Suggestions that fit <em>what you own.</em></h1>
+      <p>DealFactory remembers what you've bought, from Gmail receipts or items you add yourself, and checks every suggestion against it. Your setup stays in your browser and works with the AI you already use.</p>
+      <div class="hero-actions"><a class="cta" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#how">How it works <span aria-hidden="true">↓</span></a></div>
+      <ul class="promises" aria-label="Promises"><li>Free and open source</li><li>No ads</li><li>No account needed</li></ul>
+    </div>
+    <figure class="memory-card" aria-label="Example of a DealFactory setup and a suggestion">
+      <div class="memory-card-head"><strong>Your setup</strong><span>Example</span></div>
+      <ul class="owned-list">
+        <li><i aria-hidden="true">◐</i><div><b>Joolz Day+</b><small>Stroller</small></div><span class="source gmail">From a Gmail receipt</span></li>
+        <li><i aria-hidden="true">◑</i><div><b>Gazelle Esprit</b><small>City bike</small></div><span class="source">Added by you</span></li>
+        <li><i aria-hidden="true">◒</i><div><b>LG C2, 55 inch</b><small>Television</small></div><span class="source">Confirmed</span></li>
+      </ul>
+      <p class="ask"><span>You ask</span>“A warm footmuff for winter walks, under €90”</p>
+      <div class="suggestion">
+        <div class="suggestion-head"><span class="label">SUGGESTION</span><b>Fleece footmuff with 5-point harness slots</b></div>
+        <ul><li>Harness openings match your Joolz Day+</li><li>Within your €90 budget</li><li>Price quote linked to the shop page</li></ul>
+      </div>
+    </figure>
+  </section>
+
+  <section class="steps" id="how" aria-labelledby="how-title">
+    <div class="section-head"><div><div class="label"><span class="rule"></span>HOW IT WORKS</div><h2 id="how-title">Three steps<span>.</span></h2></div></div>
+    <ol class="step-grid">
+      <li><span class="step-no">01</span><h3>Build your memory</h3><p>Connect Gmail with read-only access to find receipts, or add what you own by hand. Imported items stay unconfirmed until you confirm them.</p></li>
+      <li><span class="step-no">02</span><h3>Ask for what you need</h3><p>Describe the need and your budget. DealFactory adds your setup, country and currency to the request.</p></li>
+      <li><span class="step-no">03</span><h3>Get suggestions that fit</h3><p>Each pick is checked against what you own, with a source link and a price quote you can verify at the shop.</p></li>
+    </ol>
+  </section>
+
+  <section class="why" aria-labelledby="why-title">
+    <div class="label"><span class="rule"></span>WHY DEALFACTORY</div>
+    <h2 id="why-title">Built around <em>you,</em> not a marketplace.</h2>
+    <div class="why-grid">
+      <div><h3>Fit comes first</h3><p>Compatibility with the things you own is checked before price.</p></div>
+      <div><h3>Every store</h3><p>Not tied to one marketplace. Suggestions link straight to the retailer.</p></div>
+      <div><h3>Yours to take anywhere</h3><p>Your setup is an open <a href="https://github.com/jaspreetsingh0792/dealfactory/blob/main/spec/shopping-context.md">Shopping Context</a> file for Claude, ChatGPT or any MCP tool.</p></div>
+      <div><h3>Private by design</h3><p>Saved in your browser. No ads, and Gmail data is never used for advertising.</p></div>
+    </div>
+  </section>
+
+  <aside class="advisor-strip ai-strip"><div><div class="label"><span class="rule"></span>BRING YOUR OWN AI</div><h2>Use the AI <em>you already have.</em></h2><p>Sign in with OpenRouter, open your brief in Claude or ChatGPT, or connect over MCP. DealFactory never charges for AI.</p></div><a class="dark-button" href="/advisor.html#connect">Connect your AI <span aria-hidden="true">↗</span></a></aside>
+
+  <section class="explore" aria-labelledby="explore-title">
+    <div class="section-head"><div><div class="label"><span class="rule"></span>EXPLORE</div><h2 id="explore-title">See it in action<span>.</span></h2></div></div>
+    <div class="explore-grid">
+      <a class="explore-card photo" href="/guides/stroller-footmuffs/"><span class="label light"><span class="rule"></span>BUYING GUIDE</span><h3>Stroller footmuffs that fit</h3><p>What to check before you order, for strollers sold in the Netherlands.</p><span class="go" aria-hidden="true">↗</span></a>
+      <a class="explore-card" href="/deals/"><span class="label"><span class="rule"></span>CHECKED DEALS</span><h3>{% if offers %}{{ offers|length }} in-stock {{ "offer" if offers|length == 1 else "offers" }}{% else %}Retailer offers{% endif %}</h3><p>{% if offers %}Prices checked at Dutch retailers on <time datetime="{{ checked_at }}">{{ checked_label }}</time>.{% else %}Footmuff offers from Dutch retailers, with links to each shop.{% endif %}</p><span class="go" aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-title">
+    <div class="label"><span class="rule"></span>QUESTIONS</div>
+    <h2 id="faq-title">Good to know<span>.</span></h2>
+    <div class="faq-list">{% for question, answer in faqs %}<details><summary>{{ question }}</summary><p>{{ answer }}</p></details>{% endfor %}</div>
+  </section>
+
+  <section class="closing" aria-labelledby="closing-title"><h2 id="closing-title">Start your <em>shopping memory.</em></h2><p>It takes a minute to add the first thing you own.</p><a class="cta" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a></section>
+</main>{{ footer() }}</body></html>

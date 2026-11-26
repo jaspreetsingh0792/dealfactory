@@ -1,0 +1,45 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% if page == "about" %}{% set title = "About DealFactory" %}{% set description = "DealFactory is a free, open-source shopping memory that checks suggestions against the things you already own." %}{% set path = "/about/" %}
+{% elif page == "terms" %}{% set title = "Terms of use | DealFactory" %}{% set description = "The terms for using DealFactory, its shopping advisor and its checked retailer offers." %}{% set path = "/terms/" %}
+{% else %}{% set title = "Page not found | DealFactory" %}{% set description = "This page does not exist." %}{% set path = "/404" %}{% endif %}
+<!doctype html><html lang="en"><head>
+{{ head(title, description, path) }}{% if page == "404" %}<meta name="robots" content="noindex">{% endif %}
+</head><body class="store">
+{{ header() }}
+<main id="main" class="frame prose">
+{% if page == "about" %}
+  <div class="label"><span class="rule"></span>ABOUT</div>
+  <h1>A shopping memory <em>you own.</em></h1>
+  <p class="intro">Most shopping tools know what a store wants to sell. DealFactory starts from what you already have.</p>
+  <h2>What it does</h2>
+  <p>DealFactory keeps a private list of the things you own, built from Gmail receipts or items you add yourself. When you ask for something, it checks each suggestion against that list so the stroller footmuff fits your stroller and the cable fits your TV.</p>
+  <h2>How it stays private</h2>
+  <p>Your setup is saved in your own browser. DealFactory has no accounts, shows no ads and never uses Gmail data for advertising. Searches run on the AI provider you choose. Read the <a href="/privacy.html">privacy details</a>.</p>
+  <h2>Open by default</h2>
+  <p>Your setup uses the open <a href="https://github.com/jaspreetsingh0792/dealfactory/blob/main/spec/shopping-context.md">Shopping Context</a> format, so you can take it to Claude, ChatGPT or any MCP tool. The code is MIT licensed on <a href="https://github.com/jaspreetsingh0792/dealfactory">GitHub</a>.</p>
+  <h2>Contact</h2>
+  <p>Questions, ideas or a problem with a listing? <a href="https://github.com/jaspreetsingh0792/dealfactory/issues">Open an issue on GitHub</a>.</p>
+  <p><a class="dark-button" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a></p>
+{% elif page == "terms" %}
+  <div class="label"><span class="rule"></span>TERMS</div>
+  <h1>Terms of <em>use.</em></h1>
+  <p class="intro">By using DealFactory you agree to these terms. They were last updated on 26 November 2026.</p>
+  <h2>Information, not advice</h2>
+  <p>DealFactory suggests products and shows prices for information only. Prices, stock and delivery change. Always confirm the details and compatibility with the retailer and the manufacturer before you buy.</p>
+  <h2>AI suggestions</h2>
+  <p>Suggestions are produced by the AI provider you connect and can be wrong. Results marked as an AI assessment are the model's interpretation. Your use of an AI provider, Gmail, Claude or ChatGPT is also covered by that service's own terms.</p>
+  <h2>Retailers</h2>
+  <p>DealFactory does not sell products. Purchases happen on retailer websites under their terms. DealFactory is not responsible for orders, delivery or returns.</p>
+  <h2>Your data</h2>
+  <p>Your setup is stored in your browser and you can delete it at any time. The <a href="/privacy.html">privacy page</a> explains what is shared and with whom.</p>
+  <h2>The software</h2>
+  <p>DealFactory is provided as is, without warranty. The source code is available under the <a href="https://github.com/jaspreetsingh0792/dealfactory/blob/main/LICENSE">MIT licence</a>.</p>
+  <h2>Contact</h2>
+  <p><a href="https://github.com/jaspreetsingh0792/dealfactory/issues">Open an issue on GitHub</a>.</p>
+{% else %}
+  <div class="label"><span class="rule"></span>404</div>
+  <h1>This page <em>doesn't exist.</em></h1>
+  <p class="intro">The link may be old or mistyped.</p>
+  <p class="link-row"><a class="dark-button" href="/">Go to the homepage <span aria-hidden="true">↗</span></a><a href="/advisor.html">Open your advisor</a><a href="/deals/">See checked deals</a></p>
+{% endif %}
+</main>{{ footer() }}</body></html>

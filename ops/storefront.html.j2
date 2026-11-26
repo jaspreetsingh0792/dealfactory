@@ -1,15 +1,26 @@
 {% macro wordmark(root="/") -%}
 <a class="wordmark" href="{{ root }}" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
 {%- endmacro %}
-{% macro header(guide=false) %}
+{% macro head(title, description, path, image="/media/winter-walk.webp") %}
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<meta name="description" content="{{ description }}">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:url" content="{{ site_url }}{{ path }}">
+<meta property="og:image" content="{{ site_url }}{{ image }}">
+<link rel="canonical" href="{{ site_url }}{{ path }}"><link rel="stylesheet" href="/storefront.css">
+<link rel="preload" href="/media/InstrumentSerif-Italic.ttf" as="font" type="font/ttf" crossorigin>
+{% endmacro %}
+{% macro header(current="") %}
 <a class="skip" href="#main">Skip to content</a>
 <header class="mast"><div class="frame mast-inner">
   {{ wordmark() }}
-  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#shortlist">The shortlist</a><a class="nav-secondary"{% if guide %} aria-current="page"{% endif %} href="/guides/stroller-footmuffs/">Buying guide</a><a class="advisor-link" href="/advisor.html">Shopping advisor <span aria-hidden="true">↗</span></a></nav>
+  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#how">How it works</a><a class="nav-secondary"{% if current == "deals" %} aria-current="page"{% endif %} href="/deals/">Deals</a><a class="nav-secondary"{% if current == "guide" %} aria-current="page"{% endif %} href="/guides/stroller-footmuffs/">Buying guide</a><a class="advisor-link" href="/advisor.html">Open your advisor <span aria-hidden="true">↗</span></a></nav>
 </div></header>
 {% endmacro %}
 {% macro footer() %}
-<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor.html">Shopping advisor</a><a href="/privacy.html">Privacy</a><a href="/offers.xml">Offer feed <span aria-hidden="true">↗</span></a></nav></div></footer>
+<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor.html">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy.html">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/jaspreetsingh0792/dealfactory">Source code <span aria-hidden="true">↗</span></a></nav></div></footer>
 {% endmacro %}
 {% macro offer_grid(offers, checked_at, guide=false) %}
 <div class="section-head" id="shortlist">
@@ -44,31 +55,24 @@
 </div>
 {% endif %}
 {% endmacro %}
-{% if home %}
+{% if deals %}
 <!doctype html><html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DealFactory | The shopping shortlist</title>
-<meta name="description" content="Explore checked Dutch retailer offers and practical buying guides for the things you own.">
-<meta property="og:title" content="DealFactory | The winter stroller edit">
-<meta property="og:description" content="Explore stroller footmuffs, current Dutch retailer prices and the details that matter for fit.">
-<meta property="og:image" content="{{ site_url }}/media/winter-walk.webp">
-<link rel="canonical" href="{{ site_url }}/"><link rel="stylesheet" href="/storefront.css">
+{{ head("Checked deals in the Netherlands | DealFactory", "In-stock stroller footmuff offers from Dutch retailers, with prices DealFactory checked at the shop.", "/deals/") }}
 <link rel="preload" as="image" href="/media/winter-walk.webp" fetchpriority="high">
-<link rel="preload" href="/media/InstrumentSerif-Italic.ttf" as="font" type="font/ttf" crossorigin>
 <script type="module" src="/lib/storefront.js"></script><script type="module" src="/lib/fresh-offers.js"></script>
 </head><body class="store">
-{{ header() }}
+{{ header("deals") }}
 <main id="main" class="frame">
   <section class="cover" aria-labelledby="cover-title">
     <img class="cover-photo" src="/media/winter-walk.webp" alt="An ochre stroller on a sunlit woodland path" fetchpriority="high" width="1800" height="693">
     <div class="cover-copy">
-      <div class="label light"><span class="rule"></span>SEASONAL BUYING GUIDE</div>
+      <div class="label light"><span class="rule"></span>CHECKED DEALS</div>
       <h1 id="cover-title">The winter<br><em>stroller edit.</em></h1>
-      <p>Footmuffs for cold-weather walks, with checked prices from Dutch retailers.</p>
-      <a class="cta" href="guides/stroller-footmuffs/">Explore the guide <span aria-hidden="true">↗</span></a>
+      <p>Footmuffs for cold-weather walks, with prices checked at Dutch retailers.</p>
+      <a class="cta" href="/guides/stroller-footmuffs/">Read the fit guide <span aria-hidden="true">↗</span></a>
     </div>
   </section>
   <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at) }}</section>
-  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your setup?</em></h2><p>Compare a purchase against the things you already own.</p></div><a class="dark-button" href="/advisor.html">Open the advisor <span aria-hidden="true">↗</span></a></aside>
+  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your stroller?</em></h2><p>Add the stroller you own and the advisor checks each footmuff against it.</p></div><a class="dark-button" href="/advisor.html#setup">Add what you own <span aria-hidden="true">↗</span></a></aside>
 </main>{{ footer() }}</body></html>
 {% endif %}

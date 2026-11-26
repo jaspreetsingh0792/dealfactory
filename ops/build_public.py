@@ -22,6 +22,8 @@ from dealfactory.public_catalog import discover, product_name
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
+DEALS = "deals/"
+SITEMAP = ("/", "/advisor.html", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy.html", "/terms/")
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
@@ -222,14 +224,22 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     original = original.replace("<body>", '<body class="df-advisor">', 1)
     brand = templates.get_template("storefront.html.j2").module.wordmark()
     original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
-    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Deals that fit<br><em>your setup.</em></h1>', original, count=1)
+    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Suggestions that fit<br><em>what you own.</em></h1>', original, count=1)
     advisor.write_text(original, encoding="utf-8")
-    homepage.write_text(templates.get_template("storefront.html.j2").render(home=True, **context), encoding="utf-8")
+    homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
+    deals = output / DEALS / "index.html"
+    deals.parent.mkdir(parents=True)
+    deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, **context), encoding="utf-8")
+    for page in ("about", "terms"):
+        target = output / page / "index.html"
+        target.parent.mkdir(parents=True)
+        target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
+    (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
+    public_pages = (homepage, deals, guide / "index.html")
 
-    for page_path in (homepage, guide / "index.html"):
+    for page_path in public_pages:
         markup = page_path.read_text(encoding="utf-8")
-        prefix = "./" if page_path == homepage else "../../"
-        script = f'<script type="module" src="{prefix}lib/guide-events.js"></script>'
+        script = '<script type="module" src="/lib/guide-events.js"></script>'
         script += '<link rel="alternate" type="application/rss+xml" title="Checked offers" href="/offers.xml">'
         if collect_traffic:
             script += '<meta name="dealfactory-counts" content="aggregate">'
@@ -250,7 +260,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             f'<script defer src="{ANALYTICS_SCRIPT}" '
             f'data-cf-beacon=\'{{"token":"{analytics_token}"}}\'></script>'
         )
-        for page in (homepage, guide / "index.html"):
+        for page in public_pages:
             html = page.read_text(encoding="utf-8")
             html = html.replace("script-src 'self';", f"script-src 'self' {ANALYTICS_SCRIPT};")
             page.write_text(html.replace("</body>", f"{beacon}\n</body>", 1), encoding="utf-8")
@@ -266,7 +276,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     (output / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-        + "".join(f"<url><loc>{escape(site_url + path)}</loc></url>" for path in ("/", f"/{GUIDE}"))
+        + "".join(f"<url><loc>{escape(site_url + path)}</loc></url>" for path in SITEMAP)
         + "</urlset>\n", encoding="utf-8"
     )
     print(f"Retailer pages checked: {len(candidates)}. New product links found: {len(candidates) - len(sources)}.")

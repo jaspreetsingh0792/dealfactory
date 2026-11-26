@@ -16,12 +16,18 @@ async function main() {
       const page = await browser.newPage({ viewport: { width, height } });
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
-      for (const [route, screen] of [["/", "home"], ["/guides/stroller-footmuffs/", "guide"]]) {
+      for (const [route, screen] of [["/", "home"], ["/deals/", "deals"], ["/guides/stroller-footmuffs/", "guide"], ["/about/", "about"]]) {
         await page.goto(origin + route, { waitUntil: "domcontentloaded" });
         await page.evaluate(() => document.fonts.ready);
         assert(await page.locator("h1").isVisible());
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         if (screen === "home") {
+          assert(await page.locator(".memory-card").isVisible());
+          assert.equal(await page.locator(".step-grid > li").count(), 3);
+          await page.locator(".faq summary").first().click();
+          assert(await page.locator(".faq details").first().evaluate(d => d.open));
+        }
+        if (screen === "deals") {
           assert(await page.locator(".cover-photo").evaluate(img => img.decode().then(() => img.naturalWidth > 0)));
         }
         const cards = page.locator(".product");
