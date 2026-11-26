@@ -32,7 +32,7 @@ jobs:
       - run: uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory-test" --site-url https://dealfactory.example
 
   publish:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.CLOUDFLARE_PAGES_PROJECT != ''
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -44,26 +44,44 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Prepare Cloudflare Pages project
+        id: pages
+        env:
+          PAGES_CREDENTIALS: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 ops/configure_pages.py
       - uses: actions/setup-node@v4
+        if: steps.pages.outputs.ready == 'true'
         with:
           node-version: 22
       - uses: astral-sh/setup-uv@v6
+        if: steps.pages.outputs.ready == 'true'
       - name: Verify and publish current offers
+        if: steps.pages.outputs.ready == 'true'
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
         run: |
           set -o pipefail
           uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory" \
-            --site-url "$SITE_URL" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh | tee -a "$GITHUB_STEP_SUMMARY"
+            --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Deploy tested public assets
+        if: steps.pages.outputs.ready == 'true'
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PAGES_PROJECT: ${{ steps.pages.outputs.project }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').account_id || vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').api_token || secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           npm exec --yes --package=wrangler@4 -- wrangler pages deploy "${RUNNER_TEMP}/dealfactory" \
             --project-name "$PAGES_PROJECT" --branch main
       - name: Check production routes
+        if: steps.pages.outputs.ready == 'true'
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
         run: |
+          origin="${SITE_URL:-$PAGES_URL}"
           for route in / /guides/stroller-footmuffs/ /sitemap.xml /robots.txt; do
-            url="${SITE_URL%/}${route}"
+            url="${origin%/}${route}"
             curl --fail --silent --show-error --location --max-time 20 --retry 3 --output /dev/null "$url"
             printf 'Reachable: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"
           done
