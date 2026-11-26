@@ -21,6 +21,14 @@ def read_route(path):
 
 for attempt in range(8):
     try:
+        home = read_route("/").decode()
+        if 'id="cover-title"' not in home or 'href="/advisor.html"' not in home:
+            raise ValueError("The redesigned storefront or shopping advisor link is missing")
+        if b'id="need-form"' not in read_route("/advisor.html"):
+            raise ValueError("The shopping advisor is missing")
+        for asset in ("media/winter-walk.webp", "storefront.css", "lib/storefront.js"):
+            if read_route("/" + asset) != (root / asset).read_bytes():
+                raise ValueError(f"The live storefront asset differs from this release: {asset}")
         if json.loads(read_route("/offer-history.json")) != expected:
             raise ValueError("Offer history differs from this release")
         guide = read_route("/guides/stroller-footmuffs/").decode()

@@ -1,0 +1,74 @@
+{% macro wordmark(root="/") -%}
+<a class="wordmark" href="{{ root }}" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
+{%- endmacro %}
+{% macro header(guide=false) %}
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast"><div class="frame mast-inner">
+  {{ wordmark() }}
+  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#shortlist">The shortlist</a><a class="nav-secondary"{% if guide %} aria-current="page"{% endif %} href="/guides/stroller-footmuffs/">Buying guide</a><a class="advisor-link" href="/advisor.html">Shopping advisor <span aria-hidden="true">↗</span></a></nav>
+</div></header>
+{% endmacro %}
+{% macro footer() %}
+<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor.html">Shopping advisor</a><a href="/offers.xml">Offer feed <span aria-hidden="true">↗</span></a></nav></div></footer>
+{% endmacro %}
+{% macro offer_grid(offers, checked_at, guide=false) %}
+<div class="section-head" id="shortlist">
+  <div><div class="label"><span class="rule"></span>DUTCH RETAILERS</div><h2>{% if guide %}Checked retailer offers{% else %}The shortlist<span>.</span>{% endif %}</h2></div>
+  {% if offers %}<p class="dateline">Last checked <time datetime="{{ checked_at }}">{{ checked_label }}</time></p>{% endif %}
+</div>
+<div id="unverified-offers" class="empty-state"><strong>Check prices with the retailer.</strong> <a href="/guides/stroller-footmuffs/#retailers">Browse product sources <span aria-hidden="true">→</span></a></div>
+{% if offers %}
+<div hidden data-offers-checked="{{ checked_at }}">
+  <div class="controls">
+    <div class="filters" role="group" aria-label="Filter by retailer"><button type="button" data-filter="" aria-pressed="true">All offers <small>{{ offers|length }}</small></button>{% for retailer in offers|map(attribute='retailer')|unique|sort %}<button type="button" data-filter="{{ retailer }}" aria-pressed="false">{{ retailer }}</button>{% endfor %}</div>
+    <label class="sort"><span class="sr-only">Sort offers</span><select id="offer-sort" aria-label="Sort offers"><option value="asc">Price: low to high</option><option value="desc">Price: high to low</option><option value="name">Name: A to Z</option></select></label>
+  </div>
+  <div class="products" id="offer-grid">
+    {% for offer in offers %}
+    <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}">
+      <a class="product-target" data-retailer href="{{ offer.url }}">
+        <div class="product-image">
+          <span class="image-fallback" aria-hidden="true">{{ offer.retailer }}</span>
+          {% if offer.image %}<img src="{{ offer.image }}" loading="lazy" decoding="async" alt="" referrerpolicy="no-referrer">{% endif %}
+          {% if offer.previous %}<span class="reduction">Price drop</span>{% endif %}
+        </div>
+        <div class="product-info"><span class="product-brand">{{ offer.retailer }}</span><h3>{{ offer.name }}</h3>
+          <div class="price-line"><strong>€{{ offer.price }}</strong><span class="go" aria-hidden="true">↗</span></div>
+          {% if offer.previous %}<small class="previous"> · previously €{{ offer.previous }} on {{ offer.previous_date }}</small>{% endif %}
+        </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="sr-only" id="filter-feedback" role="status"></p>
+</div>
+{% endif %}
+{% endmacro %}
+{% if home %}
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DealFactory | The shopping shortlist</title>
+<meta name="description" content="Explore checked Dutch retailer offers and practical buying guides for the things you own.">
+<meta property="og:title" content="DealFactory | The winter stroller edit">
+<meta property="og:description" content="Explore stroller footmuffs, current Dutch retailer prices and the details that matter for fit.">
+<meta property="og:image" content="{{ site_url }}/media/winter-walk.webp">
+<link rel="canonical" href="{{ site_url }}/"><link rel="stylesheet" href="/storefront.css">
+<link rel="preload" as="image" href="/media/winter-walk.webp" fetchpriority="high">
+<link rel="preload" href="/media/InstrumentSerif-Italic.ttf" as="font" type="font/ttf" crossorigin>
+<script type="module" src="/lib/storefront.js"></script><script type="module" src="/lib/fresh-offers.js"></script>
+</head><body class="store">
+{{ header() }}
+<main id="main" class="frame">
+  <section class="cover" aria-labelledby="cover-title">
+    <img class="cover-photo" src="/media/winter-walk.webp" alt="An ochre stroller on a sunlit woodland path" fetchpriority="high" width="1800" height="693">
+    <div class="cover-copy">
+      <div class="label light"><span class="rule"></span>SEASONAL BUYING GUIDE</div>
+      <h1 id="cover-title">The winter<br><em>stroller edit.</em></h1>
+      <p>Footmuffs for cold-weather walks, with checked prices from Dutch retailers.</p>
+      <a class="cta" href="guides/stroller-footmuffs/">Explore the guide <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+  <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at) }}</section>
+  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your setup?</em></h2><p>Compare a purchase against the things you already own.</p></div><a class="dark-button" href="/advisor.html">Open the advisor <span aria-hidden="true">↗</span></a></aside>
+</main>{{ footer() }}</body></html>
+{% endif %}
