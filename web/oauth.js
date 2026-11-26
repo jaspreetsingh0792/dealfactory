@@ -22,5 +22,15 @@
       }
     }
   } catch (e) { /* The callback might have been opened separately. */ }
+  try {
+    if (typeof BroadcastChannel === "function") {
+      var ch = new BroadcastChannel("dealfactory-oauth");
+      ch.postMessage(result);
+      ch.close();
+      window.close();
+      document.getElementById("msg").textContent = "Sign-in complete. You can close this window and return to DealFactory.";
+      return;
+    }
+  } catch (e) { /* ignore */ }
   document.getElementById("msg").textContent = "Return to the shopping advisor and start sign-in again.";
 })();
