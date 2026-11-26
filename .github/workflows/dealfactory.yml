@@ -81,6 +81,17 @@ jobs:
           fi
           uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory" \
             --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh --history-url "$PAGES_URL/offer-history.json" "${flags[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Cache open-source editorial model
+        if: steps.pages.outputs.ready == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/dealfactory-model
+          key: qwen-editor-74a4da8c
+      - name: Select and apply today's editorial angle
+        if: steps.pages.outputs.ready == 'true'
+        timeout-minutes: 6
+        continue-on-error: true
+        run: bash ops/run_editor.sh "$RUNNER_TEMP/dealfactory"
       - name: Deploy tested public assets
         if: steps.pages.outputs.ready == 'true'
         env:
