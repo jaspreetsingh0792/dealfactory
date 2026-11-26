@@ -24,9 +24,20 @@ for attempt in range(8):
         home = read_route("/").decode()
         if 'id="cover-title"' not in home or 'href="/advisor.html"' not in home:
             raise ValueError("The redesigned storefront or shopping advisor link is missing")
-        if b'id="need-form"' not in read_route("/advisor.html"):
-            raise ValueError("The shopping advisor is missing")
-        for asset in ("media/winter-walk.webp", "storefront.css", "lib/storefront.js"):
+        advisor = read_route("/advisor.html")
+        for marker in (b'need-form', b'or-signin', b'gm-connect', b'open-chatgpt', b'open-claude'):
+            if b'id="' + marker + b'"' not in advisor:
+                raise ValueError("The shopping advisor connection controls are missing")
+        if b'src="/oauth.js"' not in read_route("/oauth/callback/"):
+            raise ValueError("The OAuth callback is missing")
+        if b"Gmail receipt import" not in read_route("/privacy"):
+            raise ValueError("The advisor privacy information is missing")
+        rpc = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+        response = subprocess.check_output(["curl", "-fsS", "--max-time", "15", "-H", "Content-Type: application/json",
+                                            "-H", "Accept: application/json, text/event-stream", "--data", json.dumps(rpc), origin + "/mcp"])
+        if {tool["name"] for tool in json.loads(response).get("result", {}).get("tools", [])} != {"verify_on_page", "get_shopping_rules"}:
+            raise ValueError("The public MCP connector did not advertise its shopping tools")
+        for asset in ("media/winter-walk.webp", "storefront.css", "lib/storefront.js", "config.js", "oauth.js", "app.js", "lib/oauth.js"):
             if read_route("/" + asset) != (root / asset).read_bytes():
                 raise ValueError(f"The live storefront asset differs from this release: {asset}")
         if json.loads(read_route("/offer-history.json")) != expected:

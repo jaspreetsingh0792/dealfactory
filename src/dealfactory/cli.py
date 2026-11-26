@@ -271,13 +271,8 @@ def cmd_mcp(args, s) -> None:
 
 
 def cmd_web(args, s) -> None:
-    import functools
-    import http.server
-    web = Path(__file__).resolve().parents[2] / "web"
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(web))
-    with http.server.ThreadingHTTPServer(("127.0.0.1", args.port), handler) as srv:
-        print(f"DealFactory web app at http://127.0.0.1:{args.port}/ (Ctrl+C to stop)")
-        srv.serve_forever()
+    from .webserver import serve
+    serve(args.port)
 
 
 def cmd_forget(args, s) -> None:
@@ -343,11 +338,13 @@ def main(argv: list[str] | None = None) -> None:
     cx.add_argument("-o", "--out")
     mc = sub.add_parser("mcp", help="run the MCP server (stdio) so Claude/ChatGPT/other assistants can use your context")
     mc.add_argument("--context", help="use a shopping-context.json (e.g. exported from the web app) instead of private/")
-    wb = sub.add_parser("web", help="serve the public web app locally")
+    wb = sub.add_parser("web", help="run the web app on this computer (adds Sign in with ChatGPT)")
     wb.add_argument("--port", type=int, default=8766)
     args = ap.parse_args(argv)
     if args.cmd == "mcp" and args.context:  # works without a DealFactory checkout (web app users)
         return cmd_mcp(args, None)
+    if args.cmd == "web":  # needs no config.yaml
+        return cmd_web(args, None)
     if args.cmd == "inventory" and args.action in ("confirm", "reject", "delete", "edit") and not args.ids:
         ap.error(f"inventory {args.action} needs at least one id (see `dealfactory inventory`)")
     s = load_settings()

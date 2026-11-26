@@ -151,3 +151,29 @@ test("country guess from time zone, then language", () => {
   assert.equal(guessFromDevice(env("Etc/UTC", ["pt-BR"])).country, "BR");
   assert.equal(guessFromDevice(env("Etc/UTC", ["en"])), null);
 });
+
+test("prices require a matching amount and unambiguous currency", () => {
+  assert.ok(priceInText(1299, "USD 1,299.00", "USD"));
+  assert.ok(priceInText(1299, "€ 1.299,00", "EUR"));
+  assert.ok(priceInText(1299, "1 299,00 SEK", "SEK"));
+  assert.ok(!priceInText(89.99, "€89,99", "USD"));
+  assert.ok(!priceInText(89.99, "$89.99", "USD"));
+  assert.ok(!priceInText(89.99, "Model 89.99", "EUR"));
+  assert.ok(!priceInText(10, "EUR -10", "EUR"));
+  assert.ok(!priceInText(1020, "EUR 10 20", "EUR"));
+  assert.ok(!valueInQuote("2.5 kg", "Capacity: 2.5 L"));
+});
+
+test("a citation cannot stand in for fetched page text", () => {
+  const reg = registry();
+  reg.add(reg.get("S2").url, "citation", null, "Only €10");
+  const d = draft();
+  Object.assign(d.picks[0].offers[0], { price: 10, price_quote: "Only €10" });
+  d.picks[0].compatible_with[0].evidence_quote = "In stock";
+  d.picks[1].offers[0].price_quote = null;
+  const g = groundDeals(d, reg, CTX);
+  assert.equal(g.picks[0].offers[0].price, null);
+  assert.equal(g.picks[0].offers[0].inStock, undefined);
+  assert.equal(g.picks[0].compat[0].status, "unknown");
+  assert.equal(g.picks[1].offers[0].price, null);
+});

@@ -45,13 +45,14 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Check desktop and mobile storefront
         run: |
-          uv run --locked python ops/build_public.py "$RUNNER_TEMP/storefront" --refresh --site-url https://dealfactory.example
+          uv run --locked python ops/build_public.py "$RUNNER_TEMP/storefront" --refresh --site-url https://dealfactory.example --google-client-id qa.apps.googleusercontent.com
           npm install --prefix "$RUNNER_TEMP/browser-qa" --no-save playwright-core@1.56.1
           python3 -m http.server 8764 --bind 127.0.0.1 --directory "$RUNNER_TEMP/storefront" > "$RUNNER_TEMP/server.log" 2>&1 &
           server=$!
           trap 'kill "$server" 2>/dev/null || true' EXIT
           curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8764/ -o /dev/null
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_storefront.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_connections.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -71,6 +72,7 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
       WEB_ANALYTICS_TOKEN: ${{ vars.CLOUDFLARE_WEB_ANALYTICS_TOKEN }}
+      GOOGLE_CLIENT_ID: ${{ vars.DEALFACTORY_GOOGLE_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -108,7 +110,7 @@ jobs:
             flags+=(--traffic-file "$RUNNER_TEMP/dealfactory-traffic.json")
           fi
           uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory" \
-            --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --refresh --history-url "$PAGES_URL/offer-history.json" "${flags[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+            --site-url "${SITE_URL:-$PAGES_URL}" --analytics-token "$WEB_ANALYTICS_TOKEN" --google-client-id "$GOOGLE_CLIENT_ID" --refresh --history-url "$PAGES_URL/offer-history.json" "${flags[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Cache open-source editorial model
         if: steps.pages.outputs.ready == 'true'
         uses: actions/cache@v4

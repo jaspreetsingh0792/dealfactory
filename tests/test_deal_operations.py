@@ -32,7 +32,7 @@ def test_discover_check_and_compare(tmp_path):
     assert "previously €23,00" in guide
     assert guide.index("Checked retailer offers") < guide.index("What to check before ordering")
     assert (output / "_worker.js").exists()
-    assert json.loads((output / "_routes.json").read_text())["include"] == ["/events"]
+    assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/events"]
 
 
 def test_atomic_counts():
