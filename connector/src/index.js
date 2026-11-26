@@ -52,12 +52,15 @@ const TOOLS = [
 const lastHit = new Map();
 const robotsCache = new Map();
 
+const BLOCKED_SUFFIX = /\.(localhost|local|internal|localdomain|home\.arpa|arpa|corp|lan|home|intranet|nip\.io|sslip\.io|xip\.io|localtest\.me)$/i;
+
 function safeUrl(raw) {
+  if (typeof raw !== "string" || raw.length > 2048) throw new Error("Not a valid URL.");
   let u;
   try { u = new URL(raw); } catch { throw new Error("Not a valid URL."); }
   if (u.protocol !== "https:") throw new Error("Only https:// pages can be checked.");
   const h = u.hostname.replace(/\.$/, "");
-  if (!h.includes(".") || /\.(localhost|local|internal)$/i.test(h) || /^[\d.]+$/.test(h) ||
+  if (!h.includes(".") || BLOCKED_SUFFIX.test(h) || /^[\d.]+$/.test(h) ||
       h.includes(":") || u.username || u.password || u.port) throw new Error("Only public HTTPS websites can be checked.");
   u.hash = "";
   return u;
@@ -79,6 +82,21 @@ async function readLimited(message, limit) {
   } finally { await reader.cancel(); }
 }
 
+function wildcardMatch(pattern, text) {
+  const anchoredEnd = pattern.endsWith("$");
+  const pat = (anchoredEnd ? pattern.slice(0, -1) : pattern).replace(/\*+/g, "*");
+  let pi = 0, ti = 0, star = -1, match = 0;
+  while (ti < text.length) {
+    if (pi < pat.length && pat[pi] === text[ti]) { pi++; ti++; }
+    else if (pi < pat.length && pat[pi] === "*") { star = pi++; match = ti; }
+    else if (star !== -1) { pi = star + 1; ti = ++match; }
+    else if (!anchoredEnd && pi === pat.length) return true;
+    else return false;
+  }
+  while (pi < pat.length && pat[pi] === "*") pi++;
+  return pi === pat.length;
+}
+
 export function robotsAllows(txt, path, agent = "dealfactoryverifier") {
   const groups = [];
   let cur = null;
@@ -94,9 +112,8 @@ export function robotsAllows(txt, path, agent = "dealfactoryverifier") {
   if (!mine) return true;
   let best = ["allow", ""];
   for (const [kind, pat] of mine.rules) {
-    if (!pat) continue;
-    const re = new RegExp("^" + pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$"));
-    if (re.test(path) && pat.length >= best[1].length) best = [kind, pat];
+    if (!pat || pat.length > 256) continue;
+    if (wildcardMatch(pat, path) && pat.length >= best[1].length) best = [kind, pat];
   }
   return best[0] === "allow";
 }
@@ -115,16 +132,23 @@ async function allowedByRobots(u, fetcher) {
   return robotsAllows(txt, u.pathname + u.search);
 }
 
+function safeCodePoint(n) {
+  const cp = Number(n);
+  return Number.isInteger(cp) && cp >= 0 && cp <= 0x10FFFF && (cp < 0xD800 || cp > 0xDFFF) ? String.fromCodePoint(cp) : " ";
+}
+
 export function pageText(html) {
   return String(html).replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&euro;/g, "€").replace(/&amp;/g, "&").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+    .replace(/&nbsp;/g, " ").replace(/&euro;/g, "€").replace(/&amp;/g, "&").replace(/&#(\d+);/g, (_, n) => safeCodePoint(n))
     .replace(/\s+/g, " ").trim();
 }
 
 export function jsonLdOffers(html) {
   const out = [];
-  const visit = (node, name) => {
-    if (Array.isArray(node)) return node.forEach((n) => visit(n, name));
+  let visited = 0;
+  const visit = (node, name, depth = 0) => {
+    if (depth > 24 || ++visited > 2000) return;
+    if (Array.isArray(node)) return node.forEach((n) => visit(n, name, depth + 1));
     if (!node || typeof node !== "object") return;
     const types = [].concat(node["@type"] || []).map(String);
     const nm = types.includes("Product") ? node.name || name : name;
@@ -133,15 +157,16 @@ export function jsonLdOffers(html) {
       if (price != null) out.push({ product: nm || null, price: Number(String(price).replace(",", ".")), currency: node.priceCurrency || null,
         availability: node.availability ? String(node.availability).replace(/^https?:\/\/schema\.org\//, "") : null });
     }
-    for (const v of Object.values(node)) if (v && typeof v === "object") visit(v, nm);
+    for (const v of Object.values(node)) if (v && typeof v === "object") visit(v, nm, depth + 1);
   };
   for (const m of String(html).matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
-    try { visit(JSON.parse(m[1].trim()), null); } catch { /* bad JSON-LD is common */ }
+    try { visit(JSON.parse(m[1].trim()), null, 0); } catch { /* bad JSON-LD is common */ }
   }
   return out.filter((o) => Number.isFinite(o.price));
 }
 
 export async function verifyOnPage({ url, price, currency, quote }, fetcher = fetch, now = Date.now) {
+  if (quote != null && (typeof quote !== "string" || quote.length > 1000)) throw new Error("Quote is too long.");
   let u = safeUrl(url), r;
   for (let hop = 0; hop < 4; hop++) {
     if (!(await allowedByRobots(u, fetcher))) return { url: u.href, checked: false, reason: "Could not confirm the retailer permits this check." };

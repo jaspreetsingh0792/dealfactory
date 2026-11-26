@@ -3,6 +3,7 @@
 {%- endmacro %}
 {% macro head(title, description, path, image="/media/winter-walk.webp") %}
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>{{ title }}</title>
 <meta name="description" content="{{ description }}">
 <meta property="og:title" content="{{ title }}">

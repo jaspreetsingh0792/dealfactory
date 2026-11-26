@@ -2,10 +2,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { contextFromPurchases, groundPurchase, importGmail, messageToDoc, redact } from "../lib/purchases.js";
+import { contextFromPurchases, groundPurchase, htmlToText, importGmail, messageToDoc, redact } from "../lib/purchases.js";
 import { harvestOpenRouter } from "../lib/llm.js";
 import { SourceRegistry } from "../lib/ground.js";
-import worker, { handleRpc, jsonLdOffers, robotsAllows, verifyOnPage } from "../../connector/src/index.js";
+import worker, { handleRpc, jsonLdOffers, pageText, robotsAllows, verifyOnPage } from "../../connector/src/index.js";
 
 const b64 = (s) => Buffer.from(s, "utf8").toString("base64url");
 const EMAIL_HTML = `<html><body><p>Beste Sanne de Vries,</p><p>Bedankt voor je bestelling. Bestelnummer: 123-4567890-1234567</p>
@@ -107,4 +107,19 @@ test("connector speaks MCP", async () => {
   const r = await worker.fetch(new Request("https://c.example/mcp", { method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) }));
   assert.equal(r.status, 202);
+});
+
+test("security hardening: malformed entities, wildcard robots, deep JSON-LD, and internal hosts", async () => {
+  assert.equal(pageText("Price &#9999999; &#55296; ok"), "Price ok");
+  assert.equal(htmlToText("Email &#9999999; ok"), "Email ok");
+  assert.equal(robotsAllows("User-agent: *\nDisallow: /" + "a*".repeat(25) + "b", "/" + "a".repeat(60)), true);
+  assert.equal(robotsAllows("User-agent: *\nDisallow: /p/*.pdf$", "/p/guide.pdf"), false);
+  assert.equal(robotsAllows("User-agent: *\nDisallow: /p/*.pdf$", "/p/guide.pdf?x=1"), true);
+  const deep = "<script type=\"application/ld+json\">" + "{\"a\":".repeat(40) + "1" + "}".repeat(40) + "</script>";
+  assert.deepEqual(jsonLdOffers(deep), []);
+  const fetcher = async () => { throw new Error("should not fetch blocked host"); };
+  for (const bad of ["https://127.0.0.1.nip.io/x", "https://router.home.arpa/x", "https://app.localtest.me/x"]) {
+    await assert.rejects(verifyOnPage({ url: bad }, fetcher));
+  }
+  await assert.rejects(verifyOnPage({ url: "https://shop.example/p", quote: "x".repeat(1001) }, fetcher));
 });
