@@ -36,18 +36,31 @@ async function main() {
             items.length > 0 && items.every(x => x.dataset.shop === chosen), shop));
           await page.locator('[data-filter=""]').click();
           await page.locator("#offer-sort").selectOption("asc");
-          // Lazy-loaded merchant photographs are allowed to fail independently.
+          // Load even the off-screen photographs for this visual review.
           await cards.first().scrollIntoViewIfNeeded();
           const images = cards.locator("img");
-          if (await images.count()) {
-            await images.first().evaluate(img => Promise.race([
-              img.decode().catch(() => {}), new Promise(done => setTimeout(done, 8000))
-            ]));
-          }
-          console.log(screen, name, "product photos loaded:", await images.evaluateAll(list => list.filter(x => x.naturalWidth > 0).length), "of", await cards.count());
+          const photos = await images.evaluateAll(async list => {
+            for (const image of list) image.loading = "eager";
+            await Promise.race([
+              Promise.allSettled(list.map(image => image.decode())),
+              new Promise(done => setTimeout(done, 8000))
+            ]);
+            return list.map(image => ({ host: new URL(image.src).hostname, loaded: image.naturalWidth > 0 }));
+          });
+          console.log(screen, name, "product photos loaded:", photos.filter(x => x.loaded).length, "of", await cards.count(), JSON.stringify(photos));
         }
         await page.evaluate(() => scrollTo(0, 0));
-        await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
+        const capture = await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
+        if (screen === "home" || name === "desktop") {
+          const result = await page.evaluate(async data => {
+            const img = new Image(); img.src = "data:image/jpeg;base64," + data; await img.decode();
+            const canvas = document.createElement("canvas"); canvas.width = Math.min(660, img.width);
+            canvas.height = Math.round(img.height * canvas.width / img.width);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL("image/jpeg", 0.64).split(",")[1];
+          }, capture.toString("base64"));
+          for (let i = 0; i < result.length; i += 1600) console.log("DFPREVIEW|" + name + screen + "|" + result.slice(i, i + 1600));
+        }
       }
       await page.goto(origin + "/#setup");
       await page.waitForURL("**/advisor.html#setup");
