@@ -22,8 +22,9 @@ from dealfactory.public_catalog import discover, product_name
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
+SMARTHOME_GUIDE = "guides/smart-home-compatibility/"
 DEALS = "deals/"
-SITEMAP = ("/", "/advisor.html", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy.html", "/terms/")
+SITEMAP = ("/", "/advisor.html", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy.html", "/terms/")
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
@@ -224,9 +225,12 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     original = original.replace("<body>", '<body class="df-advisor">', 1)
     brand = templates.get_template("storefront.html.j2").module.wordmark()
     original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
-    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Suggestions that fit<br><em>what you own.</em></h1>', original, count=1)
+    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
     advisor.write_text(original, encoding="utf-8")
     homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
+    smarthome = output / SMARTHOME_GUIDE / "index.html"
+    smarthome.parent.mkdir(parents=True)
+    smarthome.write_text(templates.get_template("smarthome.html.j2").render(**context), encoding="utf-8")
     deals = output / DEALS / "index.html"
     deals.parent.mkdir(parents=True)
     deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, **context), encoding="utf-8")
@@ -235,7 +239,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         target.parent.mkdir(parents=True)
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
-    public_pages = (homepage, deals, guide / "index.html")
+    public_pages = (homepage, smarthome, deals, guide / "index.html")
 
     for page_path in public_pages:
         markup = page_path.read_text(encoding="utf-8")

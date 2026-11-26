@@ -152,8 +152,14 @@
 .explore-card .go{position:absolute;top:clamp(20px,2.4vw,34px);right:clamp(20px,2.4vw,34px)}
 .explore-card:hover .go{background:var(--lime)}
 .explore-card.photo{color:#fffdf1;border:0;background:linear-gradient(90deg,#102018d9,#10201833),url("/media/winter-walk.webp") 75% center/cover}
-.explore-card.photo p{color:#e9eedf;max-width:34ch}
-.explore-card.photo .go{border-color:#ffffff80}
+.explore-card.dark-card{color:#fffdf1;border:0;background:radial-gradient(circle at 92% 10%,#2f5a37 0,transparent 48%),var(--pine)}
+.explore-card.photo p,.explore-card.dark-card p{color:#e9eedf;max-width:40ch}
+.explore-card.photo .go,.explore-card.dark-card .go{border-color:#ffffff80;color:#fffdf1}
+.explore-card.dark-card:hover .go{background:var(--lime);color:var(--pine);border-color:var(--lime)}
+.guide-footnote{margin-top:16px!important}
+.guide-footnote a{text-decoration:underline;text-underline-offset:3px}
+.light-crumb{display:inline-block;margin-bottom:20px;color:#dfe7d6}
+.guide-hero .memory-copy h1{font-size:clamp(50px,5.8vw,92px)}
 .faq-list{margin-top:24px;border-top:1px solid var(--line)}
 .faq details{border-bottom:1px solid var(--line)}
 .faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px;padding:20px 0;font-size:clamp(17px,1.4vw,21px);font-weight:600;letter-spacing:-.03em}

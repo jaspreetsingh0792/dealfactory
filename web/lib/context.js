@@ -14,15 +14,17 @@ const STATUSES = new Set(["confirmed", "unconfirmed", "rejected"]);
 const NEED_STATUSES = new Set(["active", "paused", "closed"]);
 
 export const SUGGESTED_FACTS = [
+  ["ecosystems.smart_home", "Smart home", "Apple Home, Google Home, Home Assistant, Hue…"],
+  ["ecosystems.protocols", "Protocols & hubs", "Matter, Thread, Zigbee, Hue Bridge…"],
+  ["home.heating", "Boiler / heating", "OpenTherm (Intergas, Remeha), on/off, district…"],
   ["home.type", "Home type", "apartment, house, studio…"],
   ["home.size_m2", "Home size (m²)", "75"],
   ["home.floor_types", "Floors", "laminate, tiles, carpet"],
+  ["ecosystems.phone_os", "Phone", "iPhone, Android"],
   ["household.children", "Children", "toddler 18 months"],
   ["household.pets", "Pets", "cat (sheds a lot)"],
-  ["ecosystems.smart_home", "Smart home", "Home Assistant, Google Home, Apple Home, none"],
-  ["ecosystems.phone_os", "Phone", "Android, iPhone"],
   ["preferences.condition", "New or used", "new only / second-hand OK"],
-  ["preferences.priorities", "What matters most", "quiet, repairable, cheap…"],
+  ["preferences.priorities", "What matters most", "local control, quiet, repairable, no subscription…"],
   ["preferences.avoided_retailers", "Shops to avoid", ""],
 ];
 

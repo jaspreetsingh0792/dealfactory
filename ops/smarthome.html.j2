@@ -1,0 +1,64 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% set faqs = [
+  ("Do I need a hub for Matter smart-home devices?", "Matter over Wi-Fi connects directly to your router, while Matter over Thread requires a Thread Border Router (such as a recent Apple TV 4K, HomePod mini, Google Nest Hub 2nd gen, or Home Assistant Connect)."),
+  ("How do I know if my boiler supports OpenTherm?", "Check your boiler's model number (common Dutch/EU brands like Intergas, Remeha, Nefit Bosch and Vaillant often support OpenTherm or need an official bridge). Using an on/off relay on a modulating boiler wastes energy."),
+  ("Can I use any replacement filter for my air purifier or vacuum?", "Only if the filter matches the exact model generation (for example, Philips FY2422 vs. FY1410). Third-party filters vary in gasket fit and HEPA rating; verify the exact model code on the appliance label."),
+  ("How does DealFactory check compatibility for my home?", "Add your hubs, boiler, TV and appliances once in the Shopping Advisor (or import past receipts from Gmail). Every future search checks specs against your saved setup."),
+] %}
+{% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
+<!doctype html><html lang="en"><head>
+{{ head("Smart home & appliance compatibility guide | DealFactory", "What to check before buying smart-home devices, OpenTherm thermostats, soundbars and replacement appliance filters in Europe.", "/guides/smart-home-compatibility/") }}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entries} | tojson }}</script>
+</head><body class="store">
+{{ header("smarthome") }}
+<main id="main" class="frame">
+  <section class="memory-hero guide-hero" aria-labelledby="sh-title">
+    <div class="memory-copy">
+      <a class="crumb light-crumb" href="/">← Back to DealFactory</a>
+      <div class="label light"><span class="rule"></span>COMPATIBILITY GUIDE</div>
+      <h1 id="sh-title">Smart home &amp; <em>appliances.</em></h1>
+      <p>The four specs that cause most returns in European homes — and how to check them against what you already own before you buy.</p>
+      <div class="hero-actions"><a class="cta" href="/advisor.html#setup">Check against your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#protocols">Jump to checklist <span aria-hidden="true">↓</span></a></div>
+    </div>
+    <figure class="memory-card" aria-label="Quick compatibility spec sheet">
+      <div class="memory-card-head"><strong>4 things to log once</strong><span>Spec sheet</span></div>
+      <ul class="owned-list">
+        <li><i aria-hidden="true">01</i><div><b>Ecosystem &amp; hubs</b><small>Apple Home, Google Home, Home Assistant, Hue</small></div><span class="source">Protocols</span></li>
+        <li><i aria-hidden="true">02</i><div><b>Boiler &amp; heating</b><small>OpenTherm, on/off, or district heating</small></div><span class="source">Heating</span></li>
+        <li><i aria-hidden="true">03</i><div><b>TV ports &amp; mount</b><small>HDMI eARC, VESA pattern, max weight</small></div><span class="source">AV</span></li>
+        <li><i aria-hidden="true">04</i><div><b>Exact model codes</b><small>Air purifier, vacuum &amp; espresso machine</small></div><span class="source">Parts</span></li>
+      </ul>
+    </figure>
+  </section>
+
+  <section class="field-notes" id="protocols">
+    <div class="label"><span class="rule"></span>01 · SMART HOME ECOSYSTEMS</div>
+    <h2>Matter, Thread and Zigbee: check the hub first</h2>
+    <div class="notes-grid">
+      <div><h3>Matter over Thread vs. Wi-Fi</h3><p>Matter over Thread is fast and low-power, but requires a Thread Border Router (Apple TV 4K, HomePod mini, Nest Hub 2nd gen, or a Home Assistant dongle). Matter over Wi-Fi works with your router alone.</p></div>
+      <div><h3>Zigbee &amp; Hue Bridges</h3><p>Philips Hue, IKEA Dirigera and Aqara hubs each expose different subsets of third-party Zigbee devices. Confirm whether a sensor or bulb pairs directly with your bridge before ordering.</p></div>
+      <div><h3>Local control &amp; subscriptions</h3><p>Doorbells, cameras and thermostats often hide basic history or automations behind monthly plans. Check whether local control (HomeKit, Matter or Home Assistant) works without a subscription.</p></div>
+    </div>
+  </section>
+
+  <section class="field-notes" id="heating">
+    <div class="label"><span class="rule"></span>02 · HEATING &amp; APPLIANCES</div>
+    <h2>Thermostats, TVs and replacement parts</h2>
+    <div class="notes-grid">
+      <div><h3>OpenTherm vs. on/off boilers</h3><p>Most modern Dutch and EU boilers (Intergas, Remeha, Nefit, Vaillant) modulate water temperature over OpenTherm. A basic on/off thermostat loses that efficiency — check your boiler manual for OpenTherm or brand-specific bridges.</p></div>
+      <div><h3>Soundbars &amp; TV mounts</h3><p>For Dolby Atmos without lip-sync delay, confirm your TV has an <strong>HDMI eARC</strong> port (not just optical or ARC). For wall mounts, match both the VESA bolt spacing (e.g. 300×200) and the TV weight.</p></div>
+      <div><h3>Filters &amp; consumables</h3><p>Air purifiers, robot vacuums and espresso machines change filter shapes between revisions. Record the exact model code from the sticker once so every future refill order is verified against it.</p></div>
+    </div>
+  </section>
+
+  <aside class="advisor-strip">
+    <div><div class="label"><span class="rule"></span>PERSONAL CHECK</div><h2>Save your home setup <em>once.</em></h2><p>Add your hubs, boiler and appliances (or import past receipts from Gmail) and ask DealFactory what fits your exact models.</p></div>
+    <a class="dark-button" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a>
+  </aside>
+
+  <section class="faq" aria-labelledby="sh-faq-title">
+    <div class="label"><span class="rule"></span>QUESTIONS</div>
+    <h2 id="sh-faq-title">Common fit questions<span>.</span></h2>
+    <div class="faq-list">{% for question, answer in faqs %}<details><summary>{{ question }}</summary><p>{{ answer }}</p></details>{% endfor %}</div>
+  </section>
+</main>{{ footer() }}</body></html>

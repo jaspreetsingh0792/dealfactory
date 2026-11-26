@@ -40,11 +40,15 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     deals = (output / public.DEALS / "index.html").read_text()
     assert "€89,95" in deals and 'id="cover-title"' in deals
     assert "static.cloudflareinsights.com" in deals
+    smarthome = (output / public.SMARTHOME_GUIDE / "index.html").read_text()
+    assert 'id="sh-title"' in smarthome and "OpenTherm" in smarthome
+    assert '"@type": "FAQPage"' in smarthome
     for page in ("about/index.html", "terms/index.html", "404.html"):
         assert "<h1>" in (output / page).read_text()
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
-    assert "what you own." in (output / "advisor.html").read_text()
+    assert "your home." in (output / "advisor.html").read_text()
     sitemap = ET.parse(output / "sitemap.xml")
+    assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
 
