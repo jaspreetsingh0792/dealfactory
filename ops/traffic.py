@@ -27,7 +27,12 @@ def prepare(account, token):
         "sql": "SELECT page,event,SUM(total) AS n FROM daily_events WHERE day>=? AND day<? GROUP BY page,event",
         "params": [start, end],
     })[0]["results"]
-    return db["uuid"], rows
+    totals = {}
+    for row in rows:
+        # Older releases counted the plain event name. New ones append the arrival channel.
+        key = (row["page"], row["event"].split("/", 1)[0])
+        totals[key] = totals.get(key, 0) + int(row["n"])
+    return db["uuid"], [{"page": page, "event": event, "n": n} for (page, event), n in totals.items()]
 
 
 def main():

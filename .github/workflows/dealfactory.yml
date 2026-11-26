@@ -29,6 +29,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: node --test web/tests/*.test.mjs
       - run: uv run --locked pytest -q
+      - name: Exercise Pages traffic counter with local D1
+        if: github.event_name == 'pull_request'
+        run: bash ops/test_pages_counter.sh
       - run: uv run --locked python ops/build_public.py "${RUNNER_TEMP}/dealfactory-test" --site-url https://dealfactory.example
 
   publish:
