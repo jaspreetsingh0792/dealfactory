@@ -30,6 +30,8 @@ for attempt in range(8):
                 raise ValueError("The shopping advisor connection controls are missing")
         if b'src="/oauth.js"' not in read_route("/oauth/callback/"):
             raise ValueError("The OAuth callback is missing")
+        if b"Gmail receipt import" not in read_route("/privacy"):
+            raise ValueError("The advisor privacy information is missing")
         rpc = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
         response = subprocess.check_output(["curl", "-fsS", "--max-time", "15", "-H", "Content-Type: application/json",
                                             "-H", "Accept: application/json, text/event-stream", "--data", json.dumps(rpc), origin + "/mcp"])

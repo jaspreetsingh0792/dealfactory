@@ -13,7 +13,7 @@ Claude subscribers can use **Open in Claude** or install the MCP connector insid
 
 ## Gmail on the hosted advisor
 
-1. Enable the Gmail API in the DealFactory Google Cloud project. Configure an external OAuth consent screen with the support contact and read-only Gmail scope, `https://www.googleapis.com/auth/gmail.readonly`.
+1. Enable the Gmail API in the DealFactory Google Cloud project. Configure an external OAuth consent screen with the support contact, storefront homepage, advisor privacy page at `https://dealfactory-3uu.pages.dev/privacy`, and read-only Gmail scope, `https://www.googleapis.com/auth/gmail.readonly`.
 2. Create a Web application client. Register `https://dealfactory-3uu.pages.dev` as the authorized JavaScript origin and `https://dealfactory-3uu.pages.dev/oauth/callback/` as the exact redirect URI. Register each additional production hostname with the same callback path before using it.
 3. Add testers in Google Auth Platform while the app is in Testing. Public access to this restricted scope requires Google's verification. [Gmail scope documentation](https://developers.google.com/workspace/gmail/api/auth/scopes)
 4. Save the public OAuth client ID as the GitHub Actions repository variable `DEALFACTORY_GOOGLE_CLIENT_ID` and run the DealFactory site workflow. The public config is generated on each deployment. The client secret is unnecessary.
