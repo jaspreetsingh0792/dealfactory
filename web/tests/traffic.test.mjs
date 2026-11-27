@@ -23,6 +23,9 @@ test("counts only allowlisted events and respects privacy signals", async () => 
   const advisor = await send(origin + "/events?page=advisor&event=search_run", {Origin: origin});
   assert.equal(advisor.status, 204);
   assert.equal(writes.at(-1)[2], "advisor");
+  for (const event of ["gmail_import_start", "gmail_import", "gmail_import_cancel"]) {
+    assert.equal((await send(origin + "/events?page=advisor&event=" + event, {Origin: origin})).status, 204);
+  }
   const unbound = await worker.fetch(new Request(origin + "/events?page=advisor&event=gmail_import", {
     method: "POST", headers: {Origin: origin}
   }), {});

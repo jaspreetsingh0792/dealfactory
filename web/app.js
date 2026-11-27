@@ -24,6 +24,8 @@ let imported = store.get(KEYS.purchases) || { refs: [], purchases: [] };
 let local = null; // what `dealfactory web` offers when running on this computer
 const audits = {};
 let running = null;
+let gmailRunning = false;
+let gmailRun = null;
 
 function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
 function track(event) {
@@ -261,6 +263,13 @@ function syncConnection() {
   const since = $("#gm-since");
   const status = $("#gm-status");
   if (!card || !button || !status) return;
+  if (gmailRunning) {
+    card.dataset.locked = "false";
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
+    if (since) since.disabled = true;
+    return;
+  }
   const googleReady = !!CONFIG.googleClientId;
   const locked = !ready || !googleReady;
   card.dataset.locked = locked ? "true" : "false";
@@ -268,6 +277,7 @@ function syncConnection() {
   button.setAttribute("aria-disabled", locked ? "true" : "false");
   if (since) since.disabled = locked;
   if (status.dataset.gate === "result" && ready && googleReady) return;
+  hideImportProgress();
   if (!ready) {
     status.dataset.gate = "locked";
     status.className = "small step-hint";
@@ -393,6 +403,7 @@ async function initConnect() {
   };
   $("#gm-connect").hidden = false;
   $("#gm-connect").onclick = () => connectGmail();
+  $("#gm-cancel").onclick = () => gmailRun?.abort();
   $("#gm-forget").onclick = () => {
     imported = { refs: [], purchases: [] };
     store.del(KEYS.purchases);
@@ -517,11 +528,50 @@ function renderImports() {
       onclick: () => { p.status = "rejected"; store.set(KEYS.purchases, imported); applyImports(); } }, "🗑")))));
   renderConnectProgress();
 }
+function sinceLabel(value) {
+  const option = [...($("#gm-since")?.options || [])].find((item) => item.value === value);
+  return option?.textContent?.trim() || "2 years";
+}
+function setImportProgress(value, max) {
+  const box = $("#gm-progress");
+  const bar = $("#gm-bar");
+  const fill = $("#gm-bar-fill");
+  if (!box || !bar || !fill) return;
+  box.hidden = false;
+  const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((Number(value) / Number(max)) * 100))) : 0;
+  bar.setAttribute("aria-valuenow", String(pct));
+  bar.setAttribute("aria-valuetext", `${pct}%`);
+  fill.style.width = `${pct}%`;
+}
+function hideImportProgress() {
+  const box = $("#gm-progress");
+  if (box) box.hidden = true;
+}
+function keepPurchases(rep) {
+  if (!rep) return 0;
+  imported.refs = [...new Set([...imported.refs, ...(rep.refs || [])])];
+  imported.purchases.push(...(rep.purchases || []));
+  if (!store.set(KEYS.purchases, imported)) toast("Couldn't save imports in this browser (storage full or blocked)");
+  applyImports();
+  return rep.purchases?.length || 0;
+}
+function importDone(count, skipped) {
+  const status = $("#gm-status");
+  status.className = "small ok";
+  status.replaceChildren(
+    `Done: ${count} item${count === 1 ? "" : "s"} added as `,
+    h("span", { class: "tag warn" }, "UNCONFIRMED"),
+    ". Review them in ",
+    h("a", { href: "#setup" }, "Your setup"),
+    ".",
+    skipped ? ` ${skipped} message${skipped === 1 ? "" : "s"} skipped.` : ""
+  );
+}
 async function connectGmail(grant) {
   const st = $("#gm-status");
-  if (!aiIsReady()) {
+  if (!aiIsReady() || gmailRunning) {
     syncConnection();
-    document.getElementById("ai")?.scrollIntoView({ block: "start" });
+    if (!aiIsReady()) document.getElementById("ai")?.scrollIntoView({ block: "start" });
     return;
   }
   let llm;
@@ -531,29 +581,69 @@ async function connectGmail(grant) {
     st.textContent = e.message;
     return;
   }
-  st.dataset.gate = "result";
-  try {
-    grant = grant || await googleSignIn(CONFIG.googleClientId);
-  } catch (e) { st.className = "small error"; st.textContent = e.message; return; }
   const ctrl = new AbortController();
-  $("#gm-connect").disabled = true;
+  gmailRun = ctrl;
+  gmailRunning = true;
+  $("#gmail")?.setAttribute("aria-busy", "true");
+  $("#gm-cancel").hidden = false;
+  syncConnection();
+  st.dataset.gate = "run";
   st.className = "small";
+  st.textContent = "Signing in to Gmail";
+  setImportProgress(0, 1);
   try {
-    const rep = await importGmail({ token: grant.token, llm, since: $("#gm-since").value, max: 150, seenRefs: new Set(imported.refs),
-      onStep: (t) => { st.textContent = t; }, signal: ctrl.signal });
-    imported.refs = [...new Set([...imported.refs, ...rep.refs])];
-    imported.purchases.push(...rep.purchases);
-    if (!store.set(KEYS.purchases, imported)) toast("Couldn't save imports in this browser (storage full or blocked)");
-    applyImports();
-    st.className = "small ok";
+    try {
+      grant = grant || await googleSignIn(CONFIG.googleClientId);
+    } catch (e) {
+      st.dataset.gate = "result";
+      st.className = "small error";
+      st.textContent = e.message;
+      hideImportProgress();
+      return;
+    }
+    track("gmail_import_start");
+    const rep = await importGmail({
+      token: grant.token, llm, since: $("#gm-since").value, max: 150, seenRefs: new Set(imported.refs),
+      providerLabel: PROVIDERS[ai.provider]?.label || "your AI", signal: ctrl.signal,
+      onStep: (update) => {
+        st.className = "small";
+        st.textContent = update.text;
+        setImportProgress(update.value, update.max);
+      },
+    });
+    keepPurchases(rep);
     track("gmail_import");
-    st.textContent = `Checked ${rep.listed} emails: ${rep.purchases.length} item(s) found` +
-      (rep.skippedSeen ? `, ${rep.skippedSeen} already imported` : "") + (rep.skippedNoPrice ? `, ${rep.skippedNoPrice} without prices skipped` : "") +
-      (rep.failed ? `, ${rep.failed} failed (${rep.lastError})` : "") + ". Confirm them under Your setup.";
+    st.dataset.gate = "result";
+    if (rep.listed === 0) {
+      st.className = "small";
+      st.textContent = `No receipts found in the last ${sinceLabel($("#gm-since").value)}.`;
+    } else importDone(rep.purchases.length, rep.failed);
+    setImportProgress(1, 1);
   } catch (e) {
-    st.className = "small error";
-    st.textContent = e.name === "AbortError" ? "Stopped." : e.message;
+    st.dataset.gate = "result";
+    if (e.name === "AbortError") {
+      const kept = keepPurchases(e.partial);
+      track("gmail_import_cancel");
+      st.className = "small";
+      if (kept) {
+        st.replaceChildren(
+          `Stopped. ${kept} item${kept === 1 ? "" : "s"} already added as `,
+          h("span", { class: "tag warn" }, "UNCONFIRMED"),
+          ". Review them in ",
+          h("a", { href: "#setup" }, "Your setup"),
+          "."
+        );
+      } else st.textContent = "Stopped.";
+    } else {
+      st.className = "small error";
+      st.textContent = e.message;
+      hideImportProgress();
+    }
   } finally {
+    gmailRunning = false;
+    gmailRun = null;
+    $("#gmail")?.setAttribute("aria-busy", "false");
+    $("#gm-cancel").hidden = true;
     syncConnection();
   }
 }
