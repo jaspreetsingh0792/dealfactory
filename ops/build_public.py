@@ -305,7 +305,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     )
     web = ROOT / "web"
     output.mkdir(parents=True, exist_ok=False)
-    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json", "media/*.webp", "media/*.ttf", "media/*-OFL.txt"):
+    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json", "media/*.webp", "media/*.svg", "media/*.ttf", "media/*-OFL.txt"):
         for path in web.glob(pattern):
             target = output / path.relative_to(web)
             target.parent.mkdir(parents=True, exist_ok=True)
