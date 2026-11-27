@@ -52,6 +52,7 @@ jobs:
           trap 'kill "$server" 2>/dev/null || true' EXIT
           curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8764/ -o /dev/null
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_storefront.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_advisor_seo.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_connections.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_gmail_lock.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_manual_entry.cjs "$RUNNER_TEMP/screens"
