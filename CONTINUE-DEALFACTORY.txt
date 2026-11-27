@@ -5,6 +5,19 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
+## Provider picker
+
+Published from `d70c323a189f5faa22d51c56b6a500c44620f823` (#24):
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/45944105038
+
+Live `/advisor/` shows the provider list instead of the hidden “Use an API key or a local model instead” disclosure. OpenRouter stays the default, with one-click sign-in. The other choices are Google Gemini (free-tier note), OpenAI, Anthropic, Mistral, Groq, an OpenAI-compatible https address plus a model name, and Ollama on localhost. A public http address is refused. Test connection and Save use the same stored connection that unlocks Gmail. `/app.js` and `/lib/llm.js` are `Cache-Control: no-store`, and the advisor loads `/app.js?v=81eecb69744a`. `/privacy/` says receipt excerpts go to whichever provider the visitor picks. The Limited Use sentence is still there. `deals@agentsealteam.com` is still unpublished.
+
+Smoke on 27 Nov 2026: the live page at 412px starts on OpenRouter, Gmail is locked, and choosing Gemini shows the free-tier help. No page errors.
+
+## Gmail lock sync
+
+The lock and the Step 1 line now read the same stored connection, including after reload and the OpenRouter redirect. Merged in #23 (`8d55113`). The upload reached the site (`/app.js` contained `syncConnection`), but the publish job went red because the live check still expected `src="/oauth.js"` and the page now uses `src="/oauth.js?v=…"`. That check is fixed in #24, whose publish succeeded. https://github.com/jaspreetsingh0792/dealfactory/actions/runs/45943140276
+
 ## Gmail step lock
 
 Published from `df2d9e2544f70977113744983ff965240f180691` (#21):
