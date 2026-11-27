@@ -46,7 +46,7 @@
   <div class="products" id="offer-grid">
     {% for offer in offers %}
     <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}"{% if offer.fits %} data-fits="{{ offer.fits }}"{% endif %}{% if offer.shipping %} data-total="{{ (offer.price|replace(',', '.')|float + offer.shipping|replace(',', '.')|float)|round(2) }}"{% endif %}>
-      <a class="product-target" data-retailer href="{{ offer.url }}">
+      <a class="product-target" href="/deals/{{ offer.slug }}/">
         <div class="product-image">
           <span class="image-fallback" aria-hidden="true">{{ offer.retailer }}</span>
           {% if offer.image %}<img src="{{ offer.image }}" loading="lazy" decoding="async" alt="" referrerpolicy="no-referrer">{% endif %}
@@ -54,12 +54,15 @@
         </div>
         <div class="product-info"><span class="product-brand">{{ offer.retailer }}</span><h3>{{ offer.name }}</h3>
           {% if offer.fits %}<p class="fits">Fits: {{ offer.fits }}</p>{% endif %}
-          <div class="price-line"><strong>€{{ offer.price }}</strong><span class="open-shop">Open shop</span></div>
-          <p class="price-note">Price before delivery. Confirm it at the shop.</p>
-          {% if offer.shipping %}<p class="shipping">Delivery €{{ offer.shipping }}</p>{% endif %}
+          <div class="price-line"><strong>€{{ offer.price }}</strong></div>
           {% if offer.previous %}<small class="previous"> · previously €{{ offer.previous }} on {{ offer.previous_date }}</small>{% endif %}
         </div>
       </a>
+      <div class="product-actions">
+        <a class="open-shop" data-retailer href="{{ offer.url }}">Open shop</a>
+        <p class="price-note">Price before delivery. Confirm it at the shop.</p>
+        {% if offer.shipping %}<p class="shipping">Delivery €{{ offer.shipping }}</p>{% endif %}
+      </div>
     </article>
     {% endfor %}
   </div>

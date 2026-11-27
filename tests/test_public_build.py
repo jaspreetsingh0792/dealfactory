@@ -59,6 +59,14 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Open shop" in deals
     assert "Total with delivery" not in deals
     assert "Delivery €" not in deals
+    product_slug = "tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie"
+    product = (output / "deals" / product_slug / "index.html").read_text()
+    assert f"<title>tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie: checked price and fit | DealFactory</title>" in product
+    assert '"@type": "Offer"' in product and "AggregateOffer" not in product
+    assert 'rel="canonical" href="https://example.com/deals/' + product_slug + '/"' in product
+    assert '"@type": "BreadcrumbList"' in product
+    assert "Fit and compatibility" in product
+    assert f'href="/deals/{product_slug}/"' in deals
     assert "winter-walk.webp" not in deals.split("<body", 1)[-1]
     assert "static.cloudflareinsights.com" in deals
     assert '"@type": "ItemList"' in deals and '"@type": "BreadcrumbList"' in deals
@@ -106,6 +114,7 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:loc[.='https://example.com/deals/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie/']", SITEMAP_NS) is not None
 
 
 def test_missing_ambiguous_or_unavailable_prices_are_omitted():
@@ -153,12 +162,26 @@ def test_fit_tokens_prefer_protocols_and_shipping_sort_is_conditional():
         deals=True, site_url="https://example.com", checked_at="2026-11-27T00:00Z", checked_label="27 Nov 2026",
         fit_tokens=["Matter"], shipping_known=True,
         offers=[{"name": "Example lock", "retailer": "Shop", "price": "10,00", "shipping": "4,95",
-                 "url": "https://shop.example/lock", "fits": "Matter"}],
+                 "slug": "example-lock", "url": "https://shop.example/lock", "fits": "Matter"}],
     )
     assert "Total with delivery" in html
     assert "Delivery €4,95" in html
     assert 'data-total="14.95"' in html
     assert "Price before delivery. Confirm it at the shop." in html
+
+
+def test_aggregate_offer_requires_two_verified_shops():
+    one = public.product_structured("https://example.com", "plug", [{
+        "name": "Plug", "price": "10,00", "url": "https://a.example/plug", "retailer": "A",
+    }])
+    assert one["@graph"][0]["offers"]["@type"] == "Offer"
+    two = public.product_structured("https://example.com", "plug", [
+        {"name": "Plug", "price": "10,00", "url": "https://a.example/plug", "retailer": "A"},
+        {"name": "Plug", "price": "12,00", "url": "https://b.example/plug", "retailer": "B"},
+    ])
+    assert two["@graph"][0]["offers"]["@type"] == "AggregateOffer"
+    assert two["@graph"][0]["offers"]["offerCount"] == 2
+    assert two["@graph"][0]["offers"]["lowPrice"] == "10.00"
 
 
 def test_listing_image_prefers_product_image():

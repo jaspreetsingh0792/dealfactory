@@ -1,0 +1,36 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% set offer = offers[0] %}
+<!doctype html>
+<html lang="en">
+<head>
+{{ head(offer.name ~ ": checked price and fit | DealFactory", "DealFactory checked this price on the retailer page and recorded how it fits a home. Confirm the current price at the shop.", "/deals/" ~ slug ~ "/") }}
+<script type="application/ld+json">{{ structured | tojson }}</script>
+</head>
+<body class="store">
+{{ header("deals") }}
+<main id="main" class="frame">
+  <p class="crumbs"><a href="/">DealFactory</a> / <a href="/deals/">Deals</a> / {{ offer.name }}</p>
+  <article class="product-page">
+    <div class="label"><span class="rule"></span>CHECKED OFFER</div>
+    <h1>{{ offer.name }}</h1>
+    <p>Last checked <time datetime="{{ checked_at }}">{{ checked_label }}</time>.</p>
+    {% for item in offers %}
+    <section class="shop-offer">
+      <h2>{{ item.retailer }}</h2>
+      <p class="product-price">€{{ item.price }}</p>
+      {% if item.fits %}<p class="fits">Fits: {{ item.fits }}</p>{% endif %}
+      {% if item.shipping %}<p class="shipping">Delivery €{{ item.shipping }}</p>{% endif %}
+      <p class="price-note">Price before delivery. Confirm it at the shop.</p>
+      <a class="dark-button" data-retailer href="{{ item.url }}">Open shop <span aria-hidden="true">↗</span></a>
+    </section>
+    {% endfor %}
+    <section>
+      <h2>Fit and compatibility</h2>
+      <p>The fit tags are the protocols and models named on the retailer page when DealFactory checked it. They are not a promise that the product works with every device in your home. Add what you own in the advisor if you want a check against your own setup.</p>
+      <p><a href="/guides/smart-home-compatibility/">Read the compatibility guide</a> or <a href="/deals/">back to all deals</a>.</p>
+    </section>
+  </article>
+</main>
+{{ footer() }}
+</body>
+</html>
