@@ -47,6 +47,7 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert '"@type": "FAQPage"' in home
     assert "static.cloudflareinsights.com" in home
     assert 'rel="icon"' in home and "favicon.svg" in home
+    assert (output / "media/favicon.svg").is_file()
     assert 'name="twitter:card"' in home and "summary_large_image" in home
     assert "og:image" in home
     deals = (output / public.DEALS / "index.html").read_text()
