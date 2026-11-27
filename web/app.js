@@ -27,6 +27,9 @@ const audits = {};
 let running = null;
 
 function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
+function track(event) {
+  try { window.dealfactoryCount?.(event); } catch { /* a counter must not block the advisor */ }
+}
 function saveResults() {
   // Keep the last result per need, without the bulky audit trail.
   const slim = Object.fromEntries(Object.entries(results).slice(-12).map(([k, v]) => [k, { ...v, audit: undefined }]));
@@ -184,6 +187,7 @@ function initSetup() {
     const id = uniqueId(`${category} ${brand} ${model}`, new Set(ctx.owned.map((o) => o.id)));
     ctx.owned.push({ id, category: slug(category), brand, model, aliases: [`my ${category.toLowerCase()}`], source: "stated", status: "confirmed", confidence: 1 });
     saveCtx();
+    track("setup_add");
     e.target.reset();
     renderOwned();
   };
@@ -261,6 +265,7 @@ function initAi() {
   $("#ai-form").onsubmit = (e) => {
     e.preventDefault();
     saveAi({ provider: $("#ai-provider").value, model: $("#ai-model").value.trim(), baseUrl: $("#ai-base").value.trim(), key: $("#ai-key").value.trim(), remember: $("#ai-remember").checked });
+    track("ai_connect");
     toast("AI settings saved");
   };
   $("#ai-forget").onclick = () => {
@@ -277,6 +282,7 @@ function initAi() {
 function useOpenRouterKey(key) {
   const model = ai.provider === "openrouter" && ai.model ? ai.model : PROVIDERS.openrouter.defaultModel;
   saveAi({ provider: "openrouter", model, baseUrl: "", key, remember: ai.remember });
+  track("ai_connect");
   toast("Connected to OpenRouter");
 }
 async function initConnect() {
@@ -385,6 +391,7 @@ function applyPreset(id, needText) {
     });
     added++;
   }
+  if (added) track("setup_add");
   saveCtx();
   renderOwned();
   const need = (needText || "").trim() || preset.need;
@@ -448,6 +455,7 @@ async function connectGmail(grant) {
     if (!store.set(KEYS.purchases, imported)) toast("Couldn't save imports in this browser (storage full or blocked)");
     applyImports();
     st.className = "small ok";
+    track("gmail_import");
     st.textContent = `Checked ${rep.listed} emails: ${rep.purchases.length} item(s) found` +
       (rep.skippedSeen ? `, ${rep.skippedSeen} already imported` : "") + (rep.skippedNoPrice ? `, ${rep.skippedNoPrice} without prices skipped` : "") +
       (rep.failed ? `, ${rep.failed} failed (${rep.lastError})` : "") + ". Confirm them under Your setup.";
@@ -505,6 +513,7 @@ function noAiPanel(need, message) {
     h("div", { class: "row" },
       h("button", { type: "button", class: "primary", onclick: () => {
         const budget = money(need.budget_max, need.currency);
+        track("brief_export");
         copy(exportPrompt(ctx, budget ? `${need.text} (budget ${budget})` : need.text), "Prompt");
       } }, "Copy prompt for my chat"),
       h("a", { class: "button secondary", href: "#connect" }, "Other ways to connect")));
@@ -516,6 +525,7 @@ async function run(need) {
   let llm;
   try {
     llm = client(ai);
+    track("search_run");
   } catch (e) {
     results[need.id] = { kind: "noai", need, message: e.message };
     renderResults(need.id);
@@ -657,10 +667,10 @@ function renderMcp() {
   $("#mcp-snippet").textContent = `# install once (needs Python + uv):\n#   uv tool install git+https://github.com/jaspreetsingh0792/dealfactory\n${JSON.stringify(cfg, null, 2)}`;
 }
 function initPortability() {
-  $("#export-copy").onclick = () => copy(exportPrompt(ctx), "Prompt");
+  $("#export-copy").onclick = () => { track("brief_export"); copy(exportPrompt(ctx), "Prompt"); };
   $("#open-claude").onclick = () => openInChat("claude");
   $("#open-chatgpt").onclick = () => openInChat("chatgpt");
-  $("#export-download").onclick = () => download("shopping-context.json", shareable(ctx));
+  $("#export-download").onclick = () => { track("brief_export"); download("shopping-context.json", shareable(ctx)); };
   $("#import-prompt").onclick = () => copy(IMPORT_PROMPT, "Request");
   const apply = (text, fromAssistant) => {
     const st = $("#import-status");
