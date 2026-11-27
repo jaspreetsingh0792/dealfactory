@@ -215,13 +215,51 @@ function saveAi(next) {
   if (key && !ai.remember && session) store.set(KEYS.key, key, session);
   renderAi();
 }
+function aiIsReady() {
+  return ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+}
+function lockHint(status) {
+  status.dataset.gate = "locked";
+  status.className = "small step-hint";
+  status.replaceChildren(
+    "Finish ",
+    h("a", { href: "#ai" }, "step 1"),
+    " before importing receipts."
+  );
+}
+function renderGmailGate() {
+  const ready = aiIsReady();
+  const card = $("#gmail");
+  const button = $("#gm-connect");
+  const since = $("#gm-since");
+  const status = $("#gm-status");
+  if (!card || !button || !status) return;
+  const googleReady = !!CONFIG.googleClientId;
+  const locked = !ready || !googleReady;
+  card.dataset.locked = locked ? "true" : "false";
+  $("#ai")?.classList.toggle("is-ready", ready);
+  button.disabled = locked;
+  button.setAttribute("aria-disabled", locked ? "true" : "false");
+  if (since) since.disabled = !ready;
+  if (!ready) lockHint(status);
+  else if (!googleReady) {
+    status.dataset.gate = "locked";
+    status.className = "small step-hint";
+    status.textContent = "Gmail import is awaiting Google setup. You can add purchases under Your setup.";
+  } else if (status.dataset.gate === "locked") {
+    delete status.dataset.gate;
+    status.className = "small";
+    status.replaceChildren();
+  }
+}
 function renderConnected() {
   const p = PROVIDERS[ai.provider];
-  const ready = ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+  const ready = aiIsReady();
   const el = $("#ai-connected");
   el.className = `small ${ready ? "ok" : "muted"}`;
   el.textContent = ready ? `Step 1 done. Connected: ${p?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
     (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "") : "Step 1: not connected yet. A preset still works without a key.";
+  renderGmailGate();
   renderConnectProgress();
   $("#cg-signin").hidden = !local || !!local.chatgpt?.signed_in;
   $("#cg-signout").hidden = !local?.chatgpt?.signed_in;
@@ -301,10 +339,6 @@ async function initConnect() {
     toast("Signed out of ChatGPT");
   };
   $("#gm-connect").hidden = false;
-  if (!CONFIG.googleClientId) {
-    $("#gm-connect").disabled = true;
-    $("#gm-status").textContent = "Gmail import is awaiting Google setup. You can add purchases manually under Your setup.";
-  }
   $("#gm-connect").onclick = () => connectGmail();
   $("#gm-forget").onclick = () => {
     imported = { refs: [], purchases: [] };
@@ -363,7 +397,7 @@ const PRESETS = {
 function renderConnectProgress() {
   const el = $("#connect-progress");
   if (!el) return;
-  const aiReady = ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+  const aiReady = aiIsReady();
   const gmailDone = imported.purchases.some((p) => p.status !== "rejected");
   el.className = `small ${aiReady ? "ok" : "muted"}`;
   el.textContent = !aiReady
@@ -428,19 +462,19 @@ function renderImports() {
 }
 async function connectGmail(grant) {
   const st = $("#gm-status");
-  let llm;
-  try { llm = client(ai); } catch (e) {
-    st.className = "small error";
-    st.replaceChildren(
-      "Connect your AI first so it can extract items from receipts: ",
-      h("button", { type: "button", class: "link", onclick: () => $("#or-signin").click() }, "Sign in with OpenRouter"),
-      " or ",
-      h("button", { type: "button", class: "link", onclick: () => { $("#ai-advanced").open = true; $("#ai-key").focus(); } }, "add an API key"),
-      `. (${e.message})`
-    );
-    toast("Connect your AI first (OpenRouter or API key) to import from Gmail");
+  if (!aiIsReady()) {
+    lockHint(st);
+    document.getElementById("ai")?.scrollIntoView({ block: "start" });
     return;
   }
+  let llm;
+  try { llm = client(ai); } catch (e) {
+    delete st.dataset.gate;
+    st.className = "small error";
+    st.textContent = e.message;
+    return;
+  }
+  delete st.dataset.gate;
   try {
     grant = grant || await googleSignIn(CONFIG.googleClientId);
   } catch (e) { st.className = "small error"; st.textContent = e.message; return; }
@@ -463,7 +497,7 @@ async function connectGmail(grant) {
     st.className = "small error";
     st.textContent = e.name === "AbortError" ? "Stopped." : e.message;
   } finally {
-    $("#gm-connect").disabled = !CONFIG.googleClientId;
+    renderGmailGate();
   }
 }
 
