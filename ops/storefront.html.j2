@@ -30,7 +30,7 @@
 {% macro footer() %}
 <footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor/">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/jaspreetsingh0792/dealfactory">Source code <span aria-hidden="true">↗</span></a></nav></div></footer>
 {% endmacro %}
-{% macro offer_grid(offers, checked_at, guide=false) %}
+{% macro offer_grid(offers, checked_at, guide=false, fit_tokens=[], shipping_known=false) %}
 <div class="section-head" id="shortlist">
   <div><div class="label"><span class="rule"></span>DUTCH RETAILERS</div><h2>{% if guide %}Checked retailer offers{% else %}The shortlist<span>.</span>{% endif %}</h2></div>
   {% if offers %}<p class="dateline">Last checked <time datetime="{{ checked_at }}">{{ checked_label }}</time></p>{% endif %}
@@ -40,11 +40,12 @@
 <div data-offers-checked="{{ checked_at }}">
   <div class="controls">
     <div class="filters" role="group" aria-label="Filter by retailer"><button type="button" data-filter="" aria-pressed="true">All offers <small>{{ offers|length }}</small></button>{% for retailer in offers|map(attribute='retailer')|unique|sort %}<button type="button" data-filter="{{ retailer }}" aria-pressed="false">{{ retailer }}</button>{% endfor %}</div>
-    <label class="sort"><span class="sr-only">Sort offers</span><select id="offer-sort" aria-label="Sort offers"><option value="asc">Price: low to high</option><option value="desc">Price: high to low</option><option value="name">Name: A to Z</option></select></label>
+    {% if fit_tokens %}<div class="filters" role="group" aria-label="Filter by what it fits"><button type="button" data-protocol="" aria-pressed="true">All fits</button>{% for token in fit_tokens %}<button type="button" data-protocol="{{ token }}" aria-pressed="false">{{ token }}</button>{% endfor %}</div>{% endif %}
+    <label class="sort"><span class="sr-only">Sort offers</span><select id="offer-sort" aria-label="Sort offers"><option value="asc">Price: low to high</option><option value="desc">Price: high to low</option><option value="name">Name: A to Z</option>{% if shipping_known %}<option value="total">Total with delivery</option>{% endif %}</select></label>
   </div>
   <div class="products" id="offer-grid">
     {% for offer in offers %}
-    <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}">
+    <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}"{% if offer.fits %} data-fits="{{ offer.fits }}"{% endif %}{% if offer.shipping %} data-total="{{ (offer.price|replace(',', '.')|float + offer.shipping|replace(',', '.')|float)|round(2) }}"{% endif %}>
       <a class="product-target" data-retailer href="{{ offer.url }}">
         <div class="product-image">
           <span class="image-fallback" aria-hidden="true">{{ offer.retailer }}</span>
@@ -53,7 +54,9 @@
         </div>
         <div class="product-info"><span class="product-brand">{{ offer.retailer }}</span><h3>{{ offer.name }}</h3>
           {% if offer.fits %}<p class="fits">Fits: {{ offer.fits }}</p>{% endif %}
-          <div class="price-line"><strong>€{{ offer.price }}</strong><span class="go" aria-hidden="true">↗</span></div>
+          <div class="price-line"><strong>€{{ offer.price }}</strong><span class="open-shop">Open shop</span></div>
+          <p class="price-note">Price before delivery. Confirm it at the shop.</p>
+          {% if offer.shipping %}<p class="shipping">Delivery €{{ offer.shipping }}</p>{% endif %}
           {% if offer.previous %}<small class="previous"> · previously €{{ offer.previous }} on {{ offer.previous_date }}</small>{% endif %}
         </div>
       </a>
@@ -92,7 +95,7 @@
       <a class="cta" href="/guides/smart-home-compatibility/">Read the compatibility guide <span aria-hidden="true">↗</span></a>
     </div>
   </section>
-  <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at) }}</section>
+  <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at, fit_tokens=fit_tokens, shipping_known=shipping_known) }}</section>
   <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your home?</em></h2><p>Add the hub, boiler or appliance you own and the advisor checks the next purchase against it.</p></div><a class="dark-button" href="/advisor/#setup">Add what you own <span aria-hidden="true">↗</span></a></aside>
 </main>{{ footer() }}</body></html>
 {% endif %}

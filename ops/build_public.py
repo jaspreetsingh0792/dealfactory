@@ -203,6 +203,20 @@ def listing_image(html, page_url):
     return None
 
 
+PREFERRED_FITS = ("Matter", "Zigbee", "Thread", "Wi-Fi", "OpenTherm")
+
+
+def fit_tokens(offers):
+    found = []
+    for offer in offers:
+        for part in (offer.get("fits") or "").split(","):
+            token = part.strip()
+            if token and token not in found:
+                found.append(token)
+    preferred = [token for token in PREFERRED_FITS if token in found]
+    return preferred + sorted(token for token in found if token not in PREFERRED_FITS)
+
+
 def collect_offers(sources, fetcher):
     offers = []
     for source in sources:
@@ -360,6 +374,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         site_url=site_url, offers=offers, sources=sources, offers_first=show_offers_first,
         checked_at=checked.isoformat(timespec="minutes").replace("+00:00", "Z"),
         checked_label=checked.strftime("%d %b %Y"),
+        fit_tokens=fit_tokens(offers),
+        shipping_known=any(offer.get("shipping") for offer in offers),
     )
     homepage = output / "index.html"
     advisor = output / "advisor" / "index.html"
