@@ -75,6 +75,11 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'href="/guides/smart-home-compatibility/"' in advisor
     assert 'href="/deals/"' in advisor
     assert "data-preset=\"apple-opentherm\"" in advisor
+    assert "/lib/guide-events.js" in advisor
+    assert "static.cloudflareinsights.com" in advisor
+    assert "/lib/guide-events.js" in (output / "privacy/index.html").read_text()
+    assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
+    assert "/lib/guide-events.js" in (output / "terms/index.html").read_text()
     guide = (output / public.GUIDE / "index.html").read_text()
     assert "winter-walk.webp" in guide
     sitemap = ET.parse(output / "sitemap.xml")

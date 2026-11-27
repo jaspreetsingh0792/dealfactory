@@ -333,6 +333,13 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
     public_pages = (homepage, smarthome, deals, guide / "index.html")
+    measured_pages = (
+        *public_pages,
+        advisor,
+        output / "about/index.html",
+        output / "terms/index.html",
+        output / "privacy/index.html",
+    )
 
     for page_path in public_pages:
         markup = page_path.read_text(encoding="utf-8")
@@ -342,6 +349,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             script += '<meta name="dealfactory-counts" content="aggregate">'
             markup = markup.replace("</main>", '<p class="small muted">DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies.</p>\n</main>', 1)
         page_path.write_text(markup.replace("</head>", script + "\n</head>", 1), encoding="utf-8")
+    for page_path in measured_pages:
+        if page_path in public_pages:
+            continue
+        markup = page_path.read_text(encoding="utf-8")
+        extra = '<script type="module" src="/lib/guide-events.js"></script>'
+        if collect_traffic:
+            extra += '<meta name="dealfactory-counts" content="aggregate">'
+        page_path.write_text(markup.replace("</head>", extra + "\n</head>", 1), encoding="utf-8")
     worker = output / "_worker.js"
     worker.mkdir()
     shutil.copyfile(ROOT / "ops/pages-worker.js", worker / "index.js")
@@ -357,7 +372,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
             f'<script defer src="{ANALYTICS_SCRIPT}" '
             f'data-cf-beacon=\'{{"token":"{analytics_token}"}}\'></script>'
         )
-        for page in public_pages:
+        for page in measured_pages:
             html = page.read_text(encoding="utf-8")
             html = html.replace("script-src 'self';", f"script-src 'self' {ANALYTICS_SCRIPT};")
             page.write_text(html.replace("</body>", f"{beacon}\n</body>", 1), encoding="utf-8")

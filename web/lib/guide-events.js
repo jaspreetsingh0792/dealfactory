@@ -1,4 +1,9 @@
-const page = location.pathname === "/" ? "home" : location.pathname.startsWith("/deals") ? "deals" : location.pathname.includes("smart-home") ? "smarthome" : "footmuffs";
+const page = location.pathname === "/" ? "home"
+  : location.pathname.startsWith("/deals") ? "deals"
+  : location.pathname.includes("smart-home") ? "smarthome"
+  : location.pathname.includes("stroller-footmuffs") ? "footmuffs"
+  : location.pathname.startsWith("/advisor") ? "advisor"
+  : null;
 const enabled = document.querySelector('meta[name="dealfactory-counts"]') !== null;
 function arrivalChannel() {
   const source = new URL(location.href).searchParams.get("utm_source");
@@ -11,11 +16,12 @@ function arrivalChannel() {
 }
 const channel = arrivalChannel();
 function count(event) {
-  if (enabled && !navigator.globalPrivacyControl && navigator.doNotTrack !== "1") {
-    navigator.sendBeacon?.(`/events?page=${page}&event=${event}&channel=${channel}`, "");
+  if (page && enabled && !navigator.globalPrivacyControl && navigator.doNotTrack !== "1") {
+    navigator.sendBeacon?.(`/events?page=${encodeURIComponent(page)}&event=${encodeURIComponent(event)}&channel=${encodeURIComponent(channel)}`, "");
   }
 }
-count("view");
+window.dealfactoryCount = count;
+if (page) count("view");
 document.addEventListener("click", event => {
   const anchor = event.target.closest?.("a[href]");
   if (anchor && (anchor.hasAttribute("data-retailer") ||

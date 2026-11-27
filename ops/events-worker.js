@@ -1,6 +1,6 @@
-const pages = new Set(["home", "smarthome", "deals", "footmuffs"]);
+const pages = new Set(["home", "smarthome", "deals", "footmuffs", "advisor"]);
 const channels = new Set(["rss", "reader", "campaign", "internal", "search", "referral", "direct"]);
-const events = new Set(["view", "outbound", "share"]);
+const events = new Set(["view", "outbound", "share", "setup_add", "ai_connect", "gmail_import", "brief_export", "search_run"]);
 
 export default {
   async fetch(request, env) {
@@ -14,10 +14,14 @@ export default {
     if (!pages.has(page) || !events.has(event) || !channels.has(channel)) return new Response(null, { status: 400 });
     if (request.headers.get("Sec-GPC") !== "1" && request.headers.get("DNT") !== "1") {
       const day = new Date().toISOString().slice(0, 10);
-      await env.TRAFFIC.prepare(
-        "INSERT INTO daily_events(day,event,page,total) VALUES(?,?,?,1) " +
-        "ON CONFLICT(day,event,page) DO UPDATE SET total=total+1"
-      ).bind(day, `${event}/${channel}`, page).run();
+      try {
+        await env.TRAFFIC.prepare(
+          "INSERT INTO daily_events(day,event,page,total) VALUES(?,?,?,1) " +
+          "ON CONFLICT(day,event,page) DO UPDATE SET total=total+1"
+        ).bind(day, `${event}/${channel}`, page).run();
+      } catch {
+        // D1 is optional. A missing binding must not fail the request or record any payload.
+      }
     }
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   }

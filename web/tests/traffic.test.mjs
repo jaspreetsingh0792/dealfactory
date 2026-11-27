@@ -20,4 +20,11 @@ test("counts only allowlisted events and respects privacy signals", async () => 
   assert.equal((await send(endpoint + "&channel=unexpected", {Origin: origin})).status, 400);
   assert.equal(writes.length, 1);
   assert.deepEqual(writes[0].slice(1), ["outbound/direct", "footmuffs"]);
+  const advisor = await send(origin + "/events?page=advisor&event=search_run", {Origin: origin});
+  assert.equal(advisor.status, 204);
+  assert.equal(writes.at(-1)[2], "advisor");
+  const unbound = await worker.fetch(new Request(origin + "/events?page=advisor&event=gmail_import", {
+    method: "POST", headers: {Origin: origin}
+  }), {});
+  assert.equal(unbound.status, 204);
 });
