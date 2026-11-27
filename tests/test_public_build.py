@@ -54,6 +54,11 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "€89,95" in deals and 'id="cover-title"' in deals
     assert "data-offers-checked=" in deals and "hidden data-offers-checked" not in deals
     assert "Fits: OpenTherm, Matter" in deals
+    assert 'data-protocol="Matter"' in deals and 'data-protocol="OpenTherm"' in deals
+    assert "Price before delivery. Confirm it at the shop." in deals
+    assert "Open shop" in deals
+    assert "Total with delivery" not in deals
+    assert "Delivery €" not in deals
     assert "winter-walk.webp" not in deals.split("<body", 1)[-1]
     assert "static.cloudflareinsights.com" in deals
     assert '"@type": "ItemList"' in deals and '"@type": "BreadcrumbList"' in deals
@@ -134,6 +139,26 @@ def test_exact_stock_price_reads_aggregate_specification_and_variants():
 
 def script(data):
     return '<script type="application/ld+json">' + json.dumps(data) + "</script>"
+
+
+def test_fit_tokens_prefer_protocols_and_shipping_sort_is_conditional():
+    tokens = public.fit_tokens([
+        {"fits": "Philips Hue, Zigbee"},
+        {"fits": "OpenTherm, Matter"},
+    ])
+    assert tokens == ["Matter", "Zigbee", "OpenTherm", "Philips Hue"]
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    env = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / "ops"), autoescape=select_autoescape(default=True))
+    html = env.get_template("storefront.html.j2").render(
+        deals=True, site_url="https://example.com", checked_at="2026-11-27T00:00Z", checked_label="27 Nov 2026",
+        fit_tokens=["Matter"], shipping_known=True,
+        offers=[{"name": "Example lock", "retailer": "Shop", "price": "10,00", "shipping": "4,95",
+                 "url": "https://shop.example/lock", "fits": "Matter"}],
+    )
+    assert "Total with delivery" in html
+    assert "Delivery €4,95" in html
+    assert 'data-total="14.95"' in html
+    assert "Price before delivery. Confirm it at the shop." in html
 
 
 def test_listing_image_prefers_product_image():

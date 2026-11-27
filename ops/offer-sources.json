@@ -10,5 +10,22 @@
   {"name": "Philips Hue Bewegingssensor", "retailer": "Coolblue", "fits": "Zigbee, Philips Hue", "url": "https://www.coolblue.nl/product/890049/philips-hue-bewegingssensor.html"},
   {"name": "Sonos Beam Gen2 Zwart", "retailer": "Coolblue", "fits": "HDMI eARC", "url": "https://www.coolblue.nl/product/891435/sonos-beam-gen2-zwart.html"},
   {"name": "Philips HEPA NanoProtect filter FY0900/30", "retailer": "Coolblue", "fits": "Philips AC0920", "url": "https://www.coolblue.nl/product/954000/philips-hepa-nanoprotect-filter-fy0900-30.html"},
-  {"name": "Philips 3in1 HEPA NanoProtect filter 1700 Serie FY1700/30", "retailer": "Coolblue", "fits": "Philips AC1715", "url": "https://www.coolblue.nl/product/901313/philips-3in1-hepa-nanoprotect-filter-1700-serie-fy1700-30.html"}
+  {"name": "Philips 3in1 HEPA NanoProtect filter 1700 Serie FY1700/30", "retailer": "Coolblue", "fits": "Philips AC1715", "url": "https://www.coolblue.nl/product/901313/philips-3in1-hepa-nanoprotect-filter-1700-serie-fy1700-30.html"},
+  {"name": "tado Slimme Radiatorknop X (uitbreiding)", "retailer": "Coolblue", "fits": "Matter", "url": "https://www.coolblue.nl/product/948677/tado-slimme-radiatorknop-x-uitbreiding.html"},
+  {"name": "tado Draadloze Temperatuursensor X 2e Generatie", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983938/tado-draadloze-temperatuursensor-x-2e-generatie.html"},
+  {"name": "tado Bedrade Slimme Thermostaat X 2e Generatie (Uitbreiding)", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983937/tado-bedrade-slimme-thermostaat-x-2e-generatie-uitbreiding.html"},
+  {"name": "tado Bedrade Slimme Thermostaat X Multi Room Startpakket 2e Generatie (2 Radiatorknoppen)", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983935/tado-bedrade-slimme-thermostaat-x-multi-room-startpakket-2e-generatie-2-radiatorknoppen.html"},
+  {"name": "tado Draadloze Slimme Thermostaat X Multi Room Startpakket 2e Generatie (2 Radiatorknoppen)", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/983936/tado-draadloze-slimme-thermostaat-x-multi-room-startpakket-2e-generatie-2-radiatorknoppen.html"},
+  {"name": "tado Slimme Radiatorknop X - 4-Pack (uitbreiding)", "retailer": "Coolblue", "fits": "OpenTherm, Matter", "url": "https://www.coolblue.nl/product/948684/tado-slimme-radiatorknop-x-4-pack-uitbreiding.html"},
+  {"name": "Dual Relay Module T2(4 Pack)", "retailer": "Aqara", "fits": "Zigbee", "url": "https://eu.aqara.com/en-eu/products/dual-relay-module-t24-pack"},
+  {"name": "Smart Lock U200 + Hub M100", "retailer": "Aqara", "fits": "Matter, Thread", "url": "https://eu.aqara.com/en-eu/products/smart-lock-u200-hub-m100"},
+  {"name": "Smart Lock U200 + Hub M3", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/smart-lock-u200-hub-m3-1"},
+  {"name": "Smart Lock U200(2 Pack) + Hub M3", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/smart-lock-u2002-pack-hub-m3"},
+  {"name": "Smart Hub M100", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/aqara-smart-hub-m100"},
+  {"name": "Hub M200", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/hub-m200"},
+  {"name": "Camera Hub G5 Pro", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/aqara-camera-hub-g5-pro"},
+  {"name": "LED Ceiling Light T1M(2 Pack)", "retailer": "Aqara", "fits": "Zigbee", "url": "https://eu.aqara.com/en-eu/products/led-ceiling-light-t1m2-pack"},
+  {"name": "tado Bridge X (uitbreiding)", "retailer": "Coolblue", "fits": "Matter, Wi-Fi", "url": "https://www.coolblue.nl/product/948682/tado-bridge-x-uitbreiding.html"},
+  {"name": "Multi-State Sensor P100", "retailer": "Aqara", "fits": "Matter, Zigbee, Thread", "url": "https://eu.aqara.com/en-eu/products/multi-state-sensor-p100"},
+  {"name": "Hub M1S Gen 2", "retailer": "Aqara", "fits": "Wi-Fi", "url": "https://eu.aqara.com/en-eu/products/aqara-hub-m1s-gen-2"}
 ]
