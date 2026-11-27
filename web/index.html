@@ -64,7 +64,7 @@
 
     <section id="connect">
       <h2>Connect</h2>
-      <p class="lede">Step 1 is your AI. Step 2 is an optional Gmail import. A starter preset works with no API key: it fills your setup so you can copy a brief straight away.</p>
+      <p class="lede">Add the devices you own by hand. That is the way in for everyone. Gmail import is a limited beta while Google reviews the app, so it is optional.</p>
       <p id="connect-progress" class="small" role="status"></p>
       <div class="connect-presets" role="group" aria-label="Starter setups">
         <button type="button" class="secondary" data-preset="apple-opentherm">Apple Home + OpenTherm</button>
@@ -108,37 +108,12 @@
           </form>
           <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request.</p>
         </div>
-        <div class="card connect-step" id="gmail" data-locked="true">
-          <h3><span class="step-badge" aria-hidden="true">2</span> Gmail import</h3>
-          <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
-            as <span class="tag warn">unconfirmed</span> until you confirm it. Skipped if you would rather type your devices.</p>
-          <ul class="small">
-            <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
-            <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
-            <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
-          </ul>
-          <p id="gm-status" class="small step-hint" data-gate="locked" role="status" aria-live="polite">Finish <a href="#ai">step 1</a> before importing receipts.</p>
-          <div id="gm-progress" hidden>
-            <div id="gm-bar" class="gm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%" aria-label="Gmail import progress"><span id="gm-bar-fill"></span></div>
-            <button type="button" id="gm-cancel" class="secondary" hidden>Cancel</button>
-          </div>
-          <div class="row">
-            <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
-            <label class="small">From the last
-              <select id="gm-since" disabled><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
-          </div>
-          <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
-            <ul id="gm-list" class="owned"></ul>
-            <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
-          </details>
-        </div>
       </div>
     </section>
 
     <section id="setup">
-      <h2>Your setup</h2>
-      <p class="lede">The more it knows about your home and what you own, the better the picks. Anything
-        imported from an assistant stays <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+      <h2><span class="step-badge" aria-hidden="true">2</span> Your setup</h2>
+      <p class="lede">Type what you own. A hub, boiler, TV or purifier is enough to start. A starter preset above fills a typical home if you would rather not type. Anything imported stays <span class="tag warn">unconfirmed</span> until you confirm it.</p>
       <div class="grid two">
         <div class="card">
           <h3>Home &amp; preferences</h3>
@@ -158,8 +133,39 @@
             <input id="owned-category" aria-label="Product category" placeholder="What (hub, thermostat, TV, purifier…)" required>
             <input id="owned-brand" aria-label="Brand" placeholder="Brand" required>
             <input id="owned-model" aria-label="Model" placeholder="Model" required>
-            <button type="submit" class="secondary">Add</button>
+            <button type="submit" class="primary">Add device</button>
           </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="gmail-beta" aria-labelledby="gmail-title">
+      <h2 id="gmail-title">Gmail import <span class="tag warn">Limited beta</span></h2>
+      <p class="lede">Google has this app in testing, which allows at most 100 test users. Add devices by hand above. That works for everyone today.</p>
+      <div class="connect-steps">
+        <div class="card connect-step" id="gmail" data-locked="true">
+          <h3><span class="step-badge" aria-hidden="true">3</span> Optional Gmail import</h3>
+          <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
+            as <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+          <ul class="small">
+            <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
+            <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
+            <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
+          </ul>
+          <p id="gm-status" class="small step-hint" data-gate="locked" role="status" aria-live="polite">Finish <a href="#ai">step 1</a> before importing receipts.</p>
+          <div id="gm-progress" hidden>
+            <div id="gm-bar" class="gm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%" aria-label="Gmail import progress"><span id="gm-bar-fill"></span></div>
+            <button type="button" id="gm-cancel" class="secondary" hidden>Cancel</button>
+          </div>
+          <div class="row">
+            <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
+            <label class="small">From the last
+              <select id="gm-since" disabled><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
+          </div>
+          <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
+            <ul id="gm-list" class="owned"></ul>
+            <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
+          </details>
         </div>
       </div>
     </section>

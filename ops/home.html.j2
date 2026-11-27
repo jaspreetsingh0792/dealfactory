@@ -1,7 +1,7 @@
 {% from 'storefront.html.j2' import head, header, footer with context %}
 {% set faqs = [
   ("Is DealFactory free?", "Yes. DealFactory is free, open source and has no ads. If you connect a paid AI provider, that provider may charge for the searches you run."),
-  ("Does DealFactory read my email?", "Only if you connect Gmail. Your browser searches for receipts with read-only access, removes recognizable personal details and sends excerpts to the AI provider you choose. DealFactory's server never receives your Gmail access or receipt text."),
+  ("Does DealFactory read my email?", "Only if you join the limited Gmail beta. Google's testing mode allows at most 100 people while verification is pending. Everyone else adds devices by hand. The browser searches receipts with read-only access, removes recognizable personal details and sends excerpts to the AI provider you choose. DealFactory's server never receives your Gmail access or receipt text."),
   ("What kinds of products does it help with?", "Anything that has to work with what you already own — especially smart-home devices (Matter, Zigbee, Thread, Apple Home, Google Home, Home Assistant), smart thermostats, TVs and soundbars, and appliance filters or parts."),
   ("Do I need an account?", "No. Your setup is saved in your browser. You can export it as a file at any time or delete it with one click."),
   ("Does DealFactory sell products?", "No. It checks compatibility and links straight to the retailer page, so you can verify the price and buy wherever you like."),
@@ -45,7 +45,7 @@
   <section class="steps" id="how" aria-labelledby="how-title">
     <div class="section-head"><div><div class="label"><span class="rule"></span>HOW IT WORKS</div><h2 id="how-title">Three steps<span>.</span></h2></div></div>
     <ol class="step-grid">
-      <li><span class="step-no">01</span><h3>Build your home memory</h3><p>Connect Gmail with read-only access to pull order receipts, or add your hubs, appliances and TV by hand. Imported items stay unconfirmed until you approve them.</p></li>
+      <li><span class="step-no">01</span><h3>Add what you own</h3><p>Type your hubs, boiler, TV and appliances. A starter preset fills a typical home. Gmail import is a limited beta for at most 100 test users while Google reviews the app.</p></li>
       <li><span class="step-no">02</span><h3>Ask for what you need</h3><p>Describe the device, accessory or replacement filter you need. DealFactory attaches your home setup, protocols, country and currency.</p></li>
       <li><span class="step-no">03</span><h3>Verify fit and price</h3><p>Every pick is checked against what you own, with a direct retailer link and a live price quote you can confirm at the shop.</p></li>
     </ol>
