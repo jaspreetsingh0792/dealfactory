@@ -9,6 +9,19 @@ Never print, commit or log an OAuth client secret or token.
 
 Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
 
+#42 published the Dutch pages and the checked product pages from `06018eeb29fac8a30ed338434510a2f80337d483`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46084025085
+
+Live smoke on 27 Nov 2026 after that deploy:
+
+- `/guides/stroller-footmuffs/` is HTTP 301 to `/deals/`. It is not in `sitemap.xml`.
+- `/deals/` has protocol chips, “Price before delivery. Confirm it at the shop.”, and an Open shop label.
+- `/deals/shelly-plug-s-mtr-gen3/` is HTTP 200 and is listed in the sitemap.
+- `/nl/`, `/nl/deals/`, and `/nl/advisor/` are HTTP 200. The Dutch advisor title is “Adviseur: wat past bij jouw huis | DealFactory”.
+- `/advisor/` title is “Shopping advisor: what fits your home | DealFactory”, with a canonical URL of `/advisor/` and WebApplication structured data.
+
+#39 (deal filters) and #40 (product pages) are in that same tree. #35 (FAQ) and #38 (advisor search metadata) published earlier the same night. #28 stays unmerged.
+
 #29 is published from `da91f98e3998f2947a1d047bd130665291ddf2f1`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46077786013
 
