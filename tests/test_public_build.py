@@ -46,6 +46,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "winter-walk.webp" not in home
     assert '"@type": "FAQPage"' in home
     assert "static.cloudflareinsights.com" in home
+    assert 'rel="icon"' in home and "favicon.svg" in home
+    assert 'name="twitter:card"' in home and "summary_large_image" in home
+    assert "og:image" in home
     deals = (output / public.DEALS / "index.html").read_text()
     assert "€89,95" in deals and 'id="cover-title"' in deals
     assert "data-offers-checked=" in deals and "hidden data-offers-checked" not in deals
