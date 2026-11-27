@@ -13,13 +13,13 @@ from traffic import CREATE_TABLE
 
 
 def test_discover_check_and_compare(tmp_path):
-    url = "https://www.babycare.nl/en/example-footmuff.html"
+    url = "https://www.coolblue.nl/product/999001/tado-example-thermostat.html"
     class Fetcher:
         def get(self, requested):
             if requested == CATEGORY:
                 return 200, f'<a href="{url}?ref=sale">Product</a><a href="https://other.example/footmuff.html">Other</a>'
             if requested == url:
-                info = {"@type": "Product", "name": "Example footmuff", "offers": {
+                info = {"@type": "Product", "name": "Example thermostat", "offers": {
                     "@type": "Offer", "availability": "InStock", "priceCurrency": "EUR", "price": "20"}}
                 return 200, '<script type="application/ld+json">' + json.dumps(info) + "</script>"
             return None
@@ -28,8 +28,10 @@ def test_discover_check_and_compare(tmp_path):
     output = tmp_path / "release"
     assert build(output, "https://example.com", Fetcher(), history={url: {yesterday: "23.00"}},
                  traffic=[{"page": "footmuffs", "event": "view", "n": 50}], collect_traffic=True) == 1
+    deals = (output / "deals/index.html").read_text()
+    assert "previously €23,00" in deals and "Example thermostat" in deals
     guide = (output / "guides/stroller-footmuffs/index.html").read_text()
-    assert "previously €23,00" in guide
+    assert "Example thermostat" not in guide
     assert guide.index("Checked retailer offers") < guide.index("What to check before ordering")
     assert (output / "_worker.js").exists()
     assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/events"]
