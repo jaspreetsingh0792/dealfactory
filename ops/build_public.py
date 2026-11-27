@@ -26,7 +26,7 @@ GUIDE = "guides/stroller-footmuffs/"
 SMARTHOME_GUIDE = "guides/smart-home-compatibility/"
 DEALS = "deals/"
 SITEMAP = (
-    "/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy/", "/terms/",
+    "/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", "/about/", "/privacy/", "/terms/",
     "/nl/", "/nl/advisor/", "/nl/guides/smart-home-compatibility/", "/nl/deals/",
 )
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
@@ -421,8 +421,6 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     counts = {(r["page"], r["event"]): int(r["n"]) for r in traffic or []}
     guide_views = counts.get(("footmuffs", "view"), 0)
     show_offers_first = guide_views >= 30 and counts.get(("footmuffs", "outbound"), 0) < guide_views / 10
-    guide = output / GUIDE
-    guide.mkdir(parents=True)
     checked = datetime.now(UTC)
     context = dict(
         site_url=site_url, offers=offers, sources=sources, offers_first=show_offers_first,
@@ -431,8 +429,6 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         fit_tokens=fit_tokens(offers),
         shipping_known=any(offer.get("shipping") for offer in offers),
     )
-    archived = {**context, "offers": [], "sources": []}
-    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**archived), encoding="utf-8")
     homepage = output / "index.html"
     advisor = output / "advisor" / "index.html"
     advisor.parent.mkdir(parents=True, exist_ok=True)
@@ -513,7 +509,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
     public_pages = (
-        homepage, smarthome, deals, guide / "index.html",
+        homepage, smarthome, deals,
         output / "nl/index.html", output / "nl/deals/index.html",
         output / "nl/guides/smart-home-compatibility/index.html",
     )
@@ -587,7 +583,10 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         encoding="utf-8",
     )
     (output / "_redirects").write_text(
-        "/advisor.html /advisor/ 301\n/privacy.html /privacy/ 301\n/advisor /advisor/ 301\n/privacy /privacy/ 301\n",
+        "/advisor.html /advisor/ 301\n/privacy.html /privacy/ 301\n/advisor /advisor/ 301\n/privacy /privacy/ 301\n"
+        "/guides/stroller-footmuffs /deals/ 301\n"
+        "/guides/stroller-footmuffs/ /deals/ 301\n"
+        "/guides/stroller-footmuffs/index.html /deals/ 301\n",
         encoding="utf-8",
     )
     (output / "robots.txt").write_text(f"User-agent: *\nSitemap: {site_url}/sitemap.xml\n")

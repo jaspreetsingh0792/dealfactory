@@ -10,6 +10,7 @@ Target: public launch before 30 November 2026 (Europe/Amsterdam). Cost cap stays
 - Sitemap has eight URLs, each with `lastmod`. `robots.txt` points at the sitemap.
 - Cloudflare Web Analytics is already wired behind `CLOUDFLARE_WEB_ANALYTICS_TOKEN`. The snippet is omitted when the variable is empty. CSP allows `https://cloudflareinsights.com` and `https://static.cloudflareinsights.com` only when the beacon is injected into `script-src`.
 - Read-only production smoke: `node ops/test_live_smoke.cjs`.
+- On 27 Nov 2026 the curated offer pages were fetched again. Eleven were still in stock in euros. Philips Hue Bridge Pro at Coolblue was `OutOfStock` and was removed from `ops/offer-sources.json`. The homepage and deals page do not link to the archived stroller footmuff guide. That guide remains at its old URL and in the sitemap.
 
 ## Held until you confirm
 
