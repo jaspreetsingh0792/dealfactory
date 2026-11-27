@@ -34,9 +34,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert public.build(output, "https://example.com", Fetcher(), "public-example") == 1
     assert not (output / "tests").exists()
     assert not (output / "private").exists()
-    html = (output / public.GUIDE / "index.html").read_text()
-    assert "€89,95" not in html
-    assert "stroller" in html.lower()
+    assert not (output / public.GUIDE / "index.html").exists()
+    redirects = (output / "_redirects").read_text()
+    assert "/guides/stroller-footmuffs/ /deals/ 301" in redirects
     home = (output / "index.html").read_text()
     assert 'id="memory-title"' in home and 'href="/advisor/#setup"' in home
     assert '"@type": "WebSite"' in home and '"@type": "SoftwareApplication"' in home
@@ -94,17 +94,18 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert re.search(r'from "\./lib/llm\.js\?v=[0-9a-f]{12}"', (output / "app.js").read_text())
     assert "?v=" not in (output / "_worker.js/web/lib/location.js").read_text()
     assert "static.cloudflareinsights.com" in advisor
-    assert "/lib/guide-events.js" in (output / "privacy/index.html").read_text()
+    privacy = (output / "privacy/index.html").read_text()
+    assert "/lib/guide-events.js" in privacy
+    assert "cookieless beacon" in privacy and "deals@agentsealteam.com" not in privacy
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
     assert "/lib/guide-events.js" in (output / "terms/index.html").read_text()
-    guide = (output / public.GUIDE / "index.html").read_text()
-    assert "winter-walk.webp" in guide
     sitemap = ET.parse(output / "sitemap.xml")
     assert sitemap.find(".//map:loc[.='https://example.com/advisor/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:loc[.='https://example.com/privacy/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:lastmod", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
-    assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
+    assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is None
+    assert "stroller-footmuffs" not in (output / "sitemap.xml").read_text()
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
 
 
