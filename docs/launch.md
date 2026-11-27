@@ -27,3 +27,11 @@ Target: public launch before 30 November 2026 (Europe/Amsterdam). Cost cap stays
 - Do not publish `deals@agentsealteam.com` until the contact address is confirmed.
 
 Do not post on social networks, send email, or submit forms as part of this launch work.
+
+## Later, not in this launch
+
+These stay notes until the pieces they need exist. They use only prices DealFactory has checked itself.
+
+- Price history from repeated checks of the same retailer page. The daily check already writes `offer-history.json` for a short window. A longer history is a later page, not a copy of anyone else's chart.
+- Price-drop alerts after #28 and D1 are available. No alert mail is sent before then, and no address is collected for it.
+- One card that lists the same product at more than one shop, only when DealFactory has verified each of those shops.

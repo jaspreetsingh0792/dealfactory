@@ -114,6 +114,18 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
+    dutch_home = (output / "nl/index.html").read_text()
+    assert 'lang="nl"' in dutch_home and "past bij jouw huis" in dutch_home
+    assert 'hreflang="nl"' in home and 'hreflang="x-default"' in home
+    assert 'hreflang="en"' in dutch_home and "pricewatch" not in dutch_home.lower()
+    dutch_deals = (output / "nl/deals/index.html").read_text()
+    assert "passen bij jouw huis" in dutch_deals and "Open de winkel" in dutch_deals
+    dutch_guide = (output / "nl/guides/smart-home-compatibility/index.html").read_text()
+    assert 'id="sh-title"' in dutch_guide and "past bij jouw huis" in dutch_guide
+    dutch_advisor = (output / "nl/advisor/index.html").read_text()
+    assert 'lang="nl"' in dutch_advisor and "past bij jouw huis" in dutch_advisor
+    assert sitemap.find(".//map:loc[.='https://example.com/nl/']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:loc[.='https://example.com/nl/deals/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:loc[.='https://example.com/deals/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie/']", SITEMAP_NS) is not None
 
 

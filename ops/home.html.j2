@@ -9,7 +9,7 @@
 ] %}
 {% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
 <!doctype html><html lang="en"><head>
-{{ head("DealFactory | Buy what fits your home", "DealFactory remembers the smart-home devices and appliances you already own, from Gmail receipts or items you add, and checks every suggestion for compatibility and live store prices.", "/") }}
+{{ head("DealFactory | Buy what fits your home", "DealFactory remembers the smart-home devices and appliances you already own, from Gmail receipts or items you add, and checks every suggestion for compatibility and live store prices.", "/", alternates=true) }}
 <script type="module" src="/lib/storefront.js"></script>
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entries} | tojson }}</script>
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [

@@ -219,7 +219,8 @@
  .section-head{display:block}.dateline{margin-top:10px!important}.controls{align-items:flex-start;flex-wrap:wrap;padding-block:12px}.filters button{padding:8px 11px}
  .products{gap:13px 10px}.product{border-radius:11px}.product-image{aspect-ratio:1.15}.product-image img{padding:5px}.product-info{padding:12px 10px}.product-info h3{font-size:17px}.product-brand{font-size:9px}.price-line strong{font-size:18px}.go{width:26px;height:26px;font-size:15px}
  .guide-cover{grid-template-columns:1fr}.guide-title{padding:24px}.guide-title .crumb{margin-bottom:20px}.guide-title h1{font-size:65px}.guide-photo{height:165px;background-position:78% 52%}
- .notes-grid{grid-template-columns:1fr;gap:18px}.notes-grid h3{font-size:18px}.sources,.advisor-strip{flex-direction:column;align-items:flex-start}.foot-inner{align-items:flex-start;flex-wrap:wrap}.foot nav{gap:15px}.foot nav a{font-size:12px}
+ .notes-grid{grid-template-columns:1fr;gap:18px}.notes-grid h3{font-size:18px}.sources,.advisor-strip{flex-direction:column;align-items:flex-start}.foot-inner{align-items:flex-start;flex-wrap:wrap}.foot nav{gap:15px;flex-wrap:wrap;max-width:100%}.foot nav a{font-size:12px}
 }
+@media(max-width:420px){.memory-copy h1{font-size:clamp(36px,10vw,46px)}.mast nav{max-width:100%}.mast nav .advisor-link{white-space:normal;text-align:center}}
 @media(max-width:360px){.products{grid-template-columns:1fr}.mast nav .advisor-link{padding:9px}.frame{width:calc(100% - 24px)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
