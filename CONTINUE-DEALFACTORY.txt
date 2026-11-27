@@ -5,6 +5,15 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
+## Gmail import progress
+
+Published from `5c9b0095a450ba88ecf81233e4b22defda67ec55` (#26):
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/45945467317
+
+Live `/advisor/` loads `/app.js?v=4304bac836ba` (`Cache-Control: no-store`). Step 2 has a polite progress line and a determinate bar in Forest Pine, Warm Paper, and Chart Lime. The phases are signing in, searching receipts, reading message X of N, extracting with the selected provider, and a done line that links to Your setup. Cancel aborts the request and keeps items already extracted. A 429 or 5xx says Gmail is busy and names the retry delay. A failed message is counted as skipped. An empty search names the selected range. The Connect button stays disabled while the import runs. Progress text is counts only. `gmail_import_start`, `gmail_import`, and `gmail_import_cancel` are counted without message contents.
+
+Smoke on 27 Nov 2026 against the live page, with Gmail and the model mocked in the browser: the 412px card showed “Reading message 1 of 1”, then “Done: 1 item added as UNCONFIRMED” with the setup link. `deals@agentsealteam.com` is still unpublished. D1 is still not bound.
+
 ## Provider picker
 
 Published from `d70c323a189f5faa22d51c56b6a500c44620f823` (#24):
