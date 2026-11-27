@@ -85,7 +85,12 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert re.search(r'from "\./lib/llm\.js\?v=[0-9a-f]{12}"', (output / "app.js").read_text())
     assert "?v=" not in (output / "_worker.js/web/lib/location.js").read_text()
     assert "static.cloudflareinsights.com" in advisor
-    assert "/lib/guide-events.js" in (output / "privacy/index.html").read_text()
+    privacy = (output / "privacy/index.html").read_text()
+    assert "/lib/guide-events.js" in privacy
+    assert "Limited Use" in privacy and "deals@agentsealteam.com" not in privacy
+    assert "Built-in AI" in privacy and "Delete account" in privacy
+    routes = json.loads((output / "_routes.json").read_text())["include"]
+    assert "/auth/*" in routes and "/api/*" in routes
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
     assert "/lib/guide-events.js" in (output / "terms/index.html").read_text()
     guide = (output / public.GUIDE / "index.html").read_text()

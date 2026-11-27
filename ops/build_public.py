@@ -423,12 +423,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     worker = output / "_worker.js"
     worker.mkdir()
     shutil.copyfile(ROOT / "ops/pages-worker.js", worker / "index.js")
-    for module in ("ops/events-worker.js", "connector/src/index.js", "web/lib/context.js", "web/lib/ground.js",
-                   "web/lib/location.js", "web/lib/tz.js"):
+    for module in ("ops/events-worker.js", "ops/account.js", "connector/src/index.js", "web/lib/context.js", "web/lib/ground.js",
+                   "web/lib/purchases.js", "web/lib/location.js", "web/lib/tz.js"):
         target = worker / module
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / module, target)
-    routes = ["/mcp", "/events"] if collect_traffic else ["/mcp"]
+    routes = ["/mcp", "/auth/*", "/api/*"]
+    if collect_traffic:
+        routes.append("/events")
     (output / "_routes.json").write_text(json.dumps({"version": 1, "include": routes, "exclude": []}))
     if analytics_token:
         beacon = (
@@ -456,7 +458,9 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         "/storefront.css\n  Cache-Control: no-store\n"
         "/oauth\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n"
         "/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n"
-        "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
+        "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n"
+        "/auth/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n"
+        "/api/*\n  Cache-Control: no-store\n",
         encoding="utf-8",
     )
     (output / "_redirects").write_text(

@@ -107,6 +107,10 @@
 .df-advisor main>section>h2{font-size:clamp(28px,3vw,44px);letter-spacing:-.055em;margin-top:clamp(35px,4vw,65px)}
 .df-advisor .card{border-radius:14px;box-shadow:none}
 .df-advisor .connect-presets{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.df-advisor .account-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.df-advisor .account-buttons .button{justify-content:center;white-space:normal;text-align:center}
+.df-advisor #signin-google.button.primary{background:#182e20;color:#e0fa69;border-color:#182e20}
+.df-advisor #signin-github.button.secondary{background:#faf9f4;color:#182e20;border:1px solid #182e20}
 .df-advisor .connect-steps{display:grid;gap:14px}
 @media(min-width:760px){.df-advisor .connect-steps{grid-template-columns:1fr 1fr}}
 .df-advisor .step-badge{display:inline-grid;place-items:center;width:1.7em;height:1.7em;margin-right:8px;border-radius:99px;background:#182e20;color:#e0fa69;font-size:13px;font-weight:700;vertical-align:middle}

@@ -34,7 +34,7 @@ def test_discover_check_and_compare(tmp_path):
     assert "Example thermostat" not in guide
     assert guide.index("Checked retailer offers") < guide.index("What to check before ordering")
     assert (output / "_worker.js").exists()
-    assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/events"]
+    assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/auth/*", "/api/*", "/events"]
 
 
 def test_atomic_counts():

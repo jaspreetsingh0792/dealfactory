@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- connect-src keeps https so a custom provider URL can be any https origin. http is limited to localhost for Ollama. Provider calls: openrouter.ai, api.anthropic.com, api.openai.com, generativelanguage.googleapis.com, api.mistral.ai, api.groq.com, gmail.googleapis.com. -->
+<!-- Built-in AI and sign-in stay on this site ('self'). connect-src still allows https so an optional custom BYO base URL can be any https origin. http is limited to localhost for Ollama. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://gmail.googleapis.com https://cloudflareinsights.com https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.">
@@ -64,7 +64,7 @@
 
     <section id="connect">
       <h2>Connect</h2>
-      <p class="lede">Step 1 is your AI. Step 2 is an optional Gmail import. A starter preset works with no API key: it fills your setup so you can copy a brief straight away.</p>
+      <p class="lede">Step 1 is sign-in. The free built-in AI is ready after that. Step 2 is an optional Gmail import. A starter preset still works with no account.</p>
       <p id="connect-progress" class="small" role="status"></p>
       <div class="connect-presets" role="group" aria-label="Starter setups">
         <button type="button" class="secondary" data-preset="apple-opentherm">Apple Home + OpenTherm</button>
@@ -75,17 +75,35 @@
         <div class="card connect-step" id="ai">
           <h3><span class="step-badge" aria-hidden="true">1</span> Your AI</h3>
           <p id="ai-connected" class="small" role="status"></p>
-          <div class="connect-buttons">
-            <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
-            <button type="button" id="cg-signin" class="secondary" hidden>Sign in with ChatGPT</button>
-            <button type="button" id="cg-signout" class="link" hidden>Sign out of ChatGPT</button>
+          <div id="account-signed-out">
+            <p class="small">Sign in with Google or GitHub. The free AI is ready immediately, and Gmail import stays a separate consent.</p>
+            <div class="connect-buttons account-buttons">
+              <a class="button primary" id="signin-google" href="/auth/login/google">Sign in with Google</a>
+              <a class="button secondary" id="signin-github" href="/auth/login/github">Sign in with GitHub</a>
+            </div>
+          </div>
+          <div id="account-signed-in" hidden>
+            <p id="account-who" class="small"></p>
+            <p id="ai-allowance" class="small" role="status"></p>
+            <div class="row">
+              <button type="button" id="account-signout" class="secondary">Sign out</button>
+              <button type="button" id="account-delete" class="link">Delete account</button>
+            </div>
           </div>
           <div class="connect-buttons">
             <button type="button" id="open-claude" class="secondary">Open in Claude</button>
             <button type="button" id="open-chatgpt" class="secondary">Open in ChatGPT</button>
           </div>
-          <p class="small muted"><span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
-            DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
+          <details class="more" id="ai-byo">
+            <summary>Use your own AI</summary>
+            <p class="small muted">Optional. A key stays in this browser and calls go straight to that provider. Signed-out visitors can use this too.</p>
+            <div class="connect-buttons">
+              <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
+              <button type="button" id="cg-signin" class="secondary" hidden>Sign in with ChatGPT</button>
+              <button type="button" id="cg-signout" class="link" hidden>Sign out of ChatGPT</button>
+            </div>
+            <p class="small muted"><span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
+              DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
           <form id="ai-form" class="ai-grid">
             <label class="span2">Provider
               <select id="ai-provider" aria-label="AI provider"></select></label>
@@ -106,7 +124,8 @@
             </div>
             <p id="ai-status" class="small muted span2" role="status"></p>
           </form>
-          <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request.</p>
+          <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request. A custom address must be https, which is why this page allows https connections. The built-in AI does not use that.</p>
+          </details>
         </div>
         <div class="card connect-step" id="gmail" data-locked="true">
           <h3><span class="step-badge" aria-hidden="true">2</span> Gmail import</h3>

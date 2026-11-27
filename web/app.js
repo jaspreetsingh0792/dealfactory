@@ -1,7 +1,7 @@
 import { emptyContext, exportPrompt, IMPORT_PROMPT, mergeContext, normalizeContext, nowIso, parseAssistantReply,
          shareable, slug, SUGGESTED_FACTS, uniqueId } from "./lib/context.js";
 import { findDeals } from "./lib/deals.js";
-import { client, connectionHint, LLMError, localServer, PROVIDERS, providerReady, testConnection } from "./lib/llm.js";
+import { builtinClient, client, connectionHint, LLMError, localServer, PROVIDERS, providerReady, testConnection } from "./lib/llm.js";
 import { finishGoogle, finishOpenRouter, googleSignIn, openRouterSignIn, pendingProvider, pendingResult } from "./lib/oauth.js";
 import { contextFromPurchases, importGmail } from "./lib/purchases.js";
 import { CONFIG } from "./config.js";
@@ -26,6 +26,7 @@ const audits = {};
 let running = null;
 let gmailRunning = false;
 let gmailRun = null;
+let account = { signedIn: false };
 
 function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
 function track(event) {
@@ -226,8 +227,15 @@ function refreshAi() {
   ai.remember = !!saved.remember;
   ai.key = typeof storedKey === "string" ? storedKey : "";
 }
-function aiIsReady() {
+function byoReady() {
   return providerReady(ai, { chatgptSignedIn: !!local?.chatgpt?.signed_in });
+}
+function aiIsReady() {
+  return byoReady() || !!account?.signedIn;
+}
+function advisorClient() {
+  if (account?.signedIn && !byoReady()) return builtinClient();
+  return client(ai);
 }
 function draftFromForm() {
   const provider = $("#ai-provider").value;
@@ -252,10 +260,14 @@ function syncConnection() {
   const step = $("#ai-connected");
   if (step) {
     step.className = `small ${ready ? "ok" : "muted"}`;
-    step.textContent = ready
+    const who = account?.provider === "github" ? "GitHub" : "Google";
+    const name = account?.displayName && !account.displayName.includes("@") ? account.displayName : "";
+    step.textContent = byoReady()
       ? `Step 1 done. Connected: ${provider?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
         (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "")
-      : "Step 1: not connected yet. A preset still works without a key.";
+      : account?.signedIn
+        ? `Step 1 done. Signed in with ${who}${name ? ` as ${name}` : ""}. Built-in AI is ready.`
+        : "Step 1: sign in for the free AI, or open “Use your own AI”.";
   }
   $("#ai")?.classList.toggle("is-ready", ready);
   const card = $("#gmail");
@@ -291,6 +303,35 @@ function syncConnection() {
     status.className = "small";
     status.replaceChildren();
   }
+}
+function renderAccount() {
+  const signedIn = !!account?.signedIn;
+  const out = $("#account-signed-out");
+  const inn = $("#account-signed-in");
+  if (out) out.hidden = signedIn;
+  if (inn) inn.hidden = !signedIn;
+  if (!signedIn) return;
+  const who = account.provider === "github" ? "GitHub" : "Google";
+  const name = account.displayName && !account.displayName.includes("@") ? account.displayName : "";
+  const whoEl = $("#account-who");
+  if (whoEl) whoEl.textContent = `Signed in with ${who}${name ? ` as ${name}` : ""}.`;
+  const allowance = $("#ai-allowance");
+  const left = account.allowance;
+  if (allowance) allowance.textContent = left
+    ? `${left.remaining} of ${left.limit} free answers left today. Resets at 00:00 UTC.`
+    : "";
+}
+async function loadAccount() {
+  account = { signedIn: false };
+  try {
+    const response = await fetch("/auth/session", { headers: { accept: "application/json" }, credentials: "same-origin" });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && typeof data.signedIn === "boolean") account = data;
+    }
+  } catch { /* a static preview has no account API */ }
+  renderAccount();
+  renderConnected();
 }
 function renderConnected() {
   syncConnection();
@@ -387,6 +428,22 @@ function useOpenRouterKey(key) {
   toast("Connected to OpenRouter");
 }
 async function initConnect() {
+  $("#account-signout").onclick = async () => {
+    await fetch("/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    account = { signedIn: false };
+    renderAccount();
+    renderConnected();
+    toast("Signed out");
+  };
+  $("#account-delete").onclick = async () => {
+    if (!window.confirm("Delete your DealFactory account on this site? The shopping setup saved in this browser stays until you delete it separately.")) return;
+    const response = await fetch("/auth/account", { method: "DELETE", credentials: "same-origin" }).catch(() => null);
+    if (!response?.ok) { toast("The account could not be deleted."); return; }
+    account = { signedIn: false };
+    renderAccount();
+    renderConnected();
+    toast("Account deleted");
+  };
   $("#or-signin").onclick = async () => {
     try { useOpenRouterKey((await openRouterSignIn()).key); }
     catch (e) { toast(e.message); }
@@ -424,6 +481,7 @@ async function initConnect() {
     try { connectGmail(finishGoogle(pending)); } catch (e) { toast(e.message); }
   }
 
+  await loadAccount();
   local = await localServer();
   if (local?.chatgpt?.signed_in && ai.provider !== "chatgpt" && !ai.key) saveAi({ ...ai, provider: "chatgpt", model: "", key: "" });
   renderAi();
@@ -575,7 +633,7 @@ async function connectGmail(grant) {
     return;
   }
   let llm;
-  try { llm = client(ai); } catch (e) {
+  try { llm = advisorClient(); } catch (e) {
     st.dataset.gate = "result";
     st.className = "small error";
     st.textContent = e.message;
@@ -705,7 +763,7 @@ async function run(need) {
   need = { ...need };
   let llm;
   try {
-    llm = client(ai);
+    llm = advisorClient();
     track("search_run");
   } catch (e) {
     results[need.id] = { kind: "noai", need, message: e.message };

@@ -5,6 +5,22 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
+## Strategy: sign in, then free AI (not deployed)
+
+Jaspreet chose the free-only path. Bring-your-own AI is an optional upgrade, not the default. Branch `cursor/builtin-signin-cb02` is a pull request only. Do not merge or deploy until he confirms.
+
+Built-in model: `@cf/meta/llama-3.1-8b-instruct-fp8-fast` on Cloudflare Workers AI. It is an 8B instruct model on the free catalog. Published rates are about 4,119 neurons per million input tokens and 34,868 per million output tokens, so a capped answer is reserved at 20 neurons. The site ceiling defaults to 8,000 neurons per UTC day (under the 10,000 free allocation). Each signed-in person gets 20 answers per UTC day, with a 3 second gap. A 429 names the reset at 00:00 UTC.
+
+Owner-only, before any deploy of this branch:
+
+- Create a Google web OAuth client separate from the Gmail import client. Scopes: openid, email, profile only. Never add Gmail scopes to this client. Redirect URIs: `https://deals.agentsealteam.com/auth/callback/google` and `http://127.0.0.1:8788/auth/callback/google`.
+- Create a GitHub OAuth App. Homepage `https://deals.agentsealteam.com`. Callback `https://deals.agentsealteam.com/auth/callback/github`.
+- Set Pages secrets `GOOGLE_AUTH_CLIENT_ID`, `GOOGLE_AUTH_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. Optional: `AI_DAILY_USER_LIMIT`, `AI_DAILY_NEURON_CEILING`, `AI_NEURONS_PER_REQUEST`.
+- Create D1 database `dealfactory-accounts`, run `ops/d1/0001_accounts.sql`, and set `DEALFACTORY_AUTH_DATABASE_ID`. The deployment token still needs D1 Edit. Bind it as `AUTH` and bind Workers AI as `AI`.
+- Do not publish `deals@agentsealteam.com`.
+
+Details are in `docs/accounts.md`. Gmail import stays the existing separate `gmail.readonly` consent.
+
 ## Gmail import progress
 
 Published from `5c9b0095a450ba88ecf81233e4b22defda67ec55` (#26):
