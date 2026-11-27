@@ -55,6 +55,7 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_connections.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_gmail_lock.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_provider_picker.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_gmail_progress.cjs "$RUNNER_TEMP/screens"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

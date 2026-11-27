@@ -117,7 +117,11 @@
             <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
             <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
           </ul>
-          <p id="gm-status" class="small step-hint" data-gate="locked" role="status">Finish <a href="#ai">step 1</a> before importing receipts.</p>
+          <p id="gm-status" class="small step-hint" data-gate="locked" role="status" aria-live="polite">Finish <a href="#ai">step 1</a> before importing receipts.</p>
+          <div id="gm-progress" hidden>
+            <div id="gm-bar" class="gm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%" aria-label="Gmail import progress"><span id="gm-bar-fill"></span></div>
+            <button type="button" id="gm-cancel" class="secondary" hidden>Cancel</button>
+          </div>
           <div class="row">
             <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
             <label class="small">From the last

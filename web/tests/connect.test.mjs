@@ -71,6 +71,53 @@ test("Gmail import reads, skips seen emails and never logs email text", async ()
   assert.ok(calls.every((u) => u.startsWith("https://gmail.googleapis.com/")));
 });
 
+test("Gmail import reports phases, retries and a cancel without email text", async () => {
+  const receipt = { id: "m1", internalDate: String(Date.UTC(2026, 9, 1)), payload: { mimeType: "text/plain",
+    headers: [{ name: "From", value: "Shop <orders@shop.example>" }, { name: "Subject", value: "Order" }],
+    body: { data: b64("Widget Filter € 12,50") } } };
+  const steps = [];
+  let profiles = 0;
+  globalThis.fetch = async (url) => {
+    const address = String(url);
+    if (address.endsWith("/profile")) {
+      profiles++;
+      if (profiles === 1) return new Response("buyer@example.com", { status: 429 });
+      return Response.json({ emailAddress: "buyer@example.com" });
+    }
+    if (address.includes("/messages?")) return Response.json({ messages: [{ id: "m1" }, { id: "m2" }] });
+    if (address.includes("/messages/m2")) return Response.json({ ...receipt, id: "m2" });
+    return Response.json(receipt);
+  };
+  const llm = { structured: async () => ({ is_purchase: true, doc_type: "order_confirmation", merchant: null, order_date: null, currency: "EUR",
+    items: [{ product_name: "Widget Filter", quote: "Widget Filter", brand: null, model: null, variant: null, category: "filter", kind: "accessory", quantity: 1, unit_price: 12.5 }] }) };
+  const ctrl = new AbortController();
+  await assert.rejects(importGmail({ token: "t", llm, max: 10, providerLabel: "OpenRouter (Claude, GPT and more)", signal: ctrl.signal,
+    onStep: (update) => {
+      steps.push(update.text);
+      if (update.text === "Reading message 2 of 2") ctrl.abort();
+    } }), (error) => error.name === "AbortError" && error.partial.purchases.length === 1);
+  assert.ok(steps.includes("Gmail is busy, retrying in 1s"));
+  assert.ok(steps.includes("Searching receipts (2 found)"));
+  assert.ok(steps.includes("Reading message 1 of 2"));
+  assert.ok(steps.includes("Extracting items with OpenRouter (Claude, GPT and more) (1 of 2)"));
+  assert.equal(steps.at(-1), "Reading message 2 of 2");
+  assert.ok(steps.every((text) => !/@|Widget Filter|buyer/.test(text)));
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/profile")) return Response.json({ emailAddress: "buyer@example.com" });
+    if (String(url).includes("/messages?")) return new Response("buyer@example.com secret", { status: 400 });
+    return Response.json({ messages: [] });
+  };
+  await assert.rejects(importGmail({ token: "t", llm, max: 1 }), (error) => error.message === "Gmail said 400");
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/profile")) return Response.json({ emailAddress: "buyer@example.com" });
+    return Response.json({ messages: [] });
+  };
+  const emptySteps = [];
+  const empty = await importGmail({ token: "t", llm, max: 5, onStep: (update) => emptySteps.push(update.text) });
+  assert.equal(empty.listed, 0);
+  assert.ok(emptySteps.includes("Searching receipts (0 found)"));
+});
+
 test("Gmail import stops before the AI if the profile cannot be read", async () => {
   const calls = [];
   globalThis.fetch = async (url) => {

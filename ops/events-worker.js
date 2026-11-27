@@ -1,6 +1,6 @@
 const pages = new Set(["home", "smarthome", "deals", "footmuffs", "advisor"]);
 const channels = new Set(["rss", "reader", "campaign", "internal", "search", "referral", "direct"]);
-const events = new Set(["view", "outbound", "share", "setup_add", "ai_connect", "gmail_import", "brief_export", "search_run"]);
+const events = new Set(["view", "outbound", "share", "setup_add", "ai_connect", "gmail_import_start", "gmail_import", "gmail_import_cancel", "brief_export", "search_run"]);
 
 export default {
   async fetch(request, env) {

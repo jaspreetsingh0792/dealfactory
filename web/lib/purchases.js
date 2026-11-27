@@ -266,37 +266,60 @@ const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 const GMAIL_BACKOFF_MS = [200, 400, 800];
 
-async function gget(token, path, signal) {
+function waitMs(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError"));
+    }, { once: true });
+  });
+}
+
+async function gget(token, path, signal, onRetry) {
   for (let attempt = 0; ; attempt++) {
+    if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError");
     const r = await fetch(`${GMAIL}${path}`, { headers: { authorization: `Bearer ${token}` }, signal });
     if (r.status === 401) throw new Error("Google sign-in expired. Connect Gmail again.");
     if ((r.status === 429 || r.status >= 500) && attempt < GMAIL_BACKOFF_MS.length) {
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, GMAIL_BACKOFF_MS[attempt]);
-        signal?.addEventListener("abort", () => {
-          clearTimeout(timer);
-          reject(signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError"));
-        }, { once: true });
-      });
+      const seconds = Math.max(1, Math.round(GMAIL_BACKOFF_MS[attempt] / 1000));
+      onRetry?.(`Gmail is busy, retrying in ${seconds}s`);
+      await waitMs(GMAIL_BACKOFF_MS[attempt], signal);
       continue;
     }
-    if (!r.ok) throw new Error(`Gmail said ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    if (!r.ok) throw new Error(`Gmail said ${r.status}`);
     return r.json();
   }
 }
 
+function progressText(text) {
+  const value = String(text || "");
+  if (!value || value.length > 180 || /@/.test(value)) return "Working on the import…";
+  return value;
+}
+
 // llm: client() from llm.js (needs .structured). seenRefs: Set of sha256 refs already imported.
 export async function importGmail({ token, llm, since = "2y", max = 100, seenRefs = new Set(), extraTerms = [],
-                                    onStep = () => {}, signal } = {}) {
+                                    providerLabel = "your AI", onStep = () => {}, signal } = {}) {
   const report = { listed: 0, skippedSeen: 0, skippedNoPrice: 0, notPurchase: 0, failed: 0, purchases: [], refs: [], audit: [] };
   const ids = [];
   let page = null;
-  onStep("Finding purchase emails…");
+  let value = 0;
+  let total = 1;
+  const label = progressText(String(providerLabel || "your AI").replace(/@.*/, "")) === "Working on the import…"
+    ? "your AI" : String(providerLabel || "your AI").replace(/@.*/, "").slice(0, 80);
+  const step = (text, next = value, nextTotal = total, phase = "work") => {
+    value = next;
+    total = nextTotal;
+    onStep({ phase, text: progressText(text), value, max: total });
+  };
+  const onRetry = (text) => step(text, value, total, "retry");
+  try {
   // The user's own address and its name part are redacted too (emails often greet you by it).
   // If the profile cannot be read, stop before any receipt is sent to an AI provider.
   let me = "";
   try {
-    me = (await gget(token, "/profile", signal)).emailAddress || "";
+    me = (await gget(token, "/profile", signal, onRetry)).emailAddress || "";
   } catch (e) {
     if (e.name === "AbortError" || /expired/.test(e.message)) throw e;
     throw new Error("Gmail profile could not be read, so the import stopped before any receipt was sent to your AI.");
@@ -304,24 +327,27 @@ export async function importGmail({ token, llm, since = "2y", max = 100, seenRef
   if (!me) throw new Error("Gmail profile could not be read, so the import stopped before any receipt was sent to your AI.");
   const local = me.split("@")[0];
   extraTerms = [...extraTerms, me, ...local.split(/[._+-]/).filter((w) => w.length >= 3 && !/^\d+$/.test(w))];
+  step("Searching receipts (0 found)", 0, 1, "search");
   do {
     const q = encodeURIComponent(`${GMAIL_QUERY} newer_than:${since}`);
-    const res = await gget(token, `/messages?q=${q}&maxResults=${Math.min(100, max - ids.length)}${page ? `&pageToken=${page}` : ""}`, signal);
+    const res = await gget(token, `/messages?q=${q}&maxResults=${Math.min(100, max - ids.length)}${page ? `&pageToken=${page}` : ""}`, signal, onRetry);
     ids.push(...(res.messages || []).map((m) => m.id));
     page = res.nextPageToken;
+    step(`Searching receipts (${ids.length} found)`, 0, Math.max(ids.length, 1), "search");
   } while (page && ids.length < max);
   report.listed = ids.length;
   for (const [n, id] of ids.entries()) {
     signal?.throwIfAborted();
     const ref = await sha256(`gmail:${id}`);
-    if (seenRefs.has(ref)) { report.skippedSeen++; continue; }
-    onStep(`Reading email ${n + 1} of ${ids.length}…`);
+    if (seenRefs.has(ref)) { report.skippedSeen++; step(`Reading message ${n + 1} of ${ids.length}`, n + 1, ids.length, "read"); continue; }
+    step(`Reading message ${n + 1} of ${ids.length}`, n, ids.length, "read");
     try {
-      const doc = messageToDoc(await gget(token, `/messages/${id}?format=full`, signal));
+      const doc = messageToDoc(await gget(token, `/messages/${id}?format=full`, signal, onRetry));
       const text = redact(doc.text, extraTerms);
       report.refs.push(ref);
-      if (!looksLikeItHasPrices(text)) { report.skippedNoPrice++; continue; }
+      if (!looksLikeItHasPrices(text)) { report.skippedNoPrice++; step(`Reading message ${n + 1} of ${ids.length}`, n + 1, ids.length, "read"); continue; }
       const sub = [];
+      step(`Extracting items with ${label} (${n + 1} of ${ids.length})`, n + 0.5, ids.length, "extract");
       const draft = await llm.structured({ system: PURCHASE_SYSTEM, prompt: purchasePrompt(doc, text), schema: PURCHASE_SCHEMA,
         audit: sub, signal, stage: "purchase" });
       // Audit without the email: keep what the model returned, never what it was sent.
@@ -329,12 +355,17 @@ export async function importGmail({ token, llm, since = "2y", max = 100, seenRef
       const items = groundPurchase(draft, doc, text, ref);
       if (!items.length) report.notPurchase++;
       report.purchases.push(...items);
+      step(`Extracting items with ${label} (${n + 1} of ${ids.length})`, n + 1, ids.length, "extract");
     } catch (e) {
       if (e.name === "AbortError") throw e;
       report.failed++;
-      report.lastError = e.message;
+      report.lastError = progressText(e.message);
       if (/expired|401|403/.test(e.message)) throw e;
     }
   }
   return report;
+  } catch (e) {
+    if (e?.name === "AbortError") e.partial = report;
+    throw e;
+  }
 }
