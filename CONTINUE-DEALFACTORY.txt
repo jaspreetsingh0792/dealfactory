@@ -5,34 +5,30 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
-## Status after the smart-home offer pivot
+## Deployment
 
-Branch `cursor/smart-home-offers-cb02` pivots `/deals/`, `/offers.xml` and catalog extraction to verified NL/EU smart-home and appliance SKUs. The stroller footmuff guide stays archived and no longer receives those offers. Not deployed yet: deployment runs from `main` after the pull request merges.
+The stack is on `main` and the publish job for `cdf79e810ed6f21ff3cdd80e6b7e853aaad21750` succeeded:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/45915817725
 
-Verified in-stock EUR offers (live retailer JSON-LD, checked 26 Nov 2026 with the offer-check user agent):
+Merged, in order: #14, #15, #17, #18, #19. Each required check (`verify`, `storefront`) passed after the pull request was retargeted to `main`. `publish` is skipped on pull requests and ran on `main`.
 
-- Coolblue, tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie, €159.00, Fits: OpenTherm, Matter
-- Coolblue, tado Draadloze Slimme Thermostaat X Startpakket 2e Generatie, €174.00, Fits: OpenTherm, Matter
-- Instalpunt, Remeha eTwist V3 excl. Gateway (Ace boilers), €199.00, Fits: OpenTherm, Remeha Ace
-- BlauweStroomShop, Shelly Plug S MTR Gen3, €24.00, Fits: Matter
-- Aqara EU, Door and Window Sensor P2, €32.99, Fits: Matter, Thread
-- Aqara EU, Hub M3, €159.99, Fits: Matter, Zigbee, Thread
-- Coolblue, Philips Hue Bridge, €49.99, Fits: Philips Hue
-- Coolblue, Philips Hue Bridge Pro, €99.00, Fits: Matter, Philips Hue
-- Coolblue, Philips Hue Bewegingssensor, €43.99, Fits: Zigbee, Philips Hue
-- Coolblue, Sonos Beam Gen2 Zwart, €349.00, Fits: HDMI eARC
-- Coolblue, Philips FY0900/30, €29.99, Fits: Philips AC0920
-- Coolblue, Philips FY1700/30, €68.00, Fits: Philips AC1715
+Live smoke test after that deploy (27 Nov 2026):
 
-Skipped because the offer checker could not confirm an in-stock euro price: Eve Energy (Matter) is OutOfStock at Coolblue (€43.99); Philips FY1410/30 is SoldOut at Coolblue (€42.99); FY2422/30 at FixPart returned 403; FY3430 had no reachable product page with schema.org price. The Coolblue Remeha eTwist page is SoldOut.
+- `/` 200, title "Buy what fits your home", `WebSite` JSON-LD, link to `/advisor/`, no footmuff explore card.
+- `/deals/` 200, 22 in-stock euro offers, visible `Fits:` tags, `ItemList` JSON-LD, no stroller cover.
+- `/advisor/` 200, starter presets, step 1 / step 2 connect copy, `guide-events.js`.
+- `/privacy/` 200, exact Google Limited Use sentence and policy link. `deals@agentsealteam.com` is not on the page.
+- `/offers.xml` 200, title "Smart home and appliance deals", 22 items.
+- `/sitemap.xml` 200, eight URLs, each with `<lastmod>`, including `/advisor/` and `/privacy/`.
+- `/guides/smart-home-compatibility/` 200, tado X, P1, Thread, share button, `TechArticle`.
+- `POST /mcp` 200 with `nosniff`, `no-store`, HSTS, tools `get_shopping_rules` and `verify_on_page`. `PUT /mcp` is 405 with `Allow: POST`.
+- `GET /oauth.html` is 308 to `/oauth` and that redirect carries `no-store`. The 200 for `/oauth` was `public, max-age=0, must-revalidate` until the follow-up header change.
 
-## Advisor connection UI
+The deploy verified 22 in-stock offers. D1 is still not bound. The publish log says: "Traffic counters require D1 Edit on the Cloudflare deployment token."
 
-Branch `cursor/advisor-connection-ui-cb02` (stacked on the offer pivot) gives `/advisor` and `/privacy` the storefront header, keeps Smart home guide and Deals in the nav below 650px, removes the footmuff card from the homepage, replaces the default social image with `/media/home-setup.png`, and adds Apple Home + OpenTherm and Home Assistant starter presets via `?preset=` and `?need=`. `/config.js` is `Cache-Control: no-store`. Not deployed until this branch is on `main`.
+## Still owner-only
 
-## Still to do
-
-2. Extensionless canonicals, sitemap lastmod, JSON-LD, and the 2026 compatibility guide.
-3. Advisor funnel telemetry with a safe D1 write.
-4. Google Limited Use privacy text, `/mcp` security headers, and fail-closed Gmail profile lookup.
-5. Owner-only: D1 Edit on the deployment token, 301 from `dealfactory-3uu.pages.dev` to `https://deals.agentsealteam.com/$1`, Search Console verification, and a confirmed privacy contact email. Do not publish `deals@agentsealteam.com` until the owner confirms it.
+- Add D1 Edit on the Cloudflare deployment token so funnel counts are stored.
+- Add a free Cloudflare 301 from `dealfactory-3uu.pages.dev/*` to `https://deals.agentsealteam.com/$1`.
+- Verify `https://deals.agentsealteam.com` in Google Search Console and submit `sitemap.xml`.
+- Confirm the privacy contact email. Do not publish `deals@agentsealteam.com` until then.
