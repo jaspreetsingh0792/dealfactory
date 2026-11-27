@@ -70,9 +70,9 @@
         <button type="button" class="secondary" data-preset="ha-zigbee">Home Assistant + Zigbee/Matter</button>
       </div>
       <p id="preset-status" class="small" role="status"></p>
-      <div class="grid two">
-        <div class="card" id="ai">
-          <h3>Step 1 · Your AI</h3>
+      <div class="connect-steps">
+        <div class="card connect-step" id="ai">
+          <h3><span class="step-badge" aria-hidden="true">1</span> Your AI</h3>
           <p id="ai-connected" class="small" role="status"></p>
           <div class="connect-buttons">
             <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
@@ -107,8 +107,8 @@
           </details>
           <p class="small muted">Your browser talks to your AI provider directly. The provider may charge for each search.</p>
         </div>
-        <div class="card" id="gmail">
-          <h3>Step 2 · Gmail import</h3>
+        <div class="card connect-step" id="gmail" data-locked="true">
+          <h3><span class="step-badge" aria-hidden="true">2</span> Gmail import</h3>
           <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
             as <span class="tag warn">unconfirmed</span> until you confirm it. Skipped if you would rather type your devices.</p>
           <ul class="small">
@@ -116,12 +116,12 @@
             <li>Your browser removes recognizable personal details and sends receipt text to your selected AI provider to identify purchases. Some personal details may remain.</li>
             <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
           </ul>
+          <p id="gm-status" class="small step-hint" data-gate="locked" role="status">Finish <a href="#ai">step 1</a> before importing receipts.</p>
           <div class="row">
-            <button type="button" id="gm-connect" class="primary">Connect Gmail and import</button>
+            <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
             <label class="small">From the last
-              <select id="gm-since"><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
+              <select id="gm-since" disabled><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
           </div>
-          <p id="gm-status" class="small" role="status"></p>
           <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
             <ul id="gm-list" class="owned"></ul>
             <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
