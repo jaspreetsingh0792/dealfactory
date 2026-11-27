@@ -130,6 +130,7 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'id="sh-title"' in dutch_guide and "past bij jouw huis" in dutch_guide
     dutch_advisor = (output / "nl/advisor/index.html").read_text()
     assert 'lang="nl"' in dutch_advisor and "past bij jouw huis" in dutch_advisor
+    assert "<title>Adviseur: wat past bij jouw huis | DealFactory</title>" in dutch_advisor
     assert sitemap.find(".//map:loc[.='https://example.com/nl/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:loc[.='https://example.com/nl/deals/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:loc[.='https://example.com/deals/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie/']", SITEMAP_NS) is not None

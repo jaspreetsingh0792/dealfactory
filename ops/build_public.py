@@ -487,8 +487,16 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     advisor.write_text(original, encoding="utf-8")
     dutch_advisor = original.replace('<html lang="en">', '<html lang="nl">', 1)
     dutch_advisor = dutch_advisor.replace(
+        "Shopping advisor: what fits your home | DealFactory",
+        "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
         "DealFactory | Buy what fits your home",
         "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.",
+        "Zet neer wat je al hebt en kijk wat past bij jouw huis. Je notities blijven in deze browser.",
     )
     dutch_advisor = dutch_advisor.replace(
         "Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.",
