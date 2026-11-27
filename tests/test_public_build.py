@@ -65,8 +65,8 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Permissions-Policy:" in headers
     assert "X-Frame-Options: DENY" in headers
     assert "/config.js\n  Cache-Control: no-store" in headers
-    assert "/app.js\n  Cache-Control: no-cache" in headers
-    assert "/lib/*\n  Cache-Control: no-cache" in headers
+    assert "/app.js\n  Cache-Control: no-store" in headers
+    assert "/lib/*\n  Cache-Control: no-store" in headers
     assert "/oauth\n  X-Robots-Tag: noindex\n  Cache-Control: no-store" in headers
     assert "/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store" in headers
     assert 'http-equiv="Content-Security-Policy"' in home

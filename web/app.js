@@ -1,7 +1,7 @@
 import { emptyContext, exportPrompt, IMPORT_PROMPT, mergeContext, normalizeContext, nowIso, parseAssistantReply,
          shareable, slug, SUGGESTED_FACTS, uniqueId } from "./lib/context.js";
 import { findDeals } from "./lib/deals.js";
-import { client, LLMError, localServer, PROVIDERS } from "./lib/llm.js";
+import { client, connectionHint, LLMError, localServer, PROVIDERS, providerReady, testConnection } from "./lib/llm.js";
 import { finishGoogle, finishOpenRouter, googleSignIn, openRouterSignIn, pendingProvider, pendingResult } from "./lib/oauth.js";
 import { contextFromPurchases, importGmail } from "./lib/purchases.js";
 import { CONFIG } from "./config.js";
@@ -18,7 +18,7 @@ const store = {
 const session = (() => { try { return sessionStorage; } catch { return null; } })();
 
 let ctx = (() => { try { return normalizeContext(store.get(KEYS.ctx) || emptyContext()); } catch { return emptyContext(); } })();
-let ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
+let ai = { provider: "openrouter", model: PROVIDERS.openrouter.defaultModel, baseUrl: "", remember: false, key: "" };
 let results = store.get(KEYS.results) || {};
 let imported = store.get(KEYS.purchases) || { refs: [], purchases: [] };
 let local = null; // what `dealfactory web` offers when running on this computer
@@ -217,7 +217,7 @@ function saveAi(next) {
 function refreshAi() {
   const saved = store.get(KEYS.ai) || {};
   const storedKey = store.get(KEYS.key) || (session && store.get(KEYS.key, session)) || "";
-  const provider = PROVIDERS[saved.provider] ? saved.provider : "anthropic";
+  const provider = PROVIDERS[saved.provider] ? saved.provider : "openrouter";
   ai.provider = provider;
   ai.model = saved.model || PROVIDERS[provider].defaultModel;
   ai.baseUrl = saved.baseUrl || "";
@@ -225,9 +225,23 @@ function refreshAi() {
   ai.key = typeof storedKey === "string" ? storedKey : "";
 }
 function aiIsReady() {
-  if (ai.provider === "chatgpt") return !!local?.chatgpt?.signed_in;
-  if (ai.provider === "compatible") return true;
-  return typeof ai.key === "string" && ai.key.length > 0;
+  return providerReady(ai, { chatgptSignedIn: !!local?.chatgpt?.signed_in });
+}
+function draftFromForm() {
+  const provider = $("#ai-provider").value;
+  const spec = PROVIDERS[provider] || PROVIDERS.openrouter;
+  return {
+    provider,
+    model: $("#ai-model").value.trim() || spec.defaultModel || "",
+    baseUrl: $("#ai-base").value.trim() || spec.defaultBase || "",
+    key: $("#ai-key").value.trim(),
+    remember: $("#ai-remember").checked,
+  };
+}
+function showAiNote(text, ok) {
+  const status = $("#ai-status");
+  status.className = ok ? "small ok" : "small error";
+  status.textContent = text;
 }
 function syncConnection() {
   refreshAi();
@@ -279,17 +293,24 @@ function renderAi(settings = ai) {
   const sel = $("#ai-provider");
   sel.replaceChildren(...Object.entries(PROVIDERS).filter(([, p]) => !p.local || local)
     .map(([k, p]) => h("option", { value: k, selected: settings.provider === k }, p.label)));
-  const p = PROVIDERS[settings.provider] || PROVIDERS.anthropic;
+  const p = PROVIDERS[settings.provider] || PROVIDERS.openrouter;
   $("#ai-models").replaceChildren(...p.models.map((m) => h("option", { value: m })));
-  $("#ai-model").value = settings.model || p.defaultModel;
+  $("#ai-model").value = settings.model || p.defaultModel || "";
+  $("#ai-model").placeholder = p.localOnly ? "model name from ollama list" : "model id";
   $("#ai-base").value = settings.baseUrl || "";
-  $("#ai-base-wrap").hidden = settings.provider !== "compatible";
+  $("#ai-base").placeholder = p.defaultBase || "https://example.com/v1";
+  $("#ai-base-wrap").hidden = !(p.needsBase || p.localOnly);
   $("#ai-key").value = settings.key || "";
-  $("#ai-key").placeholder = settings.provider === "compatible" ? "Optional for local models" : "Paste your key";
+  $("#ai-key").placeholder = p.needsKey === false ? "Optional" : "Paste your key";
+  $("#ai-key-wrap").hidden = settings.provider === "ollama" || settings.provider === "chatgpt";
   $("#ai-remember").checked = !!settings.remember;
-  $("#ai-help").textContent = `Key: ${p.keyHelp}.` + (p.search ? "" : " This kind of model can't search the web, so you'll get a buying checklist and search links instead of products and prices.");
-  $("#ai-status").textContent = settings.key || ["compatible", "chatgpt"].includes(settings.provider) ? `Saved: ${p.label}${settings.model ? ` · ${settings.model}` : ""}` : "API key needed";
-  $("#ai-key-wrap").hidden = settings.provider === "chatgpt";
+  $("#ai-help").textContent = p.help || "";
+  $("#or-signin").hidden = settings.provider !== "openrouter";
+  const ready = providerReady(settings, { chatgptSignedIn: !!local?.chatgpt?.signed_in });
+  $("#ai-status").className = "small muted";
+  $("#ai-status").textContent = ready
+    ? `Saved: ${p.label}${settings.model ? ` · ${settings.model}` : ""}`
+    : (settings.provider === "chatgpt" ? "Sign in with ChatGPT on this computer" : "Not connected yet");
   if (settings.provider === "chatgpt") loadChatgptModels(settings);
   renderConnected();
 }
@@ -312,9 +333,31 @@ function initAi() {
   };
   $("#ai-form").onsubmit = (e) => {
     e.preventDefault();
-    saveAi({ provider: $("#ai-provider").value, model: $("#ai-model").value.trim(), baseUrl: $("#ai-base").value.trim(), key: $("#ai-key").value.trim(), remember: $("#ai-remember").checked });
+    const draft = draftFromForm();
+    const hint = connectionHint(draft);
+    if (hint) { showAiNote(hint, false); return; }
+    saveAi(draft);
     track("ai_connect");
+    showAiNote(`Connected: ${PROVIDERS[draft.provider].label}`, true);
     toast("AI settings saved");
+  };
+  $("#ai-test").onclick = async () => {
+    const draft = draftFromForm();
+    const hint = connectionHint(draft);
+    if (hint) { showAiNote(hint, false); return; }
+    const button = $("#ai-test");
+    button.disabled = true;
+    showAiNote("Testing the connection…", true);
+    try {
+      const message = await testConnection(draft);
+      saveAi(draft);
+      track("ai_connect");
+      showAiNote(message, true);
+    } catch (error) {
+      showAiNote(error.message, false);
+    } finally {
+      button.disabled = false;
+    }
   };
   $("#ai-forget").onclick = () => {
     ai.key = "";
@@ -754,7 +797,7 @@ function initPortability() {
     cancelRun();
     for (const id of Object.keys(audits)) delete audits[id];
     for (const k of [...Object.values(KEYS), legacyResultsKey]) { store.del(k); if (session) store.del(k, session); }
-    ctx = emptyContext(); results = {}; imported = { refs: [], purchases: [] }; renderImports(); ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
+    ctx = emptyContext(); results = {}; imported = { refs: [], purchases: [] }; renderImports(); ai = { provider: "openrouter", model: PROVIDERS.openrouter.defaultModel, baseUrl: "", remember: false, key: "" };
     renderLocation(); renderFacts(); renderOwned(); renderChips(); renderResults(); renderAi();
     toast("Everything stored in this browser was deleted");
   };

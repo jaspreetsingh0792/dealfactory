@@ -38,7 +38,7 @@ for attempt in range(8):
         for marker in (b'need-form', b'or-signin', b'gm-connect', b'open-chatgpt', b'open-claude'):
             if b'id="' + marker + b'"' not in advisor:
                 raise ValueError("The shopping advisor connection controls are missing")
-        if b'src="/oauth.js"' not in read_route("/oauth/callback/"):
+        if b'src="/oauth.js' not in read_route("/oauth/callback/"):
             raise ValueError("The OAuth callback is missing")
         if b"Gmail receipt import" not in read_route("/privacy/"):
             raise ValueError("The advisor privacy information is missing")
