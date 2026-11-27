@@ -272,24 +272,30 @@ export async function handleRpc(msg, fetcher = fetch) {
 
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, GET, OPTIONS",
   "access-control-allow-headers": "content-type, mcp-protocol-version, mcp-session-id, authorization", "access-control-expose-headers": "mcp-session-id" };
+const SECURITY = {
+  "x-content-type-options": "nosniff",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "cache-control": "no-store",
+};
+const headers = (extra) => ({ ...CORS, ...SECURITY, ...extra });
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: headers() });
     if (url.pathname === "/" && request.method === "GET") {
-      return new Response(`DealFactory connector ${VERSION}. Add ${url.origin}/mcp as a custom connector in Claude.\n`, { headers: { "content-type": "text/plain", ...CORS } });
+      return new Response(`DealFactory connector ${VERSION}. Add ${url.origin}/mcp as a custom connector in Claude.\n`, { headers: headers({ "content-type": "text/plain" }) });
     }
-    if (url.pathname !== "/mcp") return new Response("Not found", { status: 404, headers: CORS });
-    if (request.method === "GET") return new Response("This server answers POST only (no event stream).", { status: 405, headers: { allow: "POST", ...CORS } });
-    if (request.method === "DELETE") return new Response(null, { status: 204, headers: CORS });
-    if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS });
+    if (url.pathname !== "/mcp") return new Response("Not found", { status: 404, headers: headers() });
+    if (request.method === "GET") return new Response("This server answers POST only (no event stream).", { status: 405, headers: headers({ allow: "POST" }) });
+    if (request.method === "DELETE") return new Response(null, { status: 204, headers: headers() });
+    if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: headers({ allow: "POST" }) });
     let body;
-    try { body = JSON.parse(await readLimited(request, 65536)); } catch { return Response.json(fail(null, -32700, "Invalid or oversized request"), { status: 400, headers: CORS }); }
+    try { body = JSON.parse(await readLimited(request, 65536)); } catch { return Response.json(fail(null, -32700, "Invalid or oversized request"), { status: 400, headers: headers() }); }
     const batch = Array.isArray(body);
-    if (batch && body.length > 8) return Response.json(fail(null, -32600, "Batch too large"), { status: 400, headers: CORS });
+    if (batch && body.length > 8) return Response.json(fail(null, -32600, "Batch too large"), { status: 400, headers: headers() });
     const replies = (await Promise.all((batch ? body : [body]).map((m) => handleRpc(m)))).filter(Boolean);
-    if (!replies.length) return new Response(null, { status: 202, headers: CORS });
-    return Response.json(batch ? replies : replies[0], { headers: CORS });
+    if (!replies.length) return new Response(null, { status: 202, headers: headers() });
+    return Response.json(batch ? replies : replies[0], { headers: headers() });
   },
 };

@@ -71,6 +71,18 @@ test("Gmail import reads, skips seen emails and never logs email text", async ()
   assert.ok(calls.every((u) => u.startsWith("https://gmail.googleapis.com/")));
 });
 
+test("Gmail import stops before the AI if the profile cannot be read", async () => {
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response("unavailable", { status: 503 });
+  };
+  const llm = { structured: async () => { throw new Error("AI should not be called"); } };
+  await assert.rejects(importGmail({ token: "t", llm, max: 1 }), /profile could not be read/);
+  assert.ok(calls.every((url) => url.endsWith("/profile")));
+  assert.equal(calls.length, 4);
+});
+
 test("OpenRouter citations become cited sources", () => {
   const reg = new SourceRegistry();
   harvestOpenRouter([{ type: "message", content: [{ type: "output_text", text: "x", annotations: [
@@ -123,6 +135,12 @@ test("connector speaks MCP", async () => {
   const r = await worker.fetch(new Request("https://c.example/mcp", { method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) }));
   assert.equal(r.status, 202);
+  assert.equal(r.headers.get("x-content-type-options"), "nosniff");
+  assert.match(r.headers.get("strict-transport-security"), /max-age=31536000/);
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  const denied = await worker.fetch(new Request("https://c.example/mcp", { method: "PUT" }));
+  assert.equal(denied.status, 405);
+  assert.equal(denied.headers.get("allow"), "POST");
 });
 
 test("security hardening: malformed entities, wildcard robots, deep JSON-LD, and internal hosts", async () => {

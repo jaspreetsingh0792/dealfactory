@@ -264,11 +264,25 @@ export function contextFromPurchases(purchases, existingOwned = []) {
 // ------------------------------------------------------------------ the import run
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
+const GMAIL_BACKOFF_MS = [200, 400, 800];
+
 async function gget(token, path, signal) {
-  const r = await fetch(`${GMAIL}${path}`, { headers: { authorization: `Bearer ${token}` }, signal });
-  if (r.status === 401) throw new Error("Google sign-in expired. Connect Gmail again.");
-  if (!r.ok) throw new Error(`Gmail said ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  return r.json();
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(`${GMAIL}${path}`, { headers: { authorization: `Bearer ${token}` }, signal });
+    if (r.status === 401) throw new Error("Google sign-in expired. Connect Gmail again.");
+    if ((r.status === 429 || r.status >= 500) && attempt < GMAIL_BACKOFF_MS.length) {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, GMAIL_BACKOFF_MS[attempt]);
+        signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(signal.reason instanceof Error ? signal.reason : new DOMException("Aborted", "AbortError"));
+        }, { once: true });
+      });
+      continue;
+    }
+    if (!r.ok) throw new Error(`Gmail said ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    return r.json();
+  }
 }
 
 // llm: client() from llm.js (needs .structured). seenRefs: Set of sha256 refs already imported.
@@ -279,11 +293,17 @@ export async function importGmail({ token, llm, since = "2y", max = 100, seenRef
   let page = null;
   onStep("Finding purchase emails…");
   // The user's own address and its name part are redacted too (emails often greet you by it).
+  // If the profile cannot be read, stop before any receipt is sent to an AI provider.
+  let me = "";
   try {
-    const me = (await gget(token, "/profile", signal)).emailAddress || "";
-    const local = me.split("@")[0];
-    extraTerms = [...extraTerms, me, ...local.split(/[._+-]/).filter((w) => w.length >= 3 && !/^\d+$/.test(w))];
-  } catch (e) { if (e.name === "AbortError" || /expired/.test(e.message)) throw e; }
+    me = (await gget(token, "/profile", signal)).emailAddress || "";
+  } catch (e) {
+    if (e.name === "AbortError" || /expired/.test(e.message)) throw e;
+    throw new Error("Gmail profile could not be read, so the import stopped before any receipt was sent to your AI.");
+  }
+  if (!me) throw new Error("Gmail profile could not be read, so the import stopped before any receipt was sent to your AI.");
+  const local = me.split("@")[0];
+  extraTerms = [...extraTerms, me, ...local.split(/[._+-]/).filter((w) => w.length >= 3 && !/^\d+$/.test(w))];
   do {
     const q = encodeURIComponent(`${GMAIL_QUERY} newer_than:${since}`);
     const res = await gget(token, `/messages?q=${q}&maxResults=${Math.min(100, max - ids.length)}${page ? `&pageToken=${page}` : ""}`, signal);

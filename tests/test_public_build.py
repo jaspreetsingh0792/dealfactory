@@ -64,6 +64,7 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Permissions-Policy:" in headers
     assert "X-Frame-Options: DENY" in headers
     assert "/config.js\n  Cache-Control: no-store" in headers
+    assert "/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store" in headers
     assert 'http-equiv="Content-Security-Policy"' in home
     assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()

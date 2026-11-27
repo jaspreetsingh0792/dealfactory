@@ -386,7 +386,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         "  Referrer-Policy: strict-origin-when-cross-origin\n"
         "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n"
         "/config.js\n  Cache-Control: no-store\n"
-        "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n"
+        "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n"
         "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
         encoding="utf-8",
     )
