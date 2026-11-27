@@ -37,7 +37,8 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "€89,95" not in html
     assert "stroller" in html.lower()
     home = (output / "index.html").read_text()
-    assert 'id="memory-title"' in home and 'href="/advisor.html#setup"' in home
+    assert 'id="memory-title"' in home and 'href="/advisor/#setup"' in home
+    assert '"@type": "WebSite"' in home and '"@type": "SoftwareApplication"' in home
     assert 'href="/guides/stroller-footmuffs/"' not in home
     assert 'href="/guides/smart-home-compatibility/"' in home
     assert "/media/home-setup.png" in home
@@ -50,9 +51,12 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Fits: OpenTherm, Matter" in deals
     assert "winter-walk.webp" not in deals.split("<body", 1)[-1]
     assert "static.cloudflareinsights.com" in deals
+    assert '"@type": "ItemList"' in deals and '"@type": "BreadcrumbList"' in deals
     smarthome = (output / public.SMARTHOME_GUIDE / "index.html").read_text()
     assert 'id="sh-title"' in smarthome and "OpenTherm" in smarthome
     assert '"@type": "FAQPage"' in smarthome
+    assert '"@type": "TechArticle"' in smarthome and '"@type": "BreadcrumbList"' in smarthome
+    assert 'id="share-guide"' in smarthome and "/advisor/?need=" in smarthome
     for page in ("about/index.html", "terms/index.html", "404.html"):
         assert "<h1>" in (output / page).read_text()
     headers = (output / "_headers").read_text()
@@ -63,7 +67,10 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'http-equiv="Content-Security-Policy"' in home
     assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
-    advisor = (output / "advisor.html").read_text()
+    advisor = (output / "advisor/index.html").read_text()
+    assert not (output / "advisor.html").exists()
+    assert (output / "privacy/index.html").is_file()
+    assert not (output / "privacy.html").exists()
     assert "your home." in advisor
     assert 'href="/guides/smart-home-compatibility/"' in advisor
     assert 'href="/deals/"' in advisor
@@ -71,6 +78,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     guide = (output / public.GUIDE / "index.html").read_text()
     assert "winter-walk.webp" in guide
     sitemap = ET.parse(output / "sitemap.xml")
+    assert sitemap.find(".//map:loc[.='https://example.com/advisor/']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:loc[.='https://example.com/privacy/']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:lastmod", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None

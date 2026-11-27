@@ -8,7 +8,14 @@
 {% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
 <!doctype html><html lang="en"><head>
 {{ head("Smart home & appliance compatibility guide | DealFactory", "What to check before buying smart-home devices, OpenTherm thermostats, soundbars and replacement appliance filters in Europe.", "/guides/smart-home-compatibility/") }}
-<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entries} | tojson }}</script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "FAQPage", "mainEntity": entries},
+  {"@type": "TechArticle", "headline": "Smart home and appliance compatibility guide", "dateModified": checked_at, "inLanguage": "en", "author": {"@type": "Organization", "name": "DealFactory"}, "publisher": {"@type": "Organization", "name": "DealFactory", "url": site_url + "/"}, "mainEntityOfPage": site_url + "/guides/smart-home-compatibility/"},
+  {"@type": "BreadcrumbList", "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+    {"@type": "ListItem", "position": 2, "name": "Smart home guide", "item": site_url + "/guides/smart-home-compatibility/"}
+  ]}
+]} | tojson }}</script>
 </head><body class="store">
 {{ header("smarthome") }}
 <main id="main" class="frame">
@@ -18,7 +25,7 @@
       <div class="label light"><span class="rule"></span>COMPATIBILITY GUIDE</div>
       <h1 id="sh-title">Smart home &amp; <em>appliances.</em></h1>
       <p>The four specs that cause most returns in European homes — and how to check them against what you already own before you buy.</p>
-      <div class="hero-actions"><a class="cta" href="/advisor.html#setup">Check against your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#protocols">Jump to checklist <span aria-hidden="true">↓</span></a></div>
+      <div class="hero-actions"><a class="cta" href="/advisor/?preset=apple-opentherm&amp;need=Matter%20thermostat%20with%20OpenTherm#connect">Check against your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#protocols">Jump to checklist <span aria-hidden="true">↓</span></a><button class="dark-button" id="share-guide" type="button" hidden>Share this guide ↗</button></div>
     </div>
     <figure class="memory-card" aria-label="Quick compatibility spec sheet">
       <div class="memory-card-head"><strong>4 things to log once</strong><span>Spec sheet</span></div>
@@ -51,9 +58,53 @@
     </div>
   </section>
 
+  <section class="field-notes" id="tado-x">
+    <div class="label"><span class="rule"></span>03 · TADO X, V3+ AND OPENTHERM</div>
+    <h2>tado X does not extend a V3+ system</h2>
+    <div class="notes-grid">
+      <div><h3>Two generations</h3><p>tado X thermostats, radiator knobs and the Bridge X are a separate generation from tado V3+. Retailers list them as not compatible with older tado products. Replacing one V3+ knob with an X knob does not join the old rooms.</p></div>
+      <div><h3>OpenTherm</h3><p>On a modulating boiler (Intergas, Remeha, Nefit, Vaillant and others), OpenTherm lets the thermostat request a water temperature instead of only on/off. Confirm OpenTherm, or the boiler’s own bridge, on the model plate before you order. A Remeha eTwist without the gateway is for Remeha Ace boilers; other Remeha series need the gateway version.</p></div>
+      <div><h3>Matter and the paid extras</h3><p>tado X is listed with Matter alongside Apple Home, Google Home and Alexa. Some automations, including geofencing, are sold as tado Auto-Assist. Check the current subscription on tado’s site; the thermostat still sets a schedule without it.</p></div>
+    </div>
+    <p class="link-row"><a href="/advisor/?preset=apple-opentherm&amp;need=OpenTherm%20thermostat%20for%20Apple%20Home%20that%20is%20not%20tado%20V3%2B#connect">Check an OpenTherm thermostat against Apple Home <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="p1-meter">
+    <div class="label"><span class="rule"></span>04 · SLIMME METER AND DYNAMIC TARIFFS</div>
+    <h2>The P1 port is usage, not the hourly price</h2>
+    <div class="notes-grid">
+      <div><h3>DSMR P1</h3><p>Dutch smart meters expose a P1 port using the DSMR telegram. A reader such as the HomeWizard P1 Meter sits on that port and publishes electricity and gas use on your home network. It does not, by itself, know what your supplier charges this hour.</p></div>
+      <div><h3>Dynamic contracts</h3><p>Hourly or quarter-hour prices come from the energy contract (the supplier’s API or app), not from the meter. A plug or thermostat can shift load only if that price feed is connected — for example through HomeWizard Energy, Home Assistant, or the supplier’s own integration.</p></div>
+      <div><h3>What to write down</h3><p>Note the meter type, whether you already have a P1 reader, and the contract (fixed, variable, or dynamic). A “works with dynamic prices” claim needs both the reader and the tariff source.</p></div>
+    </div>
+    <p class="link-row"><a href="/advisor/?need=P1%20meter%20reader%20for%20a%20Dutch%20slimme%20meter%20and%20Home%20Assistant#connect">Find a P1 reader for this meter <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="matter-appliances">
+    <div class="label"><span class="rule"></span>05 · APPLIANCES AND MATTER</div>
+    <h2>A Matter badge is not the full appliance</h2>
+    <div class="notes-grid">
+      <div><h3>Limited clusters</h3><p>Matter on a washer, dryer, robot vacuum or air purifier often exposes power and a few states. Cycle lists, maps, filter hours and voice routines may stay in the manufacturer’s app. Read the device’s Matter feature list, not only the logo.</p></div>
+      <div><h3>Filters still use a model code</h3><p>Philips NanoProtect filters are matched by code, not by “Matter”. FY0900/30 is listed for the AC0920; FY1700/30 is listed for the AC1715. FY1410/30 and FY2422/30 are different parts. Copy the code from the purifier label.</p></div>
+      <div><h3>Local versus cloud</h3><p>A Matter connection can keep basic control on your home network. Firmware, history and some energy features may still require the vendor account. Treat “no cloud” as a claim to verify on the product page.</p></div>
+    </div>
+    <p class="link-row"><a href="/advisor/?need=HEPA%20filter%20for%20my%20Philips%20air%20purifier#connect">Match a filter to your purifier <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="thread-routers">
+    <div class="label"><span class="rule"></span>06 · THREAD BORDER ROUTERS</div>
+    <h2>Matter over Thread needs one border router</h2>
+    <div class="notes-grid">
+      <div><h3>Apple</h3><p>HomePod mini, HomePod (2nd generation) and Apple TV 4K from 2021 onward can be a Thread border router for Apple Home. An older Apple TV without Thread is not a substitute. Confirm the generation on the device before you buy Thread sensors.</p></div>
+      <div><h3>Google, Aqara, Home Assistant</h3><p>Google Nest Hub (2nd gen) and Nest Wifi Pro are Thread border routers. The Aqara Hub M3 advertises Matter, Zigbee and Thread. Home Assistant Connect ZBT-1 (and Home Assistant Yellow) can run a Thread border router. One of these is enough for Matter-over-Thread devices such as the Aqara Door and Window Sensor P2.</p></div>
+      <div><h3>Wi-Fi Matter is different</h3><p>A Matter-over-Wi-Fi plug, such as the Shelly Plug S MTR Gen3, joins the Wi-Fi network and does not need a Thread border router. Do not buy a Thread router only because a Wi-Fi Matter device says Matter.</p></div>
+    </div>
+    <p class="link-row"><a href="/advisor/?preset=ha-zigbee&amp;need=Thread%20border%20router%20for%20Home%20Assistant#connect">Check a border router for Home Assistant <span aria-hidden="true">↗</span></a></p>
+  </section>
+
   <aside class="advisor-strip">
     <div><div class="label"><span class="rule"></span>PERSONAL CHECK</div><h2>Save your home setup <em>once.</em></h2><p>Add your hubs, boiler and appliances (or import past receipts from Gmail) and ask DealFactory what fits your exact models.</p></div>
-    <a class="dark-button" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a>
+    <a class="dark-button" href="/advisor/?preset=ha-zigbee#connect">Build your setup <span aria-hidden="true">↗</span></a>
   </aside>
 
   <section class="faq" aria-labelledby="sh-faq-title">

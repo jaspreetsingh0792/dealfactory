@@ -43,7 +43,7 @@ async function main() {
       return route.fulfill({ contentType: "text/html", body: "<script>location.replace(" + JSON.stringify(callback.href) + ")</script>" });
     });
     const page = await context.newPage();
-    await page.goto(origin + "/advisor.html#connect");
+    await page.goto(origin + "/advisor/#connect");
     assert.equal(await page.locator("#connector-url").textContent(), origin + "/mcp");
     assert(await page.locator("#cg-signin").isHidden());
     for (const id of ["open-claude", "open-chatgpt"]) {
@@ -62,7 +62,7 @@ async function main() {
     // When the browser blocks popups, the callback returns to this advisor tab.
     await page.evaluate(() => { window.open = () => null; });
     await page.locator("#or-signin").click();
-    await page.waitForURL("**/advisor.html#connect");
+    await page.waitForURL("**/advisor/#connect");
     await page.waitForFunction(() => !sessionStorage.getItem("dealfactory.oauth.flow") &&
       document.querySelector("#ai-connected")?.textContent.includes("Connected:"));
     assert.equal(exchanges, 2);

@@ -64,7 +64,7 @@ async function main() {
         await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
       }
       if (name === "desktop") {
-        await page.goto(origin + "/advisor.html?preset=apple-opentherm&need=HEPA%20filter#connect");
+        await page.goto(origin + "/advisor/?preset=apple-opentherm&need=HEPA%20filter#connect");
         await page.locator("#need-text").waitFor();
         assert.equal(await page.locator("#need-text").inputValue(), "HEPA filter");
         assert.match(await page.locator("#owned").innerText(), /HomePod mini/);
@@ -72,7 +72,7 @@ async function main() {
         assert(await page.locator("#preset-status").innerText().then(text => text.includes("No API key")));
       }
       await page.goto(origin + "/#setup");
-      await page.waitForURL("**/advisor.html#setup");
+      await page.waitForURL("**/advisor/#setup");
       assert(await page.locator("#need-form").count());
       await page.locator(".hero").scrollIntoViewIfNeeded();
       assert(await page.locator(".hero h1 em").isVisible());

@@ -12,6 +12,10 @@
 {{ head("DealFactory | Buy what fits your home", "DealFactory remembers the smart-home devices and appliances you already own, from Gmail receipts or items you add, and checks every suggestion for compatibility and live store prices.", "/") }}
 <script type="module" src="/lib/storefront.js"></script>
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": entries} | tojson }}</script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "WebSite", "name": "DealFactory", "url": site_url + "/", "description": "DealFactory remembers the smart-home devices and appliances you already own and checks compatibility and live store prices."},
+  {"@type": "SoftwareApplication", "name": "DealFactory", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web", "url": site_url + "/advisor/", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Free browser shopping memory for smart-home and appliance compatibility. Bring your own AI."}
+]} | tojson }}</script>
 </head><body class="store home">
 {{ header() }}
 <main id="main" class="frame">
@@ -20,7 +24,7 @@
       <div class="label light"><span class="rule"></span>YOUR HOME'S SHOPPING MEMORY</div>
       <h1 id="memory-title">Buy what fits <em>your home.</em></h1>
       <p>DealFactory remembers the smart-home devices and appliances you already own — from Gmail receipts or items you add — and checks every suggestion for compatibility and live store prices.</p>
-      <div class="hero-actions"><a class="cta" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#how">How it works <span aria-hidden="true">↓</span></a></div>
+      <div class="hero-actions"><a class="cta" href="/advisor/#setup">Build your setup <span aria-hidden="true">↗</span></a><a class="ghost" href="#how">How it works <span aria-hidden="true">↓</span></a></div>
       <ul class="promises" aria-label="Promises"><li>Fit before price</li><li>No ads</li><li>Free and open source</li></ul>
     </div>
     <figure class="memory-card" aria-label="Example of a DealFactory home setup and compatibility suggestion">
@@ -58,7 +62,7 @@
     </div>
   </section>
 
-  <aside class="advisor-strip ai-strip"><div><div class="label"><span class="rule"></span>BRING YOUR OWN AI</div><h2>Use the AI <em>you already have.</em></h2><p>Sign in with OpenRouter, open your brief in Claude or ChatGPT, or plug in our MCP price verifier. DealFactory never charges for AI.</p></div><a class="dark-button" href="/advisor.html#connect">Connect your AI <span aria-hidden="true">↗</span></a></aside>
+  <aside class="advisor-strip ai-strip"><div><div class="label"><span class="rule"></span>BRING YOUR OWN AI</div><h2>Use the AI <em>you already have.</em></h2><p>Sign in with OpenRouter, open your brief in Claude or ChatGPT, or plug in our MCP price verifier. DealFactory never charges for AI.</p></div><a class="dark-button" href="/advisor/#connect">Connect your AI <span aria-hidden="true">↗</span></a></aside>
 
   <section class="explore" aria-labelledby="explore-title">
     <div class="section-head"><div><div class="label"><span class="rule"></span>COMPATIBILITY GUIDES</div><h2 id="explore-title">Start with a guide<span>.</span></h2></div></div>
@@ -74,5 +78,5 @@
     <div class="faq-list">{% for question, answer in faqs %}<details><summary>{{ question }}</summary><p>{{ answer }}</p></details>{% endfor %}</div>
   </section>
 
-  <section class="closing" aria-labelledby="closing-title"><h2 id="closing-title">Start your <em>home memory.</em></h2><p>It takes a minute to add your first hub, TV or appliance.</p><a class="cta" href="/advisor.html#setup">Build your setup <span aria-hidden="true">↗</span></a></section>
+  <section class="closing" aria-labelledby="closing-title"><h2 id="closing-title">Start your <em>home memory.</em></h2><p>It takes a minute to add your first hub, TV or appliance.</p><a class="cta" href="/advisor/#setup">Build your setup <span aria-hidden="true">↗</span></a></section>
 </main>{{ footer() }}</body></html>
