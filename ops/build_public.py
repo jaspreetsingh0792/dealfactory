@@ -437,6 +437,39 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
     if 'class="df-advisor"' not in original:
         original = original.replace("<body>", '<body class="df-advisor">', 1)
+    if 'rel="canonical"' not in original:
+        original = original.replace(
+            "</head>",
+            f'<link rel="canonical" href="{site_url}/advisor/">\n</head>',
+            1,
+        )
+    if '"@type": "WebApplication"' not in original:
+        advisor_graph = {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "WebApplication",
+                    "name": "DealFactory shopping advisor",
+                    "url": site_url + "/advisor/",
+                    "applicationCategory": "LifestyleApplication",
+                    "operatingSystem": "Web",
+                    "description": "A browser advisor that checks products against what you already own.",
+                    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+                        {"@type": "ListItem", "position": 2, "name": "Shopping advisor", "item": site_url + "/advisor/"},
+                    ],
+                },
+            ],
+        }
+        original = original.replace(
+            "</head>",
+            '<script type="application/ld+json">' + json.dumps(advisor_graph, ensure_ascii=False) + "</script>\n</head>",
+            1,
+        )
     if "your home." not in original:
         brand = templates.get_template("storefront.html.j2").module.wordmark()
         original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)

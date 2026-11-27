@@ -90,6 +90,11 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
     advisor = (output / "advisor/index.html").read_text()
+    assert "<title>Shopping advisor: what fits your home | DealFactory</title>" in advisor
+    assert "Tell DealFactory what you own" in advisor
+    assert 'rel="canonical" href="https://example.com/advisor/"' in advisor
+    assert '"@type": "WebApplication"' in advisor and '"@type": "BreadcrumbList"' in advisor
+    assert advisor.split("<title>", 1)[1].split("</title>", 1)[0] != home.split("<title>", 1)[1].split("</title>", 1)[0]
     assert not (output / "advisor.html").exists()
     assert (output / "privacy/index.html").is_file()
     assert not (output / "privacy.html").exists()
