@@ -25,7 +25,10 @@ ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
 SMARTHOME_GUIDE = "guides/smart-home-compatibility/"
 DEALS = "deals/"
-SITEMAP = ("/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", "/about/", "/privacy/", "/terms/")
+SITEMAP = (
+    "/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", "/about/", "/privacy/", "/terms/",
+    "/nl/", "/nl/advisor/", "/nl/guides/smart-home-compatibility/", "/nl/deals/",
+)
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
@@ -471,19 +474,68 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         brand = templates.get_template("storefront.html.j2").module.wordmark()
         original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
         original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
+    if 'rel="canonical"' not in original:
+        original = original.replace("</head>", f'<link rel="canonical" href="{site_url}/advisor/">\n</head>', 1)
+    if 'hreflang="nl"' not in original:
+        original = original.replace(
+            "</head>",
+            f'<link rel="alternate" hreflang="en" href="{site_url}/advisor/">\n'
+            f'<link rel="alternate" hreflang="nl" href="{site_url}/nl/advisor/">\n'
+            f'<link rel="alternate" hreflang="x-default" href="{site_url}/advisor/">\n</head>',
+            1,
+        )
     advisor.write_text(original, encoding="utf-8")
+    dutch_advisor = original.replace('<html lang="en">', '<html lang="nl">', 1)
+    dutch_advisor = dutch_advisor.replace(
+        "Shopping advisor: what fits your home | DealFactory",
+        "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "DealFactory | Buy what fits your home",
+        "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.",
+        "Zet neer wat je al hebt en kijk wat past bij jouw huis. Je notities blijven in deze browser.",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.",
+        "Zet neer wat je al hebt en kijk wat past bij jouw huis. Je notities blijven in deze browser.",
+    )
+    dutch_advisor = dutch_advisor.replace("Buy what fits<br><em>your home.</em>", "Wat<br><em>past bij jouw huis.</em>")
+    dutch_advisor = dutch_advisor.replace(
+        f'<link rel="canonical" href="{site_url}/advisor/">',
+        f'<link rel="canonical" href="{site_url}/nl/advisor/">',
+        1,
+    )
+    dutch_advisor = dutch_advisor.replace('href="/guides/smart-home-compatibility/"', 'href="/nl/guides/smart-home-compatibility/"')
+    dutch_advisor = dutch_advisor.replace('href="/deals/"', 'href="/nl/deals/"')
+    dutch_advisor = dutch_advisor.replace('href="/#how"', 'href="/nl/#how"')
+    dutch_advisor = re.sub(r'href="/"(?=[ >])', 'href="/nl/"', dutch_advisor)
+    nl_advisor = output / "nl" / "advisor" / "index.html"
+    nl_advisor.parent.mkdir(parents=True, exist_ok=True)
+    nl_advisor.write_text(dutch_advisor, encoding="utf-8")
     privacy_file = output / "privacy.html"
     if privacy_file.exists():
         privacy_dir = output / "privacy"
         privacy_dir.mkdir(parents=True, exist_ok=True)
         privacy_file.replace(privacy_dir / "index.html")
     homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
+    nl_home = output / "nl" / "index.html"
+    nl_home.parent.mkdir(parents=True, exist_ok=True)
+    nl_home.write_text(templates.get_template("nl-home.html.j2").render(**context), encoding="utf-8")
     smarthome = output / SMARTHOME_GUIDE / "index.html"
     smarthome.parent.mkdir(parents=True)
     smarthome.write_text(templates.get_template("smarthome.html.j2").render(**context), encoding="utf-8")
+    nl_guide = output / "nl" / "guides" / "smart-home-compatibility" / "index.html"
+    nl_guide.parent.mkdir(parents=True, exist_ok=True)
+    nl_guide.write_text(templates.get_template("nl-smarthome.html.j2").render(**context), encoding="utf-8")
     deals = output / DEALS / "index.html"
     deals.parent.mkdir(parents=True)
-    deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, **context), encoding="utf-8")
+    deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, dutch=False, **context), encoding="utf-8")
+    nl_deals = output / "nl" / "deals" / "index.html"
+    nl_deals.parent.mkdir(parents=True, exist_ok=True)
+    nl_deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, dutch=True, **context), encoding="utf-8")
     product_template = templates.get_template("product.html.j2")
     for slug, group in grouped.items():
         folder = output / DEALS / slug
@@ -497,10 +549,15 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         target.parent.mkdir(parents=True)
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
-    public_pages = (homepage, smarthome, deals)
+    public_pages = (
+        homepage, smarthome, deals,
+        output / "nl/index.html", output / "nl/deals/index.html",
+        output / "nl/guides/smart-home-compatibility/index.html",
+    )
     measured_pages = (
         *public_pages,
         advisor,
+        output / "nl/advisor/index.html",
         output / "about/index.html",
         output / "terms/index.html",
         output / "privacy/index.html",
@@ -512,7 +569,12 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         script += '<link rel="alternate" type="application/rss+xml" title="Checked offers" href="/offers.xml">'
         if collect_traffic:
             script += '<meta name="dealfactory-counts" content="aggregate">'
-            markup = markup.replace("</main>", '<p class="small muted">DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies.</p>\n</main>', 1)
+            note = (
+                "DealFactory telt paginabezoeken, gedeelde gidsen en winkelklikken opgeteld. Deze tellers gebruiken geen cookies."
+                if "nl" in page_path.parts
+                else "DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies."
+            )
+            markup = markup.replace("</main>", f'<p class="small muted">{note}</p>\n</main>', 1)
         page_path.write_text(markup.replace("</head>", script + "\n</head>", 1), encoding="utf-8")
     for page_path in measured_pages:
         if page_path in public_pages:

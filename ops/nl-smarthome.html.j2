@@ -1,0 +1,115 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% set faqs = [
+  ("Heb ik een hub nodig voor Matter?", "Matter via wifi gaat via je router. Matter via Thread heeft een Thread-border-router nodig, zoals een recente Apple TV 4K, HomePod mini, Google Nest Hub van de tweede generatie, of Home Assistant Connect."),
+  ("Hoe weet ik of mijn ketel OpenTherm kan?", "Kijk op het typeplaatje. Intergas, Remeha, Nefit Bosch en Vaillant kunnen vaak OpenTherm, of ze hebben een eigen brug nodig. Een aan/uit-relais op een modulerende ketel verspilt energie."),
+  ("Past elk vervangend filter?", "Alleen als het filter bij die modelgeneratie hoort, bijvoorbeeld Philips FY2422 tegenover FY1410. Filters van een ander merk verschillen in rand en HEPA-klasse. Neem de code over van het etiket op het apparaat."),
+  ("Hoe kijkt DealFactory of iets past bij mijn huis?", "Zet je hubs, ketel, tv en apparaten één keer in de adviseur, of haal oude bonnen uit Gmail. Elke volgende zoekopdracht legt de specificaties naast die lijst."),
+] %}
+{% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
+<!doctype html><html lang="nl"><head>
+{{ head("Gids: wat past bij jouw huis | DealFactory", "Waar je op let voordat je slimme apparaten, een OpenTherm-thermostaat, een soundbar of een filter koopt.", "/nl/guides/smart-home-compatibility/", alternates=true) }}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "FAQPage", "inLanguage": "nl", "mainEntity": entries},
+  {"@type": "TechArticle", "headline": "Wat past bij jouw huis", "dateModified": checked_at, "inLanguage": "nl", "author": {"@type": "Organization", "name": "DealFactory"}, "publisher": {"@type": "Organization", "name": "DealFactory", "url": site_url + "/"}, "mainEntityOfPage": site_url + "/nl/guides/smart-home-compatibility/"},
+  {"@type": "BreadcrumbList", "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/nl/"},
+    {"@type": "ListItem", "position": 2, "name": "Gids", "item": site_url + "/nl/guides/smart-home-compatibility/"}
+  ]}
+]} | tojson }}</script>
+</head><body class="store">
+{{ header("smarthome", dutch=true) }}
+<main id="main" class="frame">
+  <section class="memory-hero guide-hero" aria-labelledby="sh-title">
+    <div class="memory-copy">
+      <a class="crumb light-crumb" href="/nl/">← Terug naar DealFactory</a>
+      <div class="label light"><span class="rule"></span>GIDS</div>
+      <h1 id="sh-title">Slimme apparaten die <em>passen bij jouw huis.</em></h1>
+      <p>Vier specificaties die in Europese huizen de meeste retouren veroorzaken, en hoe je ze naast wat je al hebt legt voordat je koopt.</p>
+      <div class="hero-actions"><a class="cta" href="/nl/advisor/?preset=apple-opentherm&amp;need=Matter%20thermostaat%20met%20OpenTherm#connect">Leg het naast je huis <span aria-hidden="true">↗</span></a><a class="ghost" href="#protocols">Naar de checklist <span aria-hidden="true">↓</span></a><button class="dark-button" id="share-guide" type="button" hidden>Deel deze gids ↗</button></div>
+    </div>
+    <figure class="memory-card" aria-label="Vier dingen om één keer op te schrijven">
+      <div class="memory-card-head"><strong>Vier dingen, één keer</strong><span>Lijst</span></div>
+      <ul class="owned-list">
+        <li><i aria-hidden="true">01</i><div><b>Ecosysteem en hubs</b><small>Apple Home, Google Home, Home Assistant, Hue</small></div><span class="source">Protocollen</span></li>
+        <li><i aria-hidden="true">02</i><div><b>Ketel en verwarming</b><small>OpenTherm, aan/uit, of stadsverwarming</small></div><span class="source">Warmte</span></li>
+        <li><i aria-hidden="true">03</i><div><b>Tv-poorten en ophanging</b><small>HDMI eARC, VESA, maximaal gewicht</small></div><span class="source">Beeld</span></li>
+        <li><i aria-hidden="true">04</i><div><b>Exacte modelcodes</b><small>Luchtreiniger, stofzuiger, espressomachine</small></div><span class="source">Onderdelen</span></li>
+      </ul>
+    </figure>
+  </section>
+
+  <section class="field-notes" id="protocols">
+    <div class="label"><span class="rule"></span>01 · SLIM HUIS</div>
+    <h2>Matter, Thread en Zigbee: kijk eerst naar de hub</h2>
+    <div class="notes-grid">
+      <div><h3>Matter via Thread of wifi</h3><p>Matter via Thread is zuinig, maar heeft een Thread-border-router nodig (Apple TV 4K, HomePod mini, Nest Hub 2e generatie, of een Home Assistant-dongle). Matter via wifi werkt met alleen je router.</p></div>
+      <div><h3>Zigbee en Hue-bridges</h3><p>Philips Hue, IKEA Dirigera en Aqara-hubs laten elk een andere set Zigbee-apparaten toe. Kijk of een sensor of lamp rechtstreeks met jouw bridge koppelt voordat je bestelt.</p></div>
+      <div><h3>Lokaal en abonnementen</h3><p>Deurbellen, camera's en thermostaten stoppen geschiedenis of automatiseringen soms achter een maandbedrag. Kijk of lokale bediening (HomeKit, Matter of Home Assistant) zonder abonnement werkt.</p></div>
+    </div>
+  </section>
+
+  <section class="field-notes" id="heating">
+    <div class="label"><span class="rule"></span>02 · VERWARMING EN APPARATEN</div>
+    <h2>Thermostaten, tv's en vervangende onderdelen</h2>
+    <div class="notes-grid">
+      <div><h3>OpenTherm of aan/uit</h3><p>Veel moderne ketels (Intergas, Remeha, Nefit, Vaillant) vragen een watertemperatuur via OpenTherm. Een kale aan/uit-thermostaat laat dat liggen. Kijk in de handleiding naar OpenTherm of een brug van het merk.</p></div>
+      <div><h3>Soundbars en tv-beugels</h3><p>Voor Dolby Atmos zonder beeldvertraging heeft de tv een <strong>HDMI eARC</strong>-poort nodig, niet alleen optisch of ARC. Voor een muurbeugel moeten de VESA-maat (bijvoorbeeld 300×200) en het gewicht kloppen.</p></div>
+      <div><h3>Filters</h3><p>Luchtreinigers, robotstofzuigers en espressomachines veranderen filtervorm tussen revisies. Schrijf de modelcode van de sticker één keer op, zodat een volgende navulling daaraan getoetst wordt.</p></div>
+    </div>
+  </section>
+
+  <section class="field-notes" id="tado-x">
+    <div class="label"><span class="rule"></span>03 · TADO X, V3+ EN OPENTHERM</div>
+    <h2>tado X breidt een V3+-systeem niet uit</h2>
+    <div class="notes-grid">
+      <div><h3>Twee generaties</h3><p>tado X-thermostaten, radiatorknoppen en de Bridge X zijn een andere generatie dan tado V3+. Winkels zetten ze niet als passend bij oudere tado-producten. Eén V3+-knop vervangen door een X-knop voegt de oude kamers niet samen.</p></div>
+      <div><h3>OpenTherm</h3><p>Op een modulerende ketel (Intergas, Remeha, Nefit, Vaillant en andere) vraagt de thermostaat via OpenTherm een watertemperatuur, niet alleen aan of uit. Bevestig OpenTherm, of de brug van de ketel, op het typeplaatje. Een Remeha eTwist zonder gateway is voor Remeha Ace; andere Remeha-series hebben de gateway-versie nodig.</p></div>
+      <div><h3>Matter en de betaalde extra's</h3><p>tado X staat bij Matter, naast Apple Home, Google Home en Alexa. Een deel van de automatisering, waaronder geofencing, zit in tado Auto-Assist. Kijk het huidige abonnement na op de site van tado; een schema zetten kan zonder.</p></div>
+    </div>
+    <p class="link-row"><a href="/nl/advisor/?preset=apple-opentherm&amp;need=OpenTherm%20thermostaat%20voor%20Apple%20Home%20die%20geen%20tado%20V3%2B%20is#connect">Leg een OpenTherm-thermostaat naast Apple Home <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="p1-meter">
+    <div class="label"><span class="rule"></span>04 · SLIMME METER EN DYNAMISCHE TARIEVEN</div>
+    <h2>De P1-poort is verbruik, niet het uurprijs</h2>
+    <div class="notes-grid">
+      <div><h3>DSMR P1</h3><p>Nederlandse slimme meters hebben een P1-poort met het DSMR-telegram. Een lezer zoals de HomeWizard P1 Meter zit op die poort en publiceert stroom- en gasverbruik op je netwerk. Hij weet uit zichzelf niet wat je leverancier dit uur rekent.</p></div>
+      <div><h3>Dynamische contracten</h3><p>Uur- of kwartierprijzen komen uit het energiecontract, niet uit de meter. Een stekker of thermostaat kan verbruik alleen verschuiven als die prijsfeed is aangesloten, bijvoorbeeld via HomeWizard Energy, Home Assistant of de koppeling van de leverancier.</p></div>
+      <div><h3>Wat je noteert</h3><p>Noteer het metertype, of je al een P1-lezer hebt, en het contract (vast, variabel of dynamisch). “Werkt met dynamische prijzen” klopt pas als zowel de lezer als de tariefbron er is.</p></div>
+    </div>
+    <p class="link-row"><a href="/nl/advisor/?need=P1-lezer%20voor%20een%20Nederlandse%20slimme%20meter%20en%20Home%20Assistant#connect">Zoek een P1-lezer voor deze meter <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="matter-appliances">
+    <div class="label"><span class="rule"></span>05 · APPARATEN EN MATTER</div>
+    <h2>Een Matter-logo is niet het hele apparaat</h2>
+    <div class="notes-grid">
+      <div><h3>Beperkte functies</h3><p>Matter op een wasmachine, droger, robotstofzuiger of luchtreiniger laat vaak alleen stroom en een paar statussen zien. Programma's, kaarten en filteruren blijven in de app van de maker. Lees de Matter-lijst van het apparaat, niet alleen het logo.</p></div>
+      <div><h3>Filters blijven een modelcode</h3><p>Philips NanoProtect-filters horen bij een code, niet bij “Matter”. FY0900/30 staat bij de AC0920; FY1700/30 bij de AC1715. FY1410/30 en FY2422/30 zijn andere onderdelen. Neem de code over van het etiket.</p></div>
+      <div><h3>Lokaal of cloud</h3><p>Een Matter-verbinding kan basisbediening op je thuisnetwerk houden. Firmware, geschiedenis en sommige energiefuncties kunnen nog een account van de maker vragen. “Geen cloud” is een claim die je op de productpagina nakijkt.</p></div>
+    </div>
+    <p class="link-row"><a href="/nl/advisor/?need=HEPA-filter%20voor%20mijn%20Philips-luchtreiniger#connect">Zoek een filter bij je luchtreiniger <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <section class="field-notes" id="thread-routers">
+    <div class="label"><span class="rule"></span>06 · THREAD-BORDER-ROUTERS</div>
+    <h2>Matter via Thread heeft één border-router nodig</h2>
+    <div class="notes-grid">
+      <div><h3>Apple</h3><p>HomePod mini, HomePod (2e generatie) en Apple TV 4K vanaf 2021 kunnen een Thread-border-router zijn voor Apple Home. Een oudere Apple TV zonder Thread is dat niet. Kijk de generatie na voordat je Thread-sensoren koopt.</p></div>
+      <div><h3>Google, Aqara, Home Assistant</h3><p>Google Nest Hub (2e generatie) en Nest Wifi Pro zijn Thread-border-routers. De Aqara Hub M3 noemt Matter, Zigbee en Thread. Home Assistant Connect ZBT-1 (en Home Assistant Yellow) kan een Thread-border-router draaien. Eén daarvan is genoeg voor Matter-via-Thread, zoals de Aqara Door and Window Sensor P2.</p></div>
+      <div><h3>Matter via wifi is iets anders</h3><p>Een Matter-stekker via wifi, zoals de Shelly Plug S MTR Gen3, komt op het wifinetwerk en heeft geen Thread-border-router nodig. Koop geen Thread-router alleen omdat een wifi-Matter-apparaat “Matter” zegt.</p></div>
+    </div>
+    <p class="link-row"><a href="/nl/advisor/?preset=ha-zigbee&amp;need=Thread-border-router%20voor%20Home%20Assistant#connect">Leg een border-router naast Home Assistant <span aria-hidden="true">↗</span></a></p>
+  </section>
+
+  <aside class="advisor-strip">
+    <div><div class="label"><span class="rule"></span>JOUW HUIS</div><h2>Zet je huis <em>één keer</em> neer.</h2><p>Voeg hubs, ketel en apparaten toe (of haal oude bonnen uit Gmail) en vraag wat past bij die modellen.</p></div>
+    <a class="dark-button" href="/nl/advisor/?preset=ha-zigbee#connect">Zet je huis neer <span aria-hidden="true">↗</span></a>
+  </aside>
+
+  <section class="faq" aria-labelledby="sh-faq-title">
+    <div class="label"><span class="rule"></span>VRAGEN</div>
+    <h2 id="sh-faq-title">Vragen over pasvorm<span>.</span></h2>
+    <div class="faq-list">{% for question, answer in faqs %}<details><summary>{{ question }}</summary><p>{{ answer }}</p></details>{% endfor %}</div>
+  </section>
+</main>{{ footer(dutch=true) }}</body></html>
