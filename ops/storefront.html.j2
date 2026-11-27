@@ -17,11 +17,11 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="mast"><div class="frame mast-inner">
   {{ wordmark() }}
-  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#how">How it works</a><a class="nav-secondary"{% if current == "smarthome" %} aria-current="page"{% endif %} href="/guides/smart-home-compatibility/">Smart home guide</a><a class="nav-secondary"{% if current == "deals" %} aria-current="page"{% endif %} href="/deals/">Deals</a><a class="advisor-link" href="/advisor.html">Open your advisor <span aria-hidden="true">↗</span></a></nav>
+  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#how">How it works</a><a class="nav-secondary"{% if current == "smarthome" %} aria-current="page"{% endif %} href="/guides/smart-home-compatibility/">Smart home guide</a><a class="nav-secondary"{% if current == "deals" %} aria-current="page"{% endif %} href="/deals/">Deals</a><a class="advisor-link" href="/advisor/">Open your advisor <span aria-hidden="true">↗</span></a></nav>
 </div></header>
 {% endmacro %}
 {% macro footer() %}
-<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor.html">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy.html">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/jaspreetsingh0792/dealfactory">Source code <span aria-hidden="true">↗</span></a></nav></div></footer>
+<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor/">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/jaspreetsingh0792/dealfactory">Source code <span aria-hidden="true">↗</span></a></nav></div></footer>
 {% endmacro %}
 {% macro offer_grid(offers, checked_at, guide=false) %}
 <div class="section-head" id="shortlist">
@@ -61,6 +61,19 @@
 <!doctype html><html lang="en"><head>
 {{ head("Checked smart home and appliance deals | DealFactory", "In-stock smart-home and appliance offers from NL and EU retailers, with euro prices DealFactory checked on the shop page.", "/deals/") }}
 <script type="module" src="/lib/storefront.js"></script><script type="module" src="/lib/fresh-offers.js"></script>
+{% set deal_items = [] %}
+{% for offer in offers %}
+{% set product = {"@type": "Product", "name": offer.name, "offers": {"@type": "Offer", "priceCurrency": "EUR", "price": offer.price|replace(',', '.'), "availability": "https://schema.org/InStock", "url": offer.url, "seller": {"@type": "Organization", "name": offer.retailer}}} %}
+{% if offer.image %}{% set _ = product.update({"image": offer.image}) %}{% endif %}
+{% set _ = deal_items.append({"@type": "ListItem", "position": loop.index, "item": product}) %}
+{% endfor %}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "ItemList", "name": "Checked smart home and appliance deals", "itemListElement": deal_items},
+  {"@type": "BreadcrumbList", "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+    {"@type": "ListItem", "position": 2, "name": "Deals", "item": site_url + "/deals/"}
+  ]}
+]} | tojson }}</script>
 </head><body class="store">
 {{ header("deals") }}
 <main id="main" class="frame">
@@ -73,6 +86,6 @@
     </div>
   </section>
   <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at) }}</section>
-  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your home?</em></h2><p>Add the hub, boiler or appliance you own and the advisor checks the next purchase against it.</p></div><a class="dark-button" href="/advisor.html#setup">Add what you own <span aria-hidden="true">↗</span></a></aside>
+  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your home?</em></h2><p>Add the hub, boiler or appliance you own and the advisor checks the next purchase against it.</p></div><a class="dark-button" href="/advisor/#setup">Add what you own <span aria-hidden="true">↗</span></a></aside>
 </main>{{ footer() }}</body></html>
 {% endif %}

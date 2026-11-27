@@ -1,7 +1,7 @@
 // Preserve links to the personal shopping tools from earlier releases.
 const advisorSections = new Set(["#setup", "#ai", "#assistant", "#about", "#connect", "#results", "#gmail", "#need-form"]);
 if (location.pathname === "/" && advisorSections.has(location.hash)) {
-  location.replace("/advisor.html" + location.search + location.hash);
+  location.replace("/advisor/" + location.search + location.hash);
 }
 const grid = document.querySelector("#offer-grid");
 if (grid) {

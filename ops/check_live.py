@@ -22,7 +22,7 @@ def read_route(path):
 for attempt in range(8):
     try:
         home = read_route("/").decode()
-        if 'id="memory-title"' not in home or 'href="/advisor.html"' not in home:
+        if 'id="memory-title"' not in home or 'href="/advisor/"' not in home:
             raise ValueError("The advisor-first homepage or shopping advisor link is missing")
         if 'id="cover-title"' not in read_route("/deals/").decode():
             raise ValueError("The checked deals page is missing")
@@ -34,13 +34,13 @@ for attempt in range(8):
                                   origin + "/this-page-does-not-exist"], capture_output=True, text=True).stdout
         if missing != "404":
             raise ValueError(f"Unknown pages should return 404, got {missing}")
-        advisor = read_route("/advisor.html")
+        advisor = read_route("/advisor/")
         for marker in (b'need-form', b'or-signin', b'gm-connect', b'open-chatgpt', b'open-claude'):
             if b'id="' + marker + b'"' not in advisor:
                 raise ValueError("The shopping advisor connection controls are missing")
         if b'src="/oauth.js"' not in read_route("/oauth/callback/"):
             raise ValueError("The OAuth callback is missing")
-        if b"Gmail receipt import" not in read_route("/privacy"):
+        if b"Gmail receipt import" not in read_route("/privacy/"):
             raise ValueError("The advisor privacy information is missing")
         rpc = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
         response = subprocess.check_output(["curl", "-fsS", "--max-time", "15", "-H", "Content-Type: application/json",

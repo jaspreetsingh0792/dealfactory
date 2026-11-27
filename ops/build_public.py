@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
 SMARTHOME_GUIDE = "guides/smart-home-compatibility/"
 DEALS = "deals/"
-SITEMAP = ("/", "/advisor.html", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy.html", "/terms/")
+SITEMAP = ("/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy/", "/terms/")
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
@@ -303,7 +303,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     archived = {**context, "offers": [], "sources": []}
     (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**archived), encoding="utf-8")
     homepage = output / "index.html"
-    advisor = output / "advisor.html"
+    advisor = output / "advisor" / "index.html"
+    advisor.parent.mkdir(parents=True, exist_ok=True)
     original = homepage.read_text(encoding="utf-8")
     if 'href="/storefront.css"' not in original and 'href="storefront.css"' not in original:
         original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
@@ -314,6 +315,11 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
         original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
     advisor.write_text(original, encoding="utf-8")
+    privacy_file = output / "privacy.html"
+    if privacy_file.exists():
+        privacy_dir = output / "privacy"
+        privacy_dir.mkdir(parents=True, exist_ok=True)
+        privacy_file.replace(privacy_dir / "index.html")
     homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
     smarthome = output / SMARTHOME_GUIDE / "index.html"
     smarthome.parent.mkdir(parents=True)
@@ -369,11 +375,18 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
         encoding="utf-8",
     )
+    (output / "_redirects").write_text(
+        "/advisor.html /advisor/ 301\n/privacy.html /privacy/ 301\n/advisor /advisor/ 301\n/privacy /privacy/ 301\n",
+        encoding="utf-8",
+    )
     (output / "robots.txt").write_text(f"User-agent: *\nSitemap: {site_url}/sitemap.xml\n")
+    lastmod = today.isoformat()
     (output / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-        + "".join(f"<url><loc>{escape(site_url + path)}</loc></url>" for path in SITEMAP)
+        + "".join(
+            f"<url><loc>{escape(site_url + path)}</loc><lastmod>{lastmod}</lastmod></url>" for path in SITEMAP
+        )
         + "</urlset>\n", encoding="utf-8"
     )
     print(f"Retailer pages checked: {len(candidates)}. New product links found: {len(candidates) - len(sources)}.")
