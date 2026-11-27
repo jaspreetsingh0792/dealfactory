@@ -189,7 +189,7 @@ export const IMPORT_PROMPT = `From what you already know about me (our past conv
     {"id": "home.type", "value": "apartment", "source": "inferred", "confidence": 0.8, "status": "unconfirmed", "note": "why you think so"}
   ],
   "owned": [
-    {"id": "stroller-cybex-balios", "category": "stroller", "brand": "Cybex", "model": "Balios S Lux", "aliases": ["my stroller"], "source": "inferred", "confidence": 0.9, "status": "unconfirmed"}
+    {"id": "hue-bridge", "category": "smart-home-hub", "brand": "Philips Hue", "model": "Bridge", "aliases": ["my hue bridge"], "source": "inferred", "confidence": 0.9, "status": "unconfirmed"}
   ],
   "needs": [
     {"id": "robot-vacuum", "text": "robot vacuum for my apartment", "status": "active", "budget_max": 600}

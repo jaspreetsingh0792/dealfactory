@@ -26,6 +26,9 @@ async function main() {
           assert.equal(await page.locator(".step-grid > li").count(), 3);
           await page.locator(".faq summary").first().click();
           assert(await page.locator(".faq details").first().evaluate(d => d.open));
+          assert(await page.locator(".nav-secondary", { hasText: "Smart home guide" }).isVisible());
+          assert(await page.locator(".nav-secondary", { hasText: "Deals" }).isVisible());
+          assert.equal(await page.locator("a[href='/guides/stroller-footmuffs/']").count(), 0);
         }
         if (screen === "deals") {
           assert(await page.locator("#cover-title").isVisible());
@@ -59,6 +62,14 @@ async function main() {
         }
         await page.evaluate(() => scrollTo(0, 0));
         await page.screenshot({ path: path.join(directory, name + "-" + screen + ".jpg"), type: "jpeg", quality: 82 });
+      }
+      if (name === "desktop") {
+        await page.goto(origin + "/advisor.html?preset=apple-opentherm&need=HEPA%20filter#connect");
+        await page.locator("#need-text").waitFor();
+        assert.equal(await page.locator("#need-text").inputValue(), "HEPA filter");
+        assert.match(await page.locator("#owned").innerText(), /HomePod mini/);
+        assert.match(await page.locator("#connect-progress").innerText(), /Step 1/);
+        assert(await page.locator("#preset-status").innerText().then(text => text.includes("No API key")));
       }
       await page.goto(origin + "/#setup");
       await page.waitForURL("**/advisor.html#setup");

@@ -26,9 +26,12 @@ Verified in-stock EUR offers (live retailer JSON-LD, checked 26 Nov 2026 with th
 
 Skipped because the offer checker could not confirm an in-stock euro price: Eve Energy (Matter) is OutOfStock at Coolblue (€43.99); Philips FY1410/30 is SoldOut at Coolblue (€42.99); FY2422/30 at FixPart returned 403; FY3430 had no reachable product page with schema.org price. The Coolblue Remeha eTwist page is SoldOut.
 
+## Advisor connection UI
+
+Branch `cursor/advisor-connection-ui-cb02` (stacked on the offer pivot) gives `/advisor` and `/privacy` the storefront header, keeps Smart home guide and Deals in the nav below 650px, removes the footmuff card from the homepage, replaces the default social image with `/media/home-setup.png`, and adds Apple Home + OpenTherm and Home Assistant starter presets via `?preset=` and `?need=`. `/config.js` is `Cache-Control: no-store`. Not deployed until this branch is on `main`.
+
 ## Still to do
 
-1. Unify `/advisor` and `/privacy` with the storefront, scrub remaining stroller examples, add starter presets and `?need=&preset=` links.
 2. Extensionless canonicals, sitemap lastmod, JSON-LD, and the 2026 compatibility guide.
 3. Advisor funnel telemetry with a safe D1 write.
 4. Google Limited Use privacy text, `/mcp` security headers, and fail-closed Gmail profile lookup.

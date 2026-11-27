@@ -3,29 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.">
-<title>DealFactory | Shopping advice for what you own</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f6f5c'/%3E%3Cpath d='M9 17l5 5 9-12' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>DealFactory | Buy what fits your home</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23182e20'/%3E%3Cpath d='M9 17l5 5 9-12' stroke='%23e0fa69' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="storefront.css">
 </head>
-<body>
-<a class="skip-link" href="#top">Skip to shopping search</a>
-<div class="wrap">
-  <header class="site">
-    <a class="brand" href="#top">DealFactory</a>
-    <nav aria-label="Main navigation">
-      <a href="#connect">Connect</a>
-      <a href="#setup">Your setup</a>
-      <a href="#assistant">Use with your assistant</a>
-      <a href="#about">About</a>
-    </nav>
-  </header>
-
-  <main id="top" tabindex="-1">
+<body class="df-advisor">
+<a class="skip" href="#top">Skip to shopping search</a>
+<header class="mast"><div class="frame mast-inner">
+  <a class="wordmark" href="/" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
+  <nav aria-label="Main navigation">
+    <a class="nav-secondary" href="/#how">How it works</a>
+    <a class="nav-secondary" href="/guides/smart-home-compatibility/">Smart home guide</a>
+    <a class="nav-secondary" href="/deals/">Deals</a>
+    <a class="nav-secondary" href="#connect">Connect</a>
+    <a class="nav-secondary" href="#setup">Your setup</a>
+    <a class="advisor-link" href="#connect" aria-current="page">Open your advisor <span aria-hidden="true">↗</span></a>
+  </nav>
+</div></header>
+<main id="top" class="frame" tabindex="-1">
     <section class="hero">
-      <h1>Find products that fit what you already own.</h1>
+      <h1>Buy what fits<br><em>your home.</em></h1>
       <p class="lede">Compare products for your home, check compatibility and follow prices back to retailer pages.
         Connect an AI for live research, or take a shopping brief to the assistant you already use.</p>
 
@@ -62,10 +63,16 @@
 
     <section id="connect">
       <h2>Connect</h2>
-      <p class="lede">Research deals here with OpenRouter, or take your shopping brief to your own assistant.</p>
+      <p class="lede">Step 1 is your AI. Step 2 is an optional Gmail import. A starter preset works with no API key: it fills your setup so you can copy a brief straight away.</p>
+      <p id="connect-progress" class="small" role="status"></p>
+      <div class="connect-presets" role="group" aria-label="Starter setups">
+        <button type="button" class="secondary" data-preset="apple-opentherm">Apple Home + OpenTherm</button>
+        <button type="button" class="secondary" data-preset="ha-zigbee">Home Assistant + Zigbee/Matter</button>
+      </div>
+      <p id="preset-status" class="small" role="status"></p>
       <div class="grid two">
         <div class="card" id="ai">
-          <h3>Your AI</h3>
+          <h3>Step 1 · Your AI</h3>
           <p id="ai-connected" class="small" role="status"></p>
           <div class="connect-buttons">
             <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
@@ -101,9 +108,9 @@
           <p class="small muted">Your browser talks to your AI provider directly. The provider may charge for each search.</p>
         </div>
         <div class="card" id="gmail">
-          <h3>Purchases from Gmail</h3>
-          <p class="small">Finds order confirmations and receipts, and adds what you bought to <a href="#setup">Your setup</a>
-            as <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+          <h3>Step 2 · Gmail import</h3>
+          <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
+            as <span class="tag warn">unconfirmed</span> until you confirm it. Skipped if you would rather type your devices.</p>
           <ul class="small">
             <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
             <li>Your browser removes recognizable personal details and sends receipt text to your selected AI provider to identify purchases. Some personal details may remain.</li>
@@ -210,10 +217,10 @@
     </section>
   </main>
 
-  <footer>
-    DealFactory is open source. Prices change; always check the shop before buying.
-  </footer>
-</div>
+  <footer class="foot"><div class="frame foot-inner">
+    <a class="wordmark" href="/" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
+    <nav aria-label="Footer navigation"><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy.html">Privacy</a><a href="/terms/">Terms</a></nav>
+  </div></footer>
 <div id="toast" class="toast" role="status" hidden></div>
 <script type="module" src="app.js"></script>
 </body>

@@ -305,11 +305,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     homepage = output / "index.html"
     advisor = output / "advisor.html"
     original = homepage.read_text(encoding="utf-8")
-    original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
-    original = original.replace("<body>", '<body class="df-advisor">', 1)
-    brand = templates.get_template("storefront.html.j2").module.wordmark()
-    original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
-    original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
+    if 'href="/storefront.css"' not in original and 'href="storefront.css"' not in original:
+        original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
+    if 'class="df-advisor"' not in original:
+        original = original.replace("<body>", '<body class="df-advisor">', 1)
+    if "your home." not in original:
+        brand = templates.get_template("storefront.html.j2").module.wordmark()
+        original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
+        original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
     advisor.write_text(original, encoding="utf-8")
     homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
     smarthome = output / SMARTHOME_GUIDE / "index.html"
@@ -361,7 +364,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         "  X-Content-Type-Options: nosniff\n"
         "  Referrer-Policy: strict-origin-when-cross-origin\n"
         "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n"
-        "/config.js\n  Cache-Control: no-cache\n"
+        "/config.js\n  Cache-Control: no-store\n"
         "/oauth\n  X-Robots-Tag: noindex\n/oauth.html\n  X-Robots-Tag: noindex\n"
         "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
         encoding="utf-8",
