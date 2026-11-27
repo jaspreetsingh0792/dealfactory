@@ -5,6 +5,17 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
+## Launch
+
+Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
+
+#29 is published from `da91f98e3998f2947a1d047bd130665291ddf2f1`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46077786013
+
+Live `/advisor/` puts Your setup before Gmail and labels Gmail import a limited beta (at most 100 test users). No email field was added. Live homepage Lighthouse on 27 Nov 2026, mobile: performance 99, accessibility 100, best practices 92, SEO 100.
+
+#28 (sign-in, free AI, opt-in sync, coming-soon when secrets are missing) stays unmerged until the owner confirms. Web Analytics still needs `CLOUDFLARE_WEB_ANALYTICS_TOKEN` from the owner. D1 Edit is still missing. `deals@agentsealteam.com` stays unpublished.
+
 ## Gmail import progress
 
 Published from `5c9b0095a450ba88ecf81233e4b22defda67ec55` (#26):
