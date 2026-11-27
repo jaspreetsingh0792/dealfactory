@@ -9,7 +9,7 @@ import { countryName, currencyFor, guessFromDevice, languageFor, countryOptions 
 
 // ------------------------------------------------------------------ storage (never throws)
 const legacyResultsKey = "dealfactory.results.v1";
-const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v2", purchases: "dealfactory.purchases.v1" };
+const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v2", purchases: "dealfactory.purchases.v1", sync: "dealfactory.sync.v1" };
 const store = {
   get(k, area) { try { return JSON.parse((area ?? localStorage).getItem(k)); } catch { return null; } },
   set(k, v, area) { try { (area ?? localStorage).setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
@@ -27,8 +27,48 @@ let running = null;
 let gmailRunning = false;
 let gmailRun = null;
 let account = { signedIn: false };
+let syncOn = false;
+let syncTimer = null;
+let applyingSync = false;
+let serverSetup = null;
 
-function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
+function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); if (!applyingSync) scheduleSync(); }
+function contextEmpty() {
+  return !ctx.owned.length && !ctx.facts.length;
+}
+function syncSlice() {
+  return { format: "shopping-context", version: 1, updated_at: ctx.updated_at, generator: "dealfactory-sync",
+    location: ctx.location, facts: ctx.facts, owned: ctx.owned };
+}
+function scheduleSync() {
+  if (!syncOn || !account?.signedIn) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => putSync(), 1200);
+}
+async function putSync() {
+  if (!syncOn || !account?.signedIn) return;
+  await fetch("/api/state", { method: "PUT", credentials: "same-origin", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ state: syncSlice() }) }).catch(() => {});
+}
+function applyServer(doc) {
+  applyingSync = true;
+  try {
+    const next = normalizeContext(doc);
+    ctx.location = next.location;
+    ctx.facts = next.facts;
+    ctx.owned = next.owned;
+    ctx.updated_at = next.updated_at || nowIso();
+    store.set(KEYS.ctx, ctx);
+    renderLocation();
+    renderFacts();
+    renderOwned();
+  } finally { applyingSync = false; }
+}
+function showConflict(doc) {
+  serverSetup = doc;
+  const box = $("#sync-conflict");
+  if (box) box.hidden = false;
+}
 function track(event) {
   try { window.dealfactoryCount?.(event); } catch { /* a counter must not block the advisor */ }
 }
@@ -332,6 +372,26 @@ async function loadAccount() {
   } catch { /* a static preview has no account API */ }
   renderAccount();
   renderConnected();
+  await considerSync();
+}
+async function considerSync() {
+  const panel = $("#sync-panel");
+  if (panel) panel.hidden = !account?.signedIn;
+  const toggle = $("#sync-toggle");
+  if (!account?.signedIn) { syncOn = false; if (toggle) toggle.checked = false; return; }
+  let remote = null;
+  try {
+    const response = await fetch("/api/state", { credentials: "same-origin", headers: { accept: "application/json" } });
+    if (response.ok) remote = await response.json();
+  } catch { remote = null; }
+  const server = remote?.state;
+  if (server && contextEmpty()) {
+    applyServer(server);
+    syncOn = true;
+    store.set(KEYS.sync, true);
+  } else if (server && !contextEmpty()) showConflict(server);
+  else syncOn = store.get(KEYS.sync) === true;
+  if (toggle) toggle.checked = syncOn;
 }
 function renderConnected() {
   syncConnection();
@@ -428,6 +488,41 @@ function useOpenRouterKey(key) {
   toast("Connected to OpenRouter");
 }
 async function initConnect() {
+  $("#sync-toggle").onchange = async () => {
+    if ($("#sync-toggle").checked) {
+      syncOn = true;
+      store.set(KEYS.sync, true);
+      await putSync();
+      return;
+    }
+    syncOn = false;
+    store.set(KEYS.sync, false);
+    const remove = window.confirm("Delete the setup saved in your account? The copy on this device stays.");
+    if (remove) await fetch("/api/state", { method: "DELETE", credentials: "same-origin" }).catch(() => {});
+  };
+  $("#sync-keep-device").onclick = async () => {
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+    await putSync();
+  };
+  $("#sync-keep-account").onclick = () => {
+    if (serverSetup) applyServer(serverSetup);
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+  };
+  $("#sync-keep-newer").onclick = async () => {
+    const remoteTime = Date.parse(serverSetup?.updated_at) || 0;
+    if (remoteTime > (Date.parse(ctx.updated_at) || 0)) applyServer(serverSetup);
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+    if (remoteTime <= (Date.parse(ctx.updated_at) || 0)) await putSync();
+  };
   $("#account-signout").onclick = async () => {
     await fetch("/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
     account = { signedIn: false };

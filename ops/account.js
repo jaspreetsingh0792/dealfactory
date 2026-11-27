@@ -1,13 +1,16 @@
 // Hosted sign-in and the free built-in model. Secrets stay in Worker env vars.
 // Login scopes are identity only. Gmail import is a separate browser consent.
 
+import { normalizeContext } from "../web/lib/context.js";
 import { redact } from "../web/lib/purchases.js";
 
 export const GOOGLE_SCOPES = "openid email profile";
 export const GITHUB_SCOPES = "read:user user:email";
 export const BUILTIN_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 export const SESSION_COOKIE = "df_session";
-const SESSION_DAYS = 30;
+export const SESSION_DAYS = 30;
+const SESSION_MS = SESSION_DAYS * 86400000;
+export const STATE_LIMIT = 65536;
 const STATE_MINUTES = 10;
 const MIN_GAP_MS = 3000;
 const MAX_PROMPT_CHARS = 6000;
@@ -249,13 +252,30 @@ async function finishLogin(request, env, provider, fetchImpl) {
   return redirect(`${originOf(request)}/advisor/#connect`, [sessionCookie(token, { secure: secureRequest(request) })]);
 }
 
-async function userFromRequest(request, env) {
-  if (!env?.AUTH) return null;
+export function shouldRefreshSession(expiresAt, now = Date.now()) {
+  return Date.parse(expiresAt) - now < 29 * 86400000;
+}
+
+async function loadUser(request, env) {
+  if (!env?.AUTH) return { user: null, cookie: null };
   const token = readCookie(request, SESSION_COOKIE);
-  if (!token) return null;
-  const session = await dbFirst(env, "SELECT user_id, expires_at FROM sessions WHERE id_hash = ?", await sha256(token));
-  if (!session || Date.parse(session.expires_at) < Date.now()) return null;
-  return dbFirst(env, "SELECT id, provider, email, display_name, created_at FROM users WHERE id = ?", session.user_id);
+  if (!token) return { user: null, cookie: null };
+  const hash = await sha256(token);
+  const session = await dbFirst(env, "SELECT user_id, expires_at FROM sessions WHERE id_hash = ?", hash);
+  if (!session || Date.parse(session.expires_at) < Date.now()) return { user: null, cookie: null };
+  let cookie = null;
+  if (shouldRefreshSession(session.expires_at)) {
+    const expires = new Date(Date.now() + SESSION_MS).toISOString();
+    await dbRun(env, "UPDATE sessions SET expires_at = ? WHERE id_hash = ?", expires, hash);
+    cookie = sessionCookie(token, { secure: secureRequest(request) });
+  }
+  const user = await dbFirst(env, "SELECT id, provider, email, display_name, created_at FROM users WHERE id = ?", session.user_id);
+  return { user, cookie };
+}
+
+function withSession(response, cookie) {
+  if (cookie) response.headers.append("set-cookie", cookie);
+  return response;
 }
 
 async function allowanceFor(env, userId, now = new Date()) {
@@ -268,14 +288,14 @@ async function allowanceFor(env, userId, now = new Date()) {
 
 async function sessionResponse(request, env) {
   if (!env?.AUTH) return json({ signedIn: false });
-  const user = await userFromRequest(request, env);
+  const { user, cookie } = await loadUser(request, env);
   if (!user) return json({ signedIn: false });
-  return json({
+  return withSession(json({
     signedIn: true,
     provider: user.provider,
     displayName: user.display_name || "",
     allowance: await allowanceFor(env, user.id),
-  });
+  }), cookie);
 }
 
 async function logout(request, env) {
@@ -286,12 +306,88 @@ async function logout(request, env) {
 
 async function deleteAccount(request, env) {
   if (!env?.AUTH) return json({ message: setupMessage() }, 503);
-  const user = await userFromRequest(request, env);
+  const { user } = await loadUser(request, env);
   if (!user) return json({ message: "Sign in first." }, 401);
   await dbRun(env, "DELETE FROM sessions WHERE user_id = ?", user.id);
   await dbRun(env, "DELETE FROM ai_usage WHERE user_id = ?", user.id);
+  await dbRun(env, "DELETE FROM user_state WHERE user_id = ?", user.id);
   await dbRun(env, "DELETE FROM users WHERE id = ?", user.id);
   return json({ deleted: true }, 200, { "set-cookie": clearSessionCookie(secureRequest(request)) });
+}
+
+const SECRET_TEXT = /sk-[A-Za-z0-9]|Bearer\s|api[_-]?key|access_token|refresh_token|"authorization"\s*:/i;
+
+export function homeMemory(raw) {
+  const ctx = normalizeContext(raw);
+  const doc = {
+    format: "shopping-context",
+    version: 1,
+    updated_at: ctx.updated_at,
+    generator: "dealfactory-sync",
+    location: ctx.location,
+    facts: ctx.facts,
+    owned: ctx.owned,
+  };
+  const blob = JSON.stringify(doc);
+  if (blob.length > STATE_LIMIT) {
+    const error = new Error("Your setup is larger than 64 KB, so it was not saved to your account.");
+    error.status = 413;
+    throw error;
+  }
+  if (SECRET_TEXT.test(blob)) {
+    const error = new Error("That setup includes a secret, so it was not saved.");
+    error.status = 400;
+    throw error;
+  }
+  return { doc, blob };
+}
+
+function sameOrigin(request) {
+  const origin = request.headers.get("origin");
+  return !!origin && origin === originOf(request);
+}
+
+async function readState(request, env) {
+  if (!sameOrigin(request)) return json({ message: "This request was refused." }, 403);
+  const { user, cookie } = await loadUser(request, env);
+  if (!user) return json({ message: "Sign in first." }, 401);
+  const row = await dbFirst(env, "SELECT json, updated_at, version FROM user_state WHERE user_id = ?", user.id);
+  let state = null;
+  if (row?.json) {
+    try { state = homeMemory(JSON.parse(row.json)).doc; } catch { state = null; }
+  }
+  return withSession(json({ state, updatedAt: row?.updated_at || null, version: row?.version || 0 }), cookie);
+}
+
+async function writeState(request, env) {
+  if (!sameOrigin(request)) return json({ message: "This request was refused." }, 403);
+  const { user, cookie } = await loadUser(request, env);
+  if (!user) return json({ message: "Sign in first." }, 401);
+  const raw = await request.text();
+  if (raw.length > STATE_LIMIT + 2000) return json({ message: "Your setup is larger than 64 KB, so it was not saved to your account." }, 413);
+  let body;
+  try { body = JSON.parse(raw); } catch { return json({ message: "Send a JSON request." }, 400); }
+  let packed;
+  try { packed = homeMemory(body.state || body); }
+  catch (error) { return json({ message: error.message }, error.status || 400); }
+  const existing = await dbFirst(env, "SELECT updated_at FROM user_state WHERE user_id = ?", user.id);
+  if (existing && Date.now() - Date.parse(existing.updated_at) < 2000) {
+    return json({ message: "Please wait a moment before saving the setup again.", resetsAt: resetsAt() }, 429);
+  }
+  const now = new Date().toISOString();
+  await dbRun(env,
+    "INSERT INTO user_state (user_id, json, updated_at, version) VALUES (?, ?, ?, 1) " +
+    "ON CONFLICT(user_id) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at, version = version + 1",
+    user.id, packed.blob, now);
+  return withSession(json({ saved: true, updatedAt: packed.doc.updated_at }), cookie);
+}
+
+async function deleteState(request, env) {
+  if (!sameOrigin(request)) return json({ message: "This request was refused." }, 403);
+  const { user, cookie } = await loadUser(request, env);
+  if (!user) return json({ message: "Sign in first." }, 401);
+  await dbRun(env, "DELETE FROM user_state WHERE user_id = ?", user.id);
+  return withSession(json({ deleted: true }), cookie);
 }
 
 function extraTerms(user) {
@@ -305,7 +401,7 @@ function extraTerms(user) {
 
 async function answer(request, env, fetchImpl) {
   if (!env?.AUTH) return json({ message: "Built-in AI is not set up yet. You can still use your own AI." }, 503);
-  const user = await userFromRequest(request, env);
+  const { user, cookie } = await loadUser(request, env);
   if (!user) return json({ message: "Sign in to use the free built-in AI." }, 401);
   const raw = await request.text();
   if (raw.length > MAX_BODY_CHARS) return json({ message: "That request is too long." }, 413);
@@ -350,7 +446,7 @@ async function answer(request, env, fetchImpl) {
     "ON CONFLICT(day) DO UPDATE SET neurons = neurons + excluded.neurons, requests = requests + 1",
     day, cap.neuronsPerRequest);
   const allowance = await allowanceFor(env, user.id, now);
-  return json({ text, allowance });
+  return withSession(json({ text, allowance }), cookie);
 }
 
 export default {
@@ -365,6 +461,9 @@ export default {
     if (path === "/auth/logout" && request.method === "POST") return logout(request, env);
     if (path === "/auth/account" && request.method === "DELETE") return deleteAccount(request, env);
     if (path === "/api/ai" && request.method === "POST") return answer(request, env, fetchImpl);
+    if (path === "/api/state" && request.method === "GET") return readState(request, env);
+    if (path === "/api/state" && request.method === "PUT") return writeState(request, env);
+    if (path === "/api/state" && request.method === "DELETE") return deleteState(request, env);
     return json({ message: "Not found." }, 404);
   },
 };
