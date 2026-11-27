@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html import escape
 from html.parser import HTMLParser
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -221,6 +222,68 @@ def collect_offers(sources, fetcher):
     ]
 
 
+def stamp_browser_assets(output: Path) -> None:
+    """Give each served script and stylesheet a content URL so a cached copy cannot outlive a deploy."""
+    served = [
+        path for path in output.rglob("*")
+        if path.is_file() and "_worker.js" not in path.parts and path.suffix in {".js", ".css", ".html"}
+    ]
+    originals = {path: path.read_bytes() for path in served if path.suffix in {".js", ".css"}}
+    versions = {
+        path.relative_to(output).as_posix(): hashlib.sha256(data).hexdigest()[:12]
+        for path, data in originals.items()
+    }
+    pattern = re.compile(
+        r"""(?P<prefix>\b(?:from|import)\s+|src=|href=)(?P<q>["'])(?P<url>[^"']+\.(?:js|css))(?P=q)"""
+    )
+
+    def rewrite(text: str, source: Path) -> str:
+        def repl(match):
+            url = match.group("url")
+            if url.startswith(("http:", "https:", "//")):
+                return match.group(0)
+            clean = url.split("?", 1)[0].split("#", 1)[0]
+            if clean.startswith("/"):
+                rel = clean.lstrip("/")
+            else:
+                try:
+                    rel = (source.parent / clean).resolve().relative_to(output.resolve()).as_posix()
+                except ValueError:
+                    return match.group(0)
+            digest = versions.get(rel)
+            if not digest:
+                return match.group(0)
+            return f"{match.group('prefix')}{match.group('q')}{clean}?v={digest}{match.group('q')}"
+
+        return pattern.sub(repl, text)
+
+    js_files = [path for path in originals if path.suffix == ".js"]
+    rewritten = {path: originals[path].decode("utf-8") for path in js_files}
+    for _ in range(8):
+        changed = False
+        for path in js_files:
+            updated = rewrite(originals[path].decode("utf-8"), path)
+            rewritten[path] = updated
+            key = path.relative_to(output).as_posix()
+            digest = hashlib.sha256(updated.encode("utf-8")).hexdigest()[:12]
+            if versions.get(key) != digest:
+                changed = True
+            versions[key] = digest
+        if not changed:
+            break
+    else:
+        raise RuntimeError("Browser asset versions did not settle")
+    for path, updated in rewritten.items():
+        path.write_text(updated, encoding="utf-8")
+    for path in served:
+        if path.suffix != ".html":
+            continue
+        text = path.read_text(encoding="utf-8")
+        updated = rewrite(text, path)
+        if updated != text:
+            path.write_text(updated, encoding="utf-8")
+
+
 def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", *,
           history=None, traffic=None, collect_traffic=False, google_client_id="") -> int:
     site_url = site_url.rstrip("/")
@@ -386,6 +449,11 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         "  Referrer-Policy: strict-origin-when-cross-origin\n"
         "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n"
         "/config.js\n  Cache-Control: no-store\n"
+        "/app.js\n  Cache-Control: no-cache\n"
+        "/lib/*\n  Cache-Control: no-cache\n"
+        "/oauth.js\n  Cache-Control: no-cache\n"
+        "/style.css\n  Cache-Control: no-cache\n"
+        "/storefront.css\n  Cache-Control: no-cache\n"
         "/oauth\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n"
         "/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n"
         "/oauth/callback/*\n  X-Robots-Tag: noindex\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n",
@@ -405,6 +473,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         )
         + "</urlset>\n", encoding="utf-8"
     )
+    stamp_browser_assets(output)
     print(f"Retailer pages checked: {len(candidates)}. New product links found: {len(candidates) - len(sources)}.")
     print(f"Guide layout: {'prices first' if show_offers_first else 'compatibility first'}.")
     if offers:

@@ -57,6 +57,8 @@ async function main() {
     await page.locator("#or-signin").click();
     await page.waitForFunction(() => document.querySelector("#ai-connected").textContent.includes("Connected:"));
     assert.equal(exchanges, 1);
+    assert.equal(await page.locator("#gm-connect").isDisabled(), false);
+    assert.equal(await page.locator("#gmail").getAttribute("data-locked"), "false");
     await page.locator("#gm-connect").click();
     await page.locator("#gm-status").filter({ hasText: "Gmail access was not granted" }).waitFor();
     // When the browser blocks popups, the callback returns to this advisor tab.
@@ -65,6 +67,8 @@ async function main() {
     await page.waitForURL("**/advisor/#connect");
     await page.waitForFunction(() => !sessionStorage.getItem("dealfactory.oauth.flow") &&
       document.querySelector("#ai-connected")?.textContent.includes("Connected:"));
+    assert.equal(await page.locator("#gm-connect").isDisabled(), false);
+    assert.equal(await page.locator("#gmail").getAttribute("data-locked"), "false");
     assert.equal(exchanges, 2);
     console.log("Verified the chat handoffs, OpenRouter popup and full-page callback, and Gmail consent cancellation.");
   } finally { await browser.close(); }

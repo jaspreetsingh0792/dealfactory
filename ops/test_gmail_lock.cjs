@@ -54,6 +54,78 @@ async function main() {
       assert.deepEqual(errors, []);
       await page.close();
     }
+
+    const context = await browser.newContext({ viewport: { width: 412, height: 900 } });
+    await context.route("https://openrouter.ai/api/v1/auth/keys", route => route.fulfill({
+      json: { key: "callback-test-key" },
+      headers: { "Access-Control-Allow-Origin": origin },
+    }));
+    const restored = await context.newPage();
+    const restoredErrors = [];
+    restored.on("pageerror", error => restoredErrors.push(error.message));
+    await restored.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+    await restored.evaluate(() => {
+      localStorage.setItem("dealfactory.ai.v1", JSON.stringify({
+        provider: "openrouter", model: "openrouter/auto", baseUrl: "", remember: false,
+      }));
+      sessionStorage.setItem("dealfactory.key.v1", JSON.stringify("restored-openrouter-key"));
+    });
+    await restored.reload({ waitUntil: "domcontentloaded" });
+    await restored.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "false");
+    assert.match(await restored.locator("#ai-connected").innerText(), /Step 1 done\. Connected: OpenRouter/);
+    assert.equal(await restored.locator("#gm-connect").isDisabled(), false);
+    assert.equal(await restored.locator("#gm-connect").getAttribute("aria-disabled"), "false");
+    assert.equal((await restored.locator("#gm-status").innerText()).trim(), "");
+    await restored.locator("#gmail").scrollIntoViewIfNeeded();
+    await restored.screenshot({ path: path.join(directory, "mobile-gmail-unlocked-reload.jpg"), type: "jpeg", quality: 82 });
+
+    const other = await context.newPage();
+    await other.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+    await restored.evaluate(() => {
+      localStorage.setItem("dealfactory.ai.v1", JSON.stringify({
+        provider: "openrouter", model: "openrouter/auto", baseUrl: "", remember: true,
+      }));
+      localStorage.removeItem("dealfactory.key.v1");
+      localStorage.setItem("dealfactory.key.v1", JSON.stringify("cross-tab-openrouter-key"));
+    });
+    await other.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "false");
+    assert.match(await other.locator("#ai-connected").innerText(), /Step 1 done/);
+    await other.close();
+
+    await restored.locator("#ai-advanced summary").click();
+    await restored.locator("#ai-forget").click();
+    await restored.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "true");
+    assert.match(await restored.locator("#ai-connected").innerText(), /not connected yet/);
+    assert.equal(await restored.locator("#gm-connect").isDisabled(), true);
+    assert.match(await restored.locator("#gm-status").innerText(), /Finish step 1 before importing receipts/);
+    await restored.locator("#gmail").scrollIntoViewIfNeeded();
+    await restored.screenshot({ path: path.join(directory, "mobile-gmail-relocked.jpg"), type: "jpeg", quality: 82 });
+    assert.deepEqual(restoredErrors, []);
+    await restored.close();
+
+    const callback = await context.newPage();
+    const callbackErrors = [];
+    callback.on("pageerror", error => callbackErrors.push(error.message));
+    await callback.addInitScript(() => {
+      const verifier = "verifier-verifier-verifier-verifier-verifier-48";
+      sessionStorage.setItem("dealfactory.oauth.flow", JSON.stringify({
+        provider: "openrouter", state: "state-1", verifier, returnPath: "/advisor/",
+      }));
+      sessionStorage.setItem("dealfactory.oauth.pending", JSON.stringify({
+        type: "dealfactory-oauth", search: "?code=simulated-code&state=state-1", hash: "",
+      }));
+    });
+    await callback.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+    await callback.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "false");
+    assert.match(await callback.locator("#ai-connected").innerText(), /Step 1 done\. Connected: OpenRouter/);
+    assert.equal(await callback.locator("#gm-connect").isDisabled(), false);
+    assert.equal(await callback.evaluate(() => !sessionStorage.getItem("dealfactory.oauth.flow") && !sessionStorage.getItem("dealfactory.oauth.pending")), true);
+    await callback.locator("#gmail").scrollIntoViewIfNeeded();
+    await callback.screenshot({ path: path.join(directory, "mobile-gmail-unlocked-callback.jpg"), type: "jpeg", quality: 82 });
+    assert.deepEqual(callbackErrors, []);
+    await callback.close();
+    await context.close();
   } finally { await browser.close(); }
 }
+
 main().catch(error => { console.error(error); process.exitCode = 1; });
