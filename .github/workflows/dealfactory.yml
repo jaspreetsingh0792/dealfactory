@@ -53,6 +53,7 @@ jobs:
           curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8764/ -o /dev/null
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_storefront.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_launch_pages.cjs
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_privacy_stats.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_connections.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_gmail_lock.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_manual_entry.cjs "$RUNNER_TEMP/screens"
@@ -161,7 +162,7 @@ jobs:
           PAGES_URL: ${{ steps.pages.outputs.url }}
         run: |
           origin="${SITE_URL:-$PAGES_URL}"
-          for route in / /guides/smart-home-compatibility/ /deals/ /guides/stroller-footmuffs/ /about/ /terms/ /sitemap.xml /robots.txt; do
+          for route in / /guides/smart-home-compatibility/ /deals/ /about/ /terms/ /sitemap.xml /robots.txt; do
             url="${origin%/}${route}"
             curl --fail --silent --show-error --location --max-time 20 --retry 3 --output /dev/null "$url"
             printf 'Reachable: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"

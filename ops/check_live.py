@@ -10,7 +10,7 @@ import subprocess
 root = Path(sys.argv[1])
 origin = sys.argv[2].rstrip("/")
 expected = json.loads((root / "offer-history.json").read_text())
-guide_file = root / "guides/stroller-footmuffs/index.html"
+guide_file = root / "guides/smart-home-compatibility/index.html"
 expected_title = unescape(re.search(r"<title>([^<]+)</title>", guide_file.read_text()).group(1))
 def read_route(path):
     return subprocess.check_output([
@@ -52,9 +52,15 @@ for attempt in range(8):
                 raise ValueError(f"The live storefront asset differs from this release: {asset}")
         if json.loads(read_route("/offer-history.json")) != expected:
             raise ValueError("Offer history differs from this release")
-        guide = read_route("/guides/stroller-footmuffs/").decode()
-        if 'id="share-guide"' not in guide or origin + "/guides/stroller-footmuffs/" not in guide:
+        guide = read_route("/guides/smart-home-compatibility/").decode()
+        if 'id="share-guide"' not in guide or origin + "/guides/smart-home-compatibility/" not in guide:
             raise ValueError("Guide assets or canonical URL differ from this release")
+        retired = subprocess.check_output([
+            "curl", "-s", "-o", "/dev/null", "-w", "%{http_code} %{redirect_url}", "--max-time", "15",
+            origin + "/guides/stroller-footmuffs/",
+        ], text=True)
+        if not retired.startswith("301 ") or not retired.strip().endswith("/deals/"):
+            raise ValueError(f"The old footmuff guide should redirect to /deals/, got {retired.strip()}")
         live_title = re.search(r"<title>([^<]+)</title>", guide)
         if not live_title or unescape(live_title.group(1)) != expected_title:
             raise ValueError("Live title differs from the editorial release")

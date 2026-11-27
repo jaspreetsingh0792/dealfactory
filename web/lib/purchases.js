@@ -141,9 +141,9 @@ Rules:
 - unit_price: the price per item exactly as shown (as a number, e.g. 1299.0); null if no price is shown.
 - currency: ISO code (EUR, USD, GBP, INR...) if shown, else null.
 - order_date: YYYY-MM-DD if a date is written, else null.
-- category: short generic English slug (robot-vacuum, stroller, footmuff, diapers, tv, phone-case ...).
-- kind: durable (appliances, electronics, furniture, strollers, tools), accessory (for something owned:
-  cases, footmuffs, filters, cables), consumable (food, diapers, cleaning products, cosmetics), clothing,
+- category: short generic English slug (thermostat, hub, sensor, filter, tv, soundbar ...).
+- kind: durable (appliances, electronics, hubs, tools), accessory (for something owned:
+  mounts, filters, cables), consumable (cleaning products, filters that wear out), clothing,
   service (subscriptions, delivery fees, warranties), gift_card, other. Skip shipping/payment fee lines.
 - is_purchase=false for marketing, newsletters, price alerts, wishlists, abandoned carts, review requests
   and anything that is not about a concrete order. Then return no items.

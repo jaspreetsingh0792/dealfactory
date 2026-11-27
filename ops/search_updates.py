@@ -15,7 +15,6 @@ def fingerprints(release):
         "/advisor/": release / "advisor/index.html",
         "/guides/smart-home-compatibility/": release / "guides/smart-home-compatibility/index.html",
         "/deals/": release / "deals/index.html",
-        "/guides/stroller-footmuffs/": release / "guides/stroller-footmuffs/index.html",
         "/about/": release / "about/index.html",
         "/privacy/": release / "privacy/index.html",
         "/terms/": release / "terms/index.html",
