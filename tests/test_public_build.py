@@ -2,6 +2,7 @@ import importlib.util
 import json
 from decimal import Decimal
 from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
 
 SITEMAP_NS = {"map": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -64,6 +65,8 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Permissions-Policy:" in headers
     assert "X-Frame-Options: DENY" in headers
     assert "/config.js\n  Cache-Control: no-store" in headers
+    assert "/app.js\n  Cache-Control: no-cache" in headers
+    assert "/lib/*\n  Cache-Control: no-cache" in headers
     assert "/oauth\n  X-Robots-Tag: noindex\n  Cache-Control: no-store" in headers
     assert "/oauth.html\n  X-Robots-Tag: noindex\n  Cache-Control: no-store" in headers
     assert 'http-equiv="Content-Security-Policy"' in home
@@ -78,6 +81,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'href="/deals/"' in advisor
     assert "data-preset=\"apple-opentherm\"" in advisor
     assert "/lib/guide-events.js" in advisor
+    assert re.search(r'src="/app\.js\?v=[0-9a-f]{12}"', advisor)
+    assert re.search(r'from "\./lib/llm\.js\?v=[0-9a-f]{12}"', (output / "app.js").read_text())
+    assert "?v=" not in (output / "_worker.js/web/lib/location.js").read_text()
     assert "static.cloudflareinsights.com" in advisor
     assert "/lib/guide-events.js" in (output / "privacy/index.html").read_text()
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()

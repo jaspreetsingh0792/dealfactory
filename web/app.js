@@ -18,8 +18,7 @@ const store = {
 const session = (() => { try { return sessionStorage; } catch { return null; } })();
 
 let ctx = (() => { try { return normalizeContext(store.get(KEYS.ctx) || emptyContext()); } catch { return emptyContext(); } })();
-let ai = store.get(KEYS.ai) || { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false };
-ai.key = store.get(KEYS.key) || (session && store.get(KEYS.key, session)) || "";
+let ai = { provider: "anthropic", model: PROVIDERS.anthropic.defaultModel, baseUrl: "", remember: false, key: "" };
 let results = store.get(KEYS.results) || {};
 let imported = store.get(KEYS.purchases) || { refs: [], purchases: [] };
 let local = null; // what `dealfactory web` offers when running on this computer
@@ -215,20 +214,34 @@ function saveAi(next) {
   if (key && !ai.remember && session) store.set(KEYS.key, key, session);
   renderAi();
 }
+function refreshAi() {
+  const saved = store.get(KEYS.ai) || {};
+  const storedKey = store.get(KEYS.key) || (session && store.get(KEYS.key, session)) || "";
+  const provider = PROVIDERS[saved.provider] ? saved.provider : "anthropic";
+  ai.provider = provider;
+  ai.model = saved.model || PROVIDERS[provider].defaultModel;
+  ai.baseUrl = saved.baseUrl || "";
+  ai.remember = !!saved.remember;
+  ai.key = typeof storedKey === "string" ? storedKey : "";
+}
 function aiIsReady() {
-  return ai.provider === "chatgpt" ? !!local?.chatgpt?.signed_in : ai.provider === "compatible" || !!ai.key;
+  if (ai.provider === "chatgpt") return !!local?.chatgpt?.signed_in;
+  if (ai.provider === "compatible") return true;
+  return typeof ai.key === "string" && ai.key.length > 0;
 }
-function lockHint(status) {
-  status.dataset.gate = "locked";
-  status.className = "small step-hint";
-  status.replaceChildren(
-    "Finish ",
-    h("a", { href: "#ai" }, "step 1"),
-    " before importing receipts."
-  );
-}
-function renderGmailGate() {
+function syncConnection() {
+  refreshAi();
   const ready = aiIsReady();
+  const provider = PROVIDERS[ai.provider];
+  const step = $("#ai-connected");
+  if (step) {
+    step.className = `small ${ready ? "ok" : "muted"}`;
+    step.textContent = ready
+      ? `Step 1 done. Connected: ${provider?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
+        (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "")
+      : "Step 1: not connected yet. A preset still works without a key.";
+  }
+  $("#ai")?.classList.toggle("is-ready", ready);
   const card = $("#gmail");
   const button = $("#gm-connect");
   const since = $("#gm-since");
@@ -237,29 +250,26 @@ function renderGmailGate() {
   const googleReady = !!CONFIG.googleClientId;
   const locked = !ready || !googleReady;
   card.dataset.locked = locked ? "true" : "false";
-  $("#ai")?.classList.toggle("is-ready", ready);
   button.disabled = locked;
   button.setAttribute("aria-disabled", locked ? "true" : "false");
-  if (since) since.disabled = !ready;
-  if (!ready) lockHint(status);
-  else if (!googleReady) {
+  if (since) since.disabled = locked;
+  if (status.dataset.gate === "result" && ready && googleReady) return;
+  if (!ready) {
+    status.dataset.gate = "locked";
+    status.className = "small step-hint";
+    status.replaceChildren("Finish ", h("a", { href: "#ai" }, "step 1"), " before importing receipts.");
+  } else if (!googleReady) {
     status.dataset.gate = "locked";
     status.className = "small step-hint";
     status.textContent = "Gmail import is awaiting Google setup. You can add purchases under Your setup.";
-  } else if (status.dataset.gate === "locked") {
+  } else {
     delete status.dataset.gate;
     status.className = "small";
     status.replaceChildren();
   }
 }
 function renderConnected() {
-  const p = PROVIDERS[ai.provider];
-  const ready = aiIsReady();
-  const el = $("#ai-connected");
-  el.className = `small ${ready ? "ok" : "muted"}`;
-  el.textContent = ready ? `Step 1 done. Connected: ${p?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
-    (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "") : "Step 1: not connected yet. A preset still works without a key.";
-  renderGmailGate();
+  syncConnection();
   renderConnectProgress();
   $("#cg-signin").hidden = !local || !!local.chatgpt?.signed_in;
   $("#cg-signout").hidden = !local?.chatgpt?.signed_in;
@@ -353,8 +363,12 @@ async function initConnect() {
   if (err) { toast(err); history.replaceState(null, "", location.pathname + location.hash); }
   const provider = pendingProvider();
   const pending = pendingResult();
-  if (pending && provider === "openrouter") finishOpenRouter(pending).then((r) => useOpenRouterKey(r.key), (e) => toast(e.message));
-  else if (pending && provider === "google") { try { connectGmail(finishGoogle(pending)); } catch (e) { toast(e.message); } }
+  if (pending && provider === "openrouter") {
+    try { useOpenRouterKey((await finishOpenRouter(pending)).key); }
+    catch (e) { toast(e.message); }
+  } else if (pending && provider === "google") {
+    try { connectGmail(finishGoogle(pending)); } catch (e) { toast(e.message); }
+  }
 
   local = await localServer();
   if (local?.chatgpt?.signed_in && ai.provider !== "chatgpt" && !ai.key) saveAi({ ...ai, provider: "chatgpt", model: "", key: "" });
@@ -463,18 +477,18 @@ function renderImports() {
 async function connectGmail(grant) {
   const st = $("#gm-status");
   if (!aiIsReady()) {
-    lockHint(st);
+    syncConnection();
     document.getElementById("ai")?.scrollIntoView({ block: "start" });
     return;
   }
   let llm;
   try { llm = client(ai); } catch (e) {
-    delete st.dataset.gate;
+    st.dataset.gate = "result";
     st.className = "small error";
     st.textContent = e.message;
     return;
   }
-  delete st.dataset.gate;
+  st.dataset.gate = "result";
   try {
     grant = grant || await googleSignIn(CONFIG.googleClientId);
   } catch (e) { st.className = "small error"; st.textContent = e.message; return; }
@@ -497,7 +511,7 @@ async function connectGmail(grant) {
     st.className = "small error";
     st.textContent = e.name === "AbortError" ? "Stopped." : e.message;
   } finally {
-    renderGmailGate();
+    syncConnection();
   }
 }
 
@@ -746,6 +760,13 @@ function initPortability() {
   };
 }
 
+refreshAi();
+window.addEventListener("storage", (event) => {
+  if (event.key && event.key !== KEYS.ai && event.key !== KEYS.key) return;
+  refreshAi();
+  renderAi();
+});
+window.addEventListener("pageshow", () => { refreshAi(); renderAi(); });
 initLocation();
 initSetup();
 initDeepLink();
