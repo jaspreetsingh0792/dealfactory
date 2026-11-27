@@ -206,6 +206,50 @@ def listing_image(html, page_url):
 PREFERRED_FITS = ("Matter", "Zigbee", "Thread", "Wi-Fi", "OpenTherm")
 
 
+def offer_slug(name):
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return (slug or "offer")[:80]
+
+
+def product_structured(site_url, slug, group):
+    name = group[0]["name"]
+    prices = [Decimal(offer["price"].replace(",", ".")) for offer in group]
+    if len(group) >= 2:
+        offer_ld = {
+            "@type": "AggregateOffer",
+            "priceCurrency": "EUR",
+            "lowPrice": f"{min(prices):.2f}",
+            "highPrice": f"{max(prices):.2f}",
+            "offerCount": len(group),
+            "availability": "https://schema.org/InStock",
+        }
+    else:
+        one = group[0]
+        offer_ld = {
+            "@type": "Offer",
+            "priceCurrency": "EUR",
+            "price": f"{prices[0]:.2f}",
+            "availability": "https://schema.org/InStock",
+            "url": one["url"],
+            "seller": {"@type": "Organization", "name": one["retailer"]},
+        }
+    page = f"{site_url}/deals/{slug}/"
+    return {
+        "@context": "https://schema.org",
+        "@graph": [
+            {"@type": "Product", "name": name, "url": page, "offers": offer_ld},
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+                    {"@type": "ListItem", "position": 2, "name": "Deals", "item": site_url + "/deals/"},
+                    {"@type": "ListItem", "position": 3, "name": name, "item": page},
+                ],
+            },
+        ],
+    }
+
+
 def fit_tokens(offers):
     found = []
     for offer in offers:
@@ -352,6 +396,11 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
                 offer["previous_date"] = max(prices)
         prices[today.isoformat()] = f"{price:.2f}"
         observations[url] = prices
+    grouped = {}
+    for offer in offers:
+        slug = offer_slug(offer["name"])
+        offer["slug"] = slug
+        grouped.setdefault(slug, []).append(offer)
     (output / "offer-history.json").write_text(json.dumps(observations, ensure_ascii=False))
     feed = ET.Element("rss", version="2.0")
     channel = ET.SubElement(feed, "channel")
@@ -435,6 +484,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     deals = output / DEALS / "index.html"
     deals.parent.mkdir(parents=True)
     deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, **context), encoding="utf-8")
+    product_template = templates.get_template("product.html.j2")
+    for slug, group in grouped.items():
+        folder = output / DEALS / slug
+        folder.mkdir(parents=True)
+        (folder / "index.html").write_text(product_template.render(
+            site_url=site_url, slug=slug, offers=group, checked_at=context["checked_at"],
+            checked_label=context["checked_label"], structured=product_structured(site_url, slug, group),
+        ), encoding="utf-8")
     for page in ("about", "terms"):
         target = output / page / "index.html"
         target.parent.mkdir(parents=True)
@@ -517,7 +574,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
         + "".join(
-            f"<url><loc>{escape(site_url + path)}</loc><lastmod>{lastmod}</lastmod></url>" for path in SITEMAP
+            f"<url><loc>{escape(site_url + path)}</loc><lastmod>{lastmod}</lastmod></url>"
+            for path in (*SITEMAP, *(f"/deals/{slug}/" for slug in grouped))
         )
         + "</urlset>\n", encoding="utf-8"
     )
