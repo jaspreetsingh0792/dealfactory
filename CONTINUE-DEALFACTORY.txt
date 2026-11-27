@@ -5,6 +5,13 @@ Brand: "Buy what fits your home." Smart Home & Home Appliances. Forest Pine #182
 Cost cap: EUR 0/month (Cloudflare Pages, Workers and D1 free tier, static builds).
 Never print, commit or log an OAuth client secret or token.
 
+## Gmail step lock
+
+Published from `df2d9e2544f70977113744983ff965240f180691` (#21):
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/45939930555
+
+Live `/advisor/` starts with Gmail import locked (`disabled`, `aria-disabled="true"`) and the hint “Finish step 1 before importing receipts.” The button is muted, not red. Saving or connecting an AI unlocks it and marks step 1 done. The unconfirmed contact email is still unpublished.
+
 ## Deployment
 
 The stack is on `main` and the publish job for `cdf79e810ed6f21ff3cdd80e6b7e853aaad21750` succeeded:
