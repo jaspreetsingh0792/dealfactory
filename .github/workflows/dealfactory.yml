@@ -54,6 +54,7 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_storefront.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_deals_chips.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_product_page.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_launch_pages.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_advisor_seo.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_privacy_stats.cjs
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_connections.cjs
