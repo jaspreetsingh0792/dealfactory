@@ -219,6 +219,16 @@ test("setup sync stores devices only and refuses secrets", async () => {
   assert.equal(env.AUTH.rows.user_state.length, 0);
 });
 
+test("missing sign-in secrets return a coming-soon page", async () => {
+  const login = await account.fetch(new Request("https://deals.agentsealteam.com/auth/login/google"), {});
+  assert.equal(login.status, 200);
+  assert.match(await login.text(), /coming soon/);
+  const flags = await account.fetch(new Request("https://deals.agentsealteam.com/auth/providers"), {});
+  assert.deepEqual(await flags.json(), { google: false, github: false, ai: false });
+  const ai = await account.fetch(new Request("https://deals.agentsealteam.com/api/ai", { method: "POST", body: "{}" }), {});
+  assert.equal(ai.status, 503);
+});
+
 test("GitHub authorize URL stays on the identity scopes", () => {
   const url = new URL(authorizeUrl("github", {
     clientId: "test-github-client", redirectUri: "https://deals.agentsealteam.com/auth/callback/github",

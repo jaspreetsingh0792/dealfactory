@@ -155,8 +155,22 @@ function setupMessage() {
   return "Sign-in is not set up on this site yet.";
 }
 
+export function providerFlags(env) {
+  return {
+    google: !!(env?.AUTH && configured(env, "google")),
+    github: !!(env?.AUTH && configured(env, "github")),
+    ai: !!(env?.AUTH && env?.AI),
+  };
+}
+
+function comingSoon(request) {
+  const back = `${originOf(request)}/advisor/#connect`;
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in coming soon | DealFactory</title><body style="font-family:sans-serif;background:#faf9f4;color:#182e20;padding:32px"><h1>Sign-in is coming soon.</h1><p>You can still use your own AI in the advisor. No account is required.</p><p><a href="${back}">Back to the advisor</a></p></body></html>`;
+  return new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
 async function startLogin(request, env, provider) {
-  if (!env?.AUTH || !configured(env, provider)) return json({ message: setupMessage() }, 503);
+  if (!env?.AUTH || !configured(env, provider)) return comingSoon(request);
   const verifier = randomToken(48);
   const state = randomToken(24);
   const now = new Date();
@@ -453,6 +467,7 @@ export default {
   async fetch(request, env, fetchImpl = globalThis.fetch) {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (path === "/auth/providers" && request.method === "GET") return json(providerFlags(env));
     if (path === "/auth/login/google" && request.method === "GET") return startLogin(request, env, "google");
     if (path === "/auth/login/github" && request.method === "GET") return startLogin(request, env, "github");
     if (path === "/auth/callback/google" && request.method === "GET") return finishLogin(request, env, "google", fetchImpl);

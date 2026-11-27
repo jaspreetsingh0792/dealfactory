@@ -45,6 +45,16 @@ async function main() {
     await signed.locator("#ai").scrollIntoViewIfNeeded();
     await signed.screenshot({ path: path.join(directory, "mobile-signed-in.jpg"), type: "jpeg", quality: 82 });
     await context.close();
+    const soonContext = await browser.newContext({ viewport: { width: 412, height: 900 } });
+    await soonContext.route("**/auth/providers", route => route.fulfill({ json: { google: false, github: false, ai: false } }));
+    await soonContext.route("**/auth/session", route => route.fulfill({ json: { signedIn: false } }));
+    const soon = await soonContext.newPage();
+    await soon.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+    await soon.waitForFunction(() => !document.querySelector("#signin-soon").hidden);
+    assert.equal(await soon.locator("#signin-google").isVisible(), false);
+    assert.match(await soon.locator("#signin-soon").innerText(), /coming soon/);
+    assert.equal(await soon.locator("#ai-byo summary").isVisible(), true);
+    await soonContext.close();
   } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

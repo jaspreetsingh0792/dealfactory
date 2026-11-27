@@ -21,6 +21,8 @@ Owner-only, before any deploy of this branch:
 
 Details are in `docs/accounts.md`. Gmail import stays the existing separate `gmail.readonly` consent.
 
+If Google, GitHub, D1 or Workers AI is not configured, sign-in shows “coming soon” and returns HTTP 200, and `/api/ai` returns 503. Bring-your-own AI still works. There is no HTTP 500.
+
 Opt-in account sync is on the same branch and is also not deployed. The session cookie and the D1 session row last 30 days, refresh on use after the first day, and logout revokes them. Sync defaults off. When on, D1 stores only the home device list and preferences (`ops/d1/0002_user_state.sql`, 64 KB cap). It never stores Gmail messages, receipts, bring-your-own keys, or tokens. A new device loads the account copy when the browser is empty, and asks which copy to keep when both exist.
 
 ## Gmail import progress

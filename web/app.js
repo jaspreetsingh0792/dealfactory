@@ -372,7 +372,23 @@ async function loadAccount() {
   } catch { /* a static preview has no account API */ }
   renderAccount();
   renderConnected();
+  await loadSignIn();
   await considerSync();
+}
+async function loadSignIn() {
+  try {
+    const response = await fetch("/auth/providers", { headers: { accept: "application/json" } });
+    if (!response.ok) return;
+    const flags = await response.json();
+    const google = !!flags.google;
+    const github = !!flags.github;
+    const googleButton = $("#signin-google");
+    const githubButton = $("#signin-github");
+    const soon = $("#signin-soon");
+    if (googleButton) googleButton.hidden = !google;
+    if (githubButton) githubButton.hidden = !github;
+    if (soon) soon.hidden = google || github;
+  } catch { /* a static preview keeps the sign-in buttons */ }
 }
 async function considerSync() {
   const panel = $("#sync-panel");
