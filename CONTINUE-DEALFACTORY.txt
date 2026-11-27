@@ -14,6 +14,10 @@ https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46077786013
 
 Live `/advisor/` puts Your setup before Gmail and labels Gmail import a limited beta (at most 100 test users). No email field was added. Live homepage Lighthouse on 27 Nov 2026, mobile: performance 99, accessibility 100, best practices 92, SEO 100.
 
+#30 and #31 are also on main. #32 published the SVG favicon that the homepage already linked:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46079552629
+Live `/media/favicon.svg` is HTTP 200, pine `#182e20` with a lime `#e0fa69` mark.
+
 #28 (sign-in, free AI, opt-in sync, coming-soon when secrets are missing) stays unmerged until the owner confirms. Web Analytics still needs `CLOUDFLARE_WEB_ANALYTICS_TOKEN` from the owner. D1 Edit is still missing. `deals@agentsealteam.com` stays unpublished.
 
 ## Gmail import progress
