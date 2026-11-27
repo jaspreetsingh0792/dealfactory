@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<!-- connect-src keeps https so a custom provider URL can be any https origin. http is limited to localhost for Ollama. Provider calls: openrouter.ai, api.anthropic.com, api.openai.com, generativelanguage.googleapis.com, api.mistral.ai, api.groq.com, gmail.googleapis.com. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://gmail.googleapis.com https://cloudflareinsights.com https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.">
 <title>DealFactory | Buy what fits your home</title>
@@ -83,29 +84,29 @@
             <button type="button" id="open-claude" class="secondary">Open in Claude</button>
             <button type="button" id="open-chatgpt" class="secondary">Open in ChatGPT</button>
           </div>
-          <p class="small muted">OpenRouter gives you Claude, GPT and other models on your own OpenRouter account,
-            with no key to copy. <span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
+          <p class="small muted"><span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
             DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
-          <details class="more" id="ai-advanced"><summary>Use an API key or a local model instead</summary>
-            <form id="ai-form" class="ai-grid">
-              <label>Provider
-                <select id="ai-provider"></select></label>
-              <label>Model
-                <input id="ai-model" list="ai-models" placeholder="model id" autocomplete="off">
-                <datalist id="ai-models"></datalist></label>
-              <label id="ai-base-wrap" hidden>Base URL
-                <input id="ai-base" placeholder="http://localhost:11434/v1"></label>
-              <label class="span2" id="ai-key-wrap">API key
-                <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
-              <label class="check span2"><input id="ai-remember" type="checkbox"> Remember the key on this device
-                (otherwise it's forgotten when you close the tab)</label>
-              <p id="ai-help" class="small muted span2"></p>
-              <div class="span2 row"><button type="submit" class="primary">Save</button>
-                <button type="button" id="ai-forget" class="secondary">Forget key</button>
-                <span id="ai-status" class="small muted" role="status"></span></div>
-            </form>
-          </details>
-          <p class="small muted">Your browser talks to your AI provider directly. The provider may charge for each search.</p>
+          <form id="ai-form" class="ai-grid">
+            <label class="span2">Provider
+              <select id="ai-provider" aria-label="AI provider"></select></label>
+            <label>Model
+              <input id="ai-model" list="ai-models" placeholder="model id" autocomplete="off">
+              <datalist id="ai-models"></datalist></label>
+            <label id="ai-base-wrap" hidden>Base URL
+              <input id="ai-base" placeholder="https://example.com/v1" inputmode="url" autocomplete="off" spellcheck="false"></label>
+            <label class="span2" id="ai-key-wrap">API key
+              <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+            <label class="check span2"><input id="ai-remember" type="checkbox"> Remember the key on this device
+              (otherwise it's forgotten when you close the tab)</label>
+            <p id="ai-help" class="small muted span2"></p>
+            <div class="span2 row">
+              <button type="button" id="ai-test" class="secondary">Test connection</button>
+              <button type="submit" class="primary">Save</button>
+              <button type="button" id="ai-forget" class="secondary">Forget key</button>
+            </div>
+            <p id="ai-status" class="small muted span2" role="status"></p>
+          </form>
+          <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request.</p>
         </div>
         <div class="card connect-step" id="gmail" data-locked="true">
           <h3><span class="step-badge" aria-hidden="true">2</span> Gmail import</h3>
@@ -113,7 +114,7 @@
             as <span class="tag warn">unconfirmed</span> until you confirm it. Skipped if you would rather type your devices.</p>
           <ul class="small">
             <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
-            <li>Your browser removes recognizable personal details and sends receipt text to your selected AI provider to identify purchases. Some personal details may remain.</li>
+            <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
             <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
           </ul>
           <p id="gm-status" class="small step-hint" data-gate="locked" role="status">Finish <a href="#ai">step 1</a> before importing receipts.</p>
