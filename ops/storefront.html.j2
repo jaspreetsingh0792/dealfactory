@@ -6,10 +6,17 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>{{ title }}</title>
 <meta name="description" content="{{ description }}">
+<meta property="og:type" content="website">
 <meta property="og:title" content="{{ title }}">
 <meta property="og:description" content="{{ description }}">
 <meta property="og:url" content="{{ site_url }}{{ path }}">
 <meta property="og:image" content="{{ site_url }}{{ image }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title }}">
+<meta name="twitter:description" content="{{ description }}">
+<meta name="twitter:image" content="{{ site_url }}{{ image }}">
+<meta name="theme-color" content="#182e20">
+<link rel="icon" href="/media/favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="{{ site_url }}{{ path }}"><link rel="stylesheet" href="/storefront.css">
 <link rel="preload" href="/media/InstrumentSerif-Italic.ttf" as="font" type="font/ttf" crossorigin>
 {% endmacro %}
