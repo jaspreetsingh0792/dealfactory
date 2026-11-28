@@ -6,6 +6,7 @@
   ("Heb ik een account nodig?", "Nee. Je setup blijft in deze browser. Je kunt hem als bestand bewaren of in één keer wissen."),
   ("Verkoopt DealFactory producten?", "Nee. DealFactory controleert of iets past en linkt rechtstreeks naar de winkelpagina, zodat je de prijs daar zelf kunt nakijken."),
   ("Welke AI gebruikt het?", "Degene die jij kiest. Log in bij OpenRouter, open je aankoopnotitie in Claude of ChatGPT, of koppel een MCP-tool."),
+  ("Hoe verdient DealFactory geld?", "De site heeft geen advertenties. Als een winkel-ID is ingesteld, zijn sommige links naar de winkel een Affiliatelink en kan DealFactory een commissie ontvangen, zonder extra kosten voor jou. Dat verandert de volgorde en de aanbevelingen niet. Zonder ID is de link de gewone winkelpagina."),
 ] %}
 {% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
 <!doctype html><html lang="nl"><head>

@@ -28,6 +28,7 @@ Target: public launch before 30 November 2026 (Europe/Amsterdam). Cost cap stays
 - Cloudflare 301 from `dealfactory-3uu.pages.dev/*` to `https://deals.agentsealteam.com/$1`.
 - Search Console verification and sitemap submit.
 - Do not publish `deals@agentsealteam.com` until the contact address is confirmed.
+- Affiliate shop IDs, only if Jaspreet joins a program himself. Names and wrappers are in `docs/affiliates.md`. Leave them unset and every shop link stays the plain retailer URL. Do not put real IDs in the repository.
 
 Do not post on social networks, send email, or submit forms as part of this launch work.
 
