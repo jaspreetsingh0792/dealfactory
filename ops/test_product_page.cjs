@@ -31,6 +31,9 @@ async function main() {
       if (offer["@type"] === "AggregateOffer") assert.ok(offer.offerCount >= 2);
       assert.match(await page.locator("h1").innerText(), /.+/);
       assert.match(await page.locator(".price-note").first().innerText(), /Price before delivery/);
+      assert.match(await page.locator(".good-for").innerText(), /Good for/);
+      assert.match(await page.locator(".not-for").innerText(), /Not for/);
+      assert.ok(await page.locator(".fit-note li").count() > 0);
       await page.screenshot({ path: path.join(directory, `product-page-${width}.png`), fullPage: true });
       await page.close();
     }

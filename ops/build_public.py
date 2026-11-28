@@ -214,6 +214,31 @@ def offer_slug(name):
     return (slug or "offer")[:80]
 
 
+NOTES = json.loads((ROOT / "ops/product-notes.json").read_text())
+
+
+def fit_note(offer):
+    saved = NOTES.get(offer["url"])
+    if saved:
+        return saved
+    fits = [part.strip() for part in (offer.get("fits") or "").split(",") if part.strip()]
+    if not fits:
+        return {
+            "works_with": ["Not recorded yet. Confirm it on the shop page."],
+            "specs": ["DealFactory has not recorded a protocol or model code for this product."],
+            "good_for": "Only after you confirm the fit on the retailer page and against what you own.",
+            "not_for": "Buying it from the price alone. No fit tags were recorded.",
+            "guide": "/guides/smart-home-compatibility/",
+        }
+    return {
+        "works_with": fits,
+        "specs": [f"Fit tags recorded from the retailer page: {', '.join(fits)}."],
+        "good_for": f"A home already set up for {fits[0]}.",
+        "not_for": "A home that needs a protocol or model that is not in those fit tags.",
+        "guide": "/guides/smart-home-compatibility/",
+    }
+
+
 def product_structured(site_url, slug, group):
     name = group[0]["name"]
     prices = [Decimal(offer["price"].replace(",", ".")) for offer in group]
@@ -237,10 +262,18 @@ def product_structured(site_url, slug, group):
             "seller": {"@type": "Organization", "name": one["retailer"]},
         }
     page = f"{site_url}/deals/{slug}/"
+    product_ld = {"@type": "Product", "name": name, "url": page, "offers": offer_ld}
+    note = group[0].get("note")
+    if note:
+        product_ld["description"] = note["good_for"]
+        product_ld["additionalProperty"] = [
+            {"@type": "PropertyValue", "name": "Works with", "value": "; ".join(note["works_with"])},
+            *({"@type": "PropertyValue", "name": "Checked fact", "value": spec} for spec in note["specs"]),
+        ]
     return {
         "@context": "https://schema.org",
         "@graph": [
-            {"@type": "Product", "name": name, "url": page, "offers": offer_ld},
+            product_ld,
             {
                 "@type": "BreadcrumbList",
                 "itemListElement": [
@@ -401,6 +434,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         observations[url] = prices
     grouped = {}
     for offer in offers:
+        offer["note"] = fit_note(offer)
         slug = offer_slug(offer["name"])
         offer["slug"] = slug
         grouped.setdefault(slug, []).append(offer)

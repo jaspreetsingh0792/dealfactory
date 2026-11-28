@@ -62,6 +62,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     product_slug = "tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie"
     product = (output / "deals" / product_slug / "index.html").read_text()
     assert f"<title>tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie: checked price and fit | DealFactory</title>" in product
+    assert "Good for" in product and "Not for" in product
+    assert "tado V3+" in product
+    assert "What it works with" in product
     assert '"@type": "Offer"' in product and "AggregateOffer" not in product
     assert 'rel="canonical" href="https://example.com/deals/' + product_slug + '/"' in product
     assert '"@type": "BreadcrumbList"' in product
@@ -187,6 +190,18 @@ def test_fit_tokens_prefer_protocols_and_shipping_sort_is_conditional():
     assert "Delivery €4,95" in html
     assert 'data-total="14.95"' in html
     assert "Price before delivery. Confirm it at the shop." in html
+
+
+def test_unrecorded_fit_stays_honest():
+    note = public.fit_note({"url": "https://shop.example/unknown", "fits": ""})
+    assert "not recorded" in note["specs"][0].lower()
+    assert "No fit tags" in note["not_for"]
+
+
+def test_every_curated_offer_has_a_fit_note():
+    sources = json.loads((Path(__file__).resolve().parents[1] / "ops/offer-sources.json").read_text())
+    missing = [source["url"] for source in sources if source["url"] not in public.NOTES]
+    assert missing == []
 
 
 def test_aggregate_offer_requires_two_verified_shops():
