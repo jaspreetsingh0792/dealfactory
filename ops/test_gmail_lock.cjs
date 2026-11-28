@@ -38,6 +38,7 @@ async function main() {
       if (width < 760) assert.ok(step1.y < step2.y, name + " should show step 1 above step 2");
       await page.screenshot({ path: path.join(directory, name + "-gmail-locked.jpg"), type: "jpeg", quality: 82 });
 
+      await page.locator("#ai-byo summary").click();
       await page.locator("#ai-key").fill("test-key-not-sent");
       await page.locator("#ai-form button[type=submit]").click();
       await page.waitForFunction(() => document.querySelector("#ai").classList.contains("is-ready"));
@@ -91,9 +92,10 @@ async function main() {
     assert.match(await other.locator("#ai-connected").innerText(), /Step 1 done/);
     await other.close();
 
+    await restored.locator("#ai-byo summary").click();
     await restored.locator("#ai-forget").click();
     await restored.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "true");
-    assert.match(await restored.locator("#ai-connected").innerText(), /not connected yet/);
+    assert.match(await restored.locator("#ai-connected").innerText(), /sign in for the free AI/);
     assert.equal(await restored.locator("#gm-connect").isDisabled(), true);
     assert.match(await restored.locator("#gm-status").innerText(), /Finish step 1 before importing receipts/);
     await restored.locator("#gmail").scrollIntoViewIfNeeded();

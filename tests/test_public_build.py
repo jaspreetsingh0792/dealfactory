@@ -114,12 +114,16 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "static.cloudflareinsights.com" in advisor
     privacy = (output / "privacy/index.html").read_text()
     assert "/lib/guide-events.js" in privacy
-    assert "cookieless beacon" in privacy and "deals@agentsealteam.com" not in privacy
+    assert "Limited Use" in privacy and "deals@agentsealteam.com" not in privacy
+    assert "Built-in AI" in privacy and "Delete account" in privacy
+    assert "cookieless beacon" in privacy
     assert "Affiliate links" in privacy
     assert "Affiliate links" in (output / "terms/index.html").read_text()
     assert "Affiliatelinks" in (output / "nl/privacy/index.html").read_text()
     assert "Affiliatelinks" in (output / "nl/terms/index.html").read_text()
     assert "How does DealFactory make money?" in home
+    routes = json.loads((output / "_routes.json").read_text())["include"]
+    assert "/auth/*" in routes and "/api/*" in routes
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
     assert "/lib/guide-events.js" in (output / "terms/index.html").read_text()
     sitemap = ET.parse(output / "sitemap.xml")

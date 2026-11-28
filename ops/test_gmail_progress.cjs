@@ -67,6 +67,7 @@ async function installRoutes(context, mode) {
 
 async function prepare(page) {
   await page.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+  await page.locator("#ai-byo summary").click();
   await page.locator("#ai-key").fill("test-key-not-sent");
   await page.locator("#ai-form button[type=submit]").click();
   await page.waitForFunction(() => document.querySelector("#gmail").dataset.locked === "false");

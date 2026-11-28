@@ -1,7 +1,7 @@
 import { emptyContext, exportPrompt, IMPORT_PROMPT, mergeContext, normalizeContext, nowIso, parseAssistantReply,
          shareable, slug, SUGGESTED_FACTS, uniqueId } from "./lib/context.js";
 import { findDeals } from "./lib/deals.js";
-import { client, connectionHint, LLMError, localServer, PROVIDERS, providerReady, testConnection } from "./lib/llm.js";
+import { builtinClient, client, connectionHint, LLMError, localServer, PROVIDERS, providerReady, testConnection } from "./lib/llm.js";
 import { finishGoogle, finishOpenRouter, googleSignIn, openRouterSignIn, pendingProvider, pendingResult } from "./lib/oauth.js";
 import { contextFromPurchases, importGmail } from "./lib/purchases.js";
 import { CONFIG } from "./config.js";
@@ -9,7 +9,7 @@ import { countryName, currencyFor, guessFromDevice, languageFor, countryOptions 
 
 // ------------------------------------------------------------------ storage (never throws)
 const legacyResultsKey = "dealfactory.results.v1";
-const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v2", purchases: "dealfactory.purchases.v1" };
+const KEYS = { ctx: "dealfactory.context.v1", ai: "dealfactory.ai.v1", key: "dealfactory.key.v1", results: "dealfactory.results.v2", purchases: "dealfactory.purchases.v1", sync: "dealfactory.sync.v1" };
 const store = {
   get(k, area) { try { return JSON.parse((area ?? localStorage).getItem(k)); } catch { return null; } },
   set(k, v, area) { try { (area ?? localStorage).setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
@@ -26,8 +26,49 @@ const audits = {};
 let running = null;
 let gmailRunning = false;
 let gmailRun = null;
+let account = { signedIn: false };
+let syncOn = false;
+let syncTimer = null;
+let applyingSync = false;
+let serverSetup = null;
 
-function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); }
+function saveCtx() { ctx.updated_at = nowIso(); store.set(KEYS.ctx, ctx); if (!applyingSync) scheduleSync(); }
+function contextEmpty() {
+  return !ctx.owned.length && !ctx.facts.length;
+}
+function syncSlice() {
+  return { format: "shopping-context", version: 1, updated_at: ctx.updated_at, generator: "dealfactory-sync",
+    location: ctx.location, facts: ctx.facts, owned: ctx.owned };
+}
+function scheduleSync() {
+  if (!syncOn || !account?.signedIn) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => putSync(), 1200);
+}
+async function putSync() {
+  if (!syncOn || !account?.signedIn) return;
+  await fetch("/api/state", { method: "PUT", credentials: "same-origin", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ state: syncSlice() }) }).catch(() => {});
+}
+function applyServer(doc) {
+  applyingSync = true;
+  try {
+    const next = normalizeContext(doc);
+    ctx.location = next.location;
+    ctx.facts = next.facts;
+    ctx.owned = next.owned;
+    ctx.updated_at = next.updated_at || nowIso();
+    store.set(KEYS.ctx, ctx);
+    renderLocation();
+    renderFacts();
+    renderOwned();
+  } finally { applyingSync = false; }
+}
+function showConflict(doc) {
+  serverSetup = doc;
+  const box = $("#sync-conflict");
+  if (box) box.hidden = false;
+}
 function track(event) {
   try { window.dealfactoryCount?.(event); } catch { /* a counter must not block the advisor */ }
 }
@@ -226,8 +267,15 @@ function refreshAi() {
   ai.remember = !!saved.remember;
   ai.key = typeof storedKey === "string" ? storedKey : "";
 }
-function aiIsReady() {
+function byoReady() {
   return providerReady(ai, { chatgptSignedIn: !!local?.chatgpt?.signed_in });
+}
+function aiIsReady() {
+  return byoReady() || !!account?.signedIn;
+}
+function advisorClient() {
+  if (account?.signedIn && !byoReady()) return builtinClient();
+  return client(ai);
 }
 function draftFromForm() {
   const provider = $("#ai-provider").value;
@@ -252,10 +300,14 @@ function syncConnection() {
   const step = $("#ai-connected");
   if (step) {
     step.className = `small ${ready ? "ok" : "muted"}`;
-    step.textContent = ready
+    const who = account?.provider === "github" ? "GitHub" : "Google";
+    const name = account?.displayName && !account.displayName.includes("@") ? account.displayName : "";
+    step.textContent = byoReady()
       ? `Step 1 done. Connected: ${provider?.label || ai.provider}${ai.model ? ` · ${ai.model}` : ""}` +
         (ai.provider === "chatgpt" && local?.chatgpt?.email ? ` (${local.chatgpt.email})` : "")
-      : "Step 1: not connected yet. A preset still works without a key.";
+      : account?.signedIn
+        ? `Step 1 done. Signed in with ${who}${name ? ` as ${name}` : ""}. Built-in AI is ready.`
+        : "Step 1: sign in for the free AI, or open “Use your own AI”.";
   }
   $("#ai")?.classList.toggle("is-ready", ready);
   const card = $("#gmail");
@@ -291,6 +343,71 @@ function syncConnection() {
     status.className = "small";
     status.replaceChildren();
   }
+}
+function renderAccount() {
+  const signedIn = !!account?.signedIn;
+  const out = $("#account-signed-out");
+  const inn = $("#account-signed-in");
+  if (out) out.hidden = signedIn;
+  if (inn) inn.hidden = !signedIn;
+  if (!signedIn) return;
+  const who = account.provider === "github" ? "GitHub" : "Google";
+  const name = account.displayName && !account.displayName.includes("@") ? account.displayName : "";
+  const whoEl = $("#account-who");
+  if (whoEl) whoEl.textContent = `Signed in with ${who}${name ? ` as ${name}` : ""}.`;
+  const allowance = $("#ai-allowance");
+  const left = account.allowance;
+  if (allowance) allowance.textContent = left
+    ? `${left.remaining} of ${left.limit} free answers left today. Resets at 00:00 UTC.`
+    : "";
+}
+async function loadAccount() {
+  account = { signedIn: false };
+  try {
+    const response = await fetch("/auth/session", { headers: { accept: "application/json" }, credentials: "same-origin" });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && typeof data.signedIn === "boolean") account = data;
+    }
+  } catch { /* a static preview has no account API */ }
+  renderAccount();
+  renderConnected();
+  await loadSignIn();
+  await considerSync();
+}
+async function loadSignIn() {
+  try {
+    const response = await fetch("/auth/providers", { headers: { accept: "application/json" } });
+    if (!response.ok) return;
+    const flags = await response.json();
+    const google = !!flags.google;
+    const github = !!flags.github;
+    const googleButton = $("#signin-google");
+    const githubButton = $("#signin-github");
+    const soon = $("#signin-soon");
+    if (googleButton) googleButton.hidden = !google;
+    if (githubButton) githubButton.hidden = !github;
+    if (soon) soon.hidden = google || github;
+  } catch { /* a static preview keeps the sign-in buttons */ }
+}
+async function considerSync() {
+  const panel = $("#sync-panel");
+  if (panel) panel.hidden = !account?.signedIn;
+  const toggle = $("#sync-toggle");
+  if (!account?.signedIn) { syncOn = false; if (toggle) toggle.checked = false; return; }
+  let remote = null;
+  try {
+    const response = await fetch("/api/state", { credentials: "same-origin", headers: { accept: "application/json" } });
+    if (response.ok) remote = await response.json();
+  } catch { remote = null; }
+  const server = remote?.state;
+  if (server && contextEmpty()) {
+    applyServer(server);
+    syncOn = true;
+    store.set(KEYS.sync, true);
+  } else if (server && !contextEmpty()) showConflict(server);
+  else syncOn = store.get(KEYS.sync) === true;
+  if (toggle) toggle.checked = syncOn;
 }
 function renderConnected() {
   syncConnection();
@@ -387,6 +504,57 @@ function useOpenRouterKey(key) {
   toast("Connected to OpenRouter");
 }
 async function initConnect() {
+  $("#sync-toggle").onchange = async () => {
+    if ($("#sync-toggle").checked) {
+      syncOn = true;
+      store.set(KEYS.sync, true);
+      await putSync();
+      return;
+    }
+    syncOn = false;
+    store.set(KEYS.sync, false);
+    const remove = window.confirm("Delete the setup saved in your account? The copy on this device stays.");
+    if (remove) await fetch("/api/state", { method: "DELETE", credentials: "same-origin" }).catch(() => {});
+  };
+  $("#sync-keep-device").onclick = async () => {
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+    await putSync();
+  };
+  $("#sync-keep-account").onclick = () => {
+    if (serverSetup) applyServer(serverSetup);
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+  };
+  $("#sync-keep-newer").onclick = async () => {
+    const remoteTime = Date.parse(serverSetup?.updated_at) || 0;
+    if (remoteTime > (Date.parse(ctx.updated_at) || 0)) applyServer(serverSetup);
+    $("#sync-conflict").hidden = true;
+    syncOn = true;
+    store.set(KEYS.sync, true);
+    $("#sync-toggle").checked = true;
+    if (remoteTime <= (Date.parse(ctx.updated_at) || 0)) await putSync();
+  };
+  $("#account-signout").onclick = async () => {
+    await fetch("/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+    account = { signedIn: false };
+    renderAccount();
+    renderConnected();
+    toast("Signed out");
+  };
+  $("#account-delete").onclick = async () => {
+    if (!window.confirm("Delete your DealFactory account on this site? The shopping setup saved in this browser stays until you delete it separately.")) return;
+    const response = await fetch("/auth/account", { method: "DELETE", credentials: "same-origin" }).catch(() => null);
+    if (!response?.ok) { toast("The account could not be deleted."); return; }
+    account = { signedIn: false };
+    renderAccount();
+    renderConnected();
+    toast("Account deleted");
+  };
   $("#or-signin").onclick = async () => {
     try { useOpenRouterKey((await openRouterSignIn()).key); }
     catch (e) { toast(e.message); }
@@ -424,6 +592,7 @@ async function initConnect() {
     try { connectGmail(finishGoogle(pending)); } catch (e) { toast(e.message); }
   }
 
+  await loadAccount();
   local = await localServer();
   if (local?.chatgpt?.signed_in && ai.provider !== "chatgpt" && !ai.key) saveAi({ ...ai, provider: "chatgpt", model: "", key: "" });
   renderAi();
@@ -575,7 +744,7 @@ async function connectGmail(grant) {
     return;
   }
   let llm;
-  try { llm = client(ai); } catch (e) {
+  try { llm = advisorClient(); } catch (e) {
     st.dataset.gate = "result";
     st.className = "small error";
     st.textContent = e.message;
@@ -705,7 +874,7 @@ async function run(need) {
   need = { ...need };
   let llm;
   try {
-    llm = client(ai);
+    llm = advisorClient();
     track("search_run");
   } catch (e) {
     results[need.id] = { kind: "noai", need, message: e.message };

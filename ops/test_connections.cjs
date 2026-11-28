@@ -54,6 +54,7 @@ async function main() {
       await tab.close();
     }
     assert.deepEqual(chatTargets, ["claude.ai", "chatgpt.com"]);
+    if (await page.locator("#or-signin").isHidden()) await page.locator("#ai-byo summary").click();
     await page.locator("#or-signin").click();
     await page.waitForFunction(() => document.querySelector("#ai-connected").textContent.includes("Connected:"));
     assert.equal(exchanges, 1);
@@ -63,6 +64,7 @@ async function main() {
     await page.locator("#gm-status").filter({ hasText: "Gmail access was not granted" }).waitFor();
     // When the browser blocks popups, the callback returns to this advisor tab.
     await page.evaluate(() => { window.open = () => null; });
+    if (await page.locator("#or-signin").isHidden()) await page.locator("#ai-byo summary").click();
     await page.locator("#or-signin").click();
     await page.waitForURL("**/advisor/#connect");
     await page.waitForFunction(() => !sessionStorage.getItem("dealfactory.oauth.flow") &&

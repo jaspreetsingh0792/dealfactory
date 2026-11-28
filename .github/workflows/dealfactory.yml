@@ -64,6 +64,8 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_manual_entry.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_provider_picker.cjs "$RUNNER_TEMP/screens"
           NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_gmail_progress.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_signin.cjs "$RUNNER_TEMP/screens"
+          NODE_PATH="$RUNNER_TEMP/browser-qa/node_modules" node ops/test_sync.cjs "$RUNNER_TEMP/screens"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -169,15 +171,18 @@ jobs:
         env:
           PAGES_PROJECT: ${{ steps.pages.outputs.project }}
           DATABASE_ID: ${{ steps.traffic.outputs.database }}
+          AUTH_DATABASE_ID: ${{ vars.DEALFACTORY_AUTH_DATABASE_ID }}
           CLOUDFLARE_ACCOUNT_ID: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').account_id || vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ fromJSON(secrets.CLOUDFLARE_PAGES_DEPLOY || '{}').api_token || secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          if [[ -n "$DATABASE_ID" ]]; then
-            jq -n --arg project "$PAGES_PROJECT" --arg db "$DATABASE_ID" \
-              --arg assets "$RUNNER_TEMP/dealfactory" \
-              '{name:$project,pages_build_output_dir:$assets,compatibility_date:"2025-04-01",
-              d1_databases:[{binding:"TRAFFIC",database_name:"dealfactory-traffic",database_id:$db}]}' > wrangler.json
-          fi
+          jq -n --arg project "$PAGES_PROJECT" --arg assets "$RUNNER_TEMP/dealfactory" \
+            --arg traffic "$DATABASE_ID" --arg auth "$AUTH_DATABASE_ID" \
+            '{name:$project,pages_build_output_dir:$assets,compatibility_date:"2025-04-01",
+              ai:{binding:"AI"},
+              d1_databases:([{"binding":"TRAFFIC","database_name":"dealfactory-traffic","database_id":$traffic},
+                {"binding":"AUTH","database_name":"dealfactory-accounts","database_id":$auth}]
+                | map(select(.database_id != "")))}
+             | if (.d1_databases | length) == 0 then del(.d1_databases) else . end' > wrangler.json
           npm exec --yes --package=wrangler@4 -- wrangler pages deploy "${RUNNER_TEMP}/dealfactory" \
             --project-name "$PAGES_PROJECT" --branch main
       - name: Check production routes

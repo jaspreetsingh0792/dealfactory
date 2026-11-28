@@ -380,6 +380,29 @@ export async function testConnection(cfg, signal) {
   throw new LLMError(PROVIDERS[cfg.provider]?.browserNote || "This provider cannot be called from the browser.");
 }
 
+export function builtinClient() {
+  return {
+    search: false,
+    research: null,
+    structured: async ({ system, prompt, signal }) => {
+      let response;
+      try {
+        response = await fetch("/api/ai", {
+          method: "POST", credentials: "same-origin",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ system, prompt }), signal,
+        });
+      } catch (error) {
+        if (error.name === "AbortError") throw error;
+        throw new LLMError("Could not reach the built-in AI.");
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new LLMError(data.message || "The built-in AI did not answer.");
+      return parseJson(data.text || "");
+    },
+  };
+}
+
 export function client(cfg) {
   const spec = PROVIDERS[cfg?.provider];
   if (!spec) throw new LLMError("Choose an AI provider first.");

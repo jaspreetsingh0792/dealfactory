@@ -27,9 +27,12 @@ async function main() {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(origin + "/advisor/#connect", { waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator("#signin-google").isVisible(), true);
+    assert.equal(await page.locator("#signin-github").getAttribute("href"), "/auth/login/github");
+    await page.locator("#ai-byo summary").click();
     await page.locator("#ai-provider").scrollIntoViewIfNeeded();
     assert.equal(await page.locator("#ai-provider").isVisible(), true);
-    assert.equal(await page.locator("summary", { hasText: "Use an API key or a local model instead" }).count(), 0);
+    assert.equal(await page.locator("summary", { hasText: "Use your own AI" }).count(), 1);
     assert.equal(await page.locator("#ai-provider").inputValue(), "openrouter");
     assert.equal(await page.locator("#or-signin").isVisible(), true);
     const labels = await page.locator("#ai-provider option").allTextContents();
@@ -54,6 +57,7 @@ async function main() {
     assert.match(await page.locator("#ai-connected").innerText(), /Google Gemini/);
     await page.locator("#gmail").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(directory, "mobile-provider-unlocked-reload.jpg"), type: "jpeg", quality: 82 });
+    await page.locator("#ai-byo summary").click();
 
     await page.locator("#ai-provider").selectOption("compatible");
     await page.locator("#ai-base").fill("http://evil.example/v1");

@@ -33,7 +33,7 @@ def test_discover_check_and_compare(tmp_path):
     assert not (output / "guides/stroller-footmuffs/index.html").exists()
     assert "/guides/stroller-footmuffs/ /deals/ 301" in (output / "_redirects").read_text()
     assert (output / "_worker.js").exists()
-    assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/events"]
+    assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/auth/*", "/api/*", "/events"]
 
 
 def test_atomic_counts():

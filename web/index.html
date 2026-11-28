@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- connect-src keeps https so a custom provider URL can be any https origin. http is limited to localhost for Ollama. Provider calls: openrouter.ai, api.anthropic.com, api.openai.com, generativelanguage.googleapis.com, api.mistral.ai, api.groq.com, gmail.googleapis.com. -->
+<!-- Built-in AI and sign-in stay on this site ('self'). connect-src still allows https so an optional custom BYO base URL can be any https origin. http is limited to localhost for Ollama. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://gmail.googleapis.com https://cloudflareinsights.com https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.">
@@ -73,7 +73,7 @@
 
     <section id="connect">
       <h2>Connect</h2>
-      <p class="lede">Add the devices you own by hand. That is the way in for everyone. Gmail import is a limited beta while Google reviews the app, so it is optional.</p>
+      <p class="lede">Add the devices you own by hand. That is the way in for everyone. Sign-in is optional, and when it is not set up yet you can still use your own AI. Gmail import is a limited beta while Google reviews the app.</p>
       <p id="connect-progress" class="small" role="status"></p>
       <div class="connect-presets" role="group" aria-label="Starter setups">
         <button type="button" class="secondary" data-preset="apple-opentherm">Apple Home + OpenTherm</button>
@@ -84,17 +84,48 @@
         <div class="card connect-step" id="ai">
           <h3><span class="step-badge" aria-hidden="true">1</span> Your AI</h3>
           <p id="ai-connected" class="small" role="status"></p>
-          <div class="connect-buttons">
-            <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
-            <button type="button" id="cg-signin" class="secondary" hidden>Sign in with ChatGPT</button>
-            <button type="button" id="cg-signout" class="link" hidden>Sign out of ChatGPT</button>
+          <div id="account-signed-out">
+            <p class="small">Sign in with Google or GitHub. The free AI is ready immediately, and Gmail import stays a separate consent.</p>
+            <p id="signin-soon" class="small" hidden>Sign-in is coming soon. You can use your own AI below. No account is required.</p>
+            <div class="connect-buttons account-buttons">
+              <a class="button primary" id="signin-google" href="/auth/login/google">Sign in with Google</a>
+              <a class="button secondary" id="signin-github" href="/auth/login/github">Sign in with GitHub</a>
+            </div>
+          </div>
+          <div id="account-signed-in" hidden>
+            <p id="account-who" class="small"></p>
+            <p id="ai-allowance" class="small" role="status"></p>
+            <div id="sync-panel" hidden>
+              <label class="check" for="sync-toggle"><input id="sync-toggle" type="checkbox"> Sync my setup to my account</label>
+              <p id="sync-note" class="small">Syncs the devices and preferences in Your setup. It never syncs Gmail messages, receipts, or AI keys.</p>
+              <div id="sync-conflict" hidden>
+                <p>This device and your account both have a setup. Choose which to keep.</p>
+                <div class="row">
+                  <button type="button" id="sync-keep-device" class="secondary">Keep this device</button>
+                  <button type="button" id="sync-keep-account" class="secondary">Use the account copy</button>
+                  <button type="button" id="sync-keep-newer" class="primary">Keep the newer one</button>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <button type="button" id="account-signout" class="secondary">Sign out</button>
+              <button type="button" id="account-delete" class="link">Delete account</button>
+            </div>
           </div>
           <div class="connect-buttons">
             <button type="button" id="open-claude" class="secondary">Open in Claude</button>
             <button type="button" id="open-chatgpt" class="secondary">Open in ChatGPT</button>
           </div>
-          <p class="small muted"><span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
-            DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
+          <details class="more" id="ai-byo">
+            <summary>Use your own AI</summary>
+            <p class="small muted">Optional. A key stays in this browser and calls go straight to that provider. Signed-out visitors can use this too.</p>
+            <div class="connect-buttons">
+              <button type="button" id="or-signin" class="primary">Sign in with OpenRouter</button>
+              <button type="button" id="cg-signin" class="secondary" hidden>Sign in with ChatGPT</button>
+              <button type="button" id="cg-signout" class="link" hidden>Sign out of ChatGPT</button>
+            </div>
+            <p class="small muted"><span id="cg-note">Sign in with ChatGPT (uses your ChatGPT plan) works when you run
+              DealFactory on your own computer: <code>git clone https://github.com/jaspreetsingh0792/dealfactory &amp;&amp; cd dealfactory &amp;&amp; uv run dealfactory web</code>.</span></p>
           <form id="ai-form" class="ai-grid">
             <label class="span2">Provider
               <select id="ai-provider" aria-label="AI provider"></select></label>
@@ -115,7 +146,8 @@
             </div>
             <p id="ai-status" class="small muted span2" role="status"></p>
           </form>
-          <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request.</p>
+          <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request. A custom address must be https, which is why this page allows https connections. The built-in AI does not use that.</p>
+          </details>
         </div>
       </div>
     </section>
