@@ -7,10 +7,12 @@ Target: public launch before 30 November 2026 (Europe/Amsterdam). Cost cap stays
 - Manual device entry is the first path. Gmail import is labeled a limited beta (at most 100 test users while Google’s restricted-scope review is pending). Merged in #29 and published. No email addresses are collected. A stored waitlist was not added, because a durable counter needs D1 Edit.
 - Homepage, advisor and deals: local mobile Lighthouse was 100 performance, 100 accessibility, 100 SEO, 96 best practices. Live homepage on 27 Nov 2026: performance 99, accessibility 100, best practices 92, SEO 100.
 - The 404 page is noindex, so Lighthouse SEO on that URL is lower on purpose.
-- Sitemap has eight URLs, each with `lastmod`. `robots.txt` points at the sitemap.
+- The sitemap lists the English pages, the Dutch home, deals, guide and advisor, and one URL per in-stock product. Each URL has `lastmod`. `robots.txt` points at the sitemap. The old stroller guide is not in it.
 - Cloudflare Web Analytics is already wired behind `CLOUDFLARE_WEB_ANALYTICS_TOKEN`. The snippet is omitted when the variable is empty. CSP allows `https://cloudflareinsights.com` and `https://static.cloudflareinsights.com` only when the beacon is injected into `script-src`.
 - Read-only production smoke: `node ops/test_live_smoke.cjs`.
-- On 27 Nov 2026 the curated offer pages were fetched again. Eleven were still in stock in euros. Philips Hue Bridge Pro at Coolblue was `OutOfStock` and was removed from `ops/offer-sources.json`. The homepage and deals page do not link to the archived stroller footmuff guide. That guide remains at its old URL and in the sitemap.
+- Published on 27 Nov 2026 and still live: Dutch home, deals, guide and advisor under `/nl/`; a page for each checked offer; protocol filters on `/deals/`; the FAQ; the advisor title, canonical and WebApplication data. `/guides/stroller-footmuffs/` is a 301 to `/deals/` and is not in the sitemap.
+- On 27 Nov 2026 Philips Hue Bridge Pro at Coolblue was out of stock and was taken out of the curated list. On 28 Nov 2026 the same retailer page had one in-stock euro price, so it is in `ops/offer-sources.json` again with the Matter and Philips Hue tags already recorded. A product page is built only while that stock check succeeds. Out-of-stock offers are left out of the sitemap.
+- Product pages now include what the product works with, the specs DealFactory already recorded, and a good-for / not-for note. The words come from `ops/product-notes.json` and the compatibility guide, not from another site's reviews.
 
 ## Held until you confirm
 

@@ -71,6 +71,16 @@
 .product-page h1{margin:8px 0 12px;font-size:clamp(32px,5vw,52px);letter-spacing:-.045em;line-height:1.05}
 .shop-offer{margin:22px 0;padding-top:16px;border-top:1px solid var(--line)}
 .product-price{font-size:28px;letter-spacing:-.04em}
+.fit-note{margin-top:28px}
+.fit-note h2{font-size:22px;letter-spacing:-.03em;margin:22px 0 8px}
+.fit-note ul{margin:0;padding-left:18px}
+.fit-note li{margin:6px 0;line-height:1.45}
+.fit-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.fit-split div{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fit-split h2{margin-top:0}
+.good-for{border-top:4px solid var(--lime)}
+.not-for{border-top:4px solid var(--pine)}
+@media(max-width:650px){.fit-split{grid-template-columns:1fr}}
 .product-brand{text-transform:uppercase;color:var(--soft);margin-bottom:7px}
 .product-info h3{font-size:clamp(19px,1.6vw,25px);font-weight:570;letter-spacing:-.04em;line-height:1.13}
 .price-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:15px;margin-top:auto}

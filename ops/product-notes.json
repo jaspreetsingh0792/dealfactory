@@ -1,0 +1,205 @@
+{
+  "https://www.coolblue.nl/product/983933/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie.html": {
+    "works_with": ["A modulating OpenTherm boiler (Intergas, Remeha, Nefit, Vaillant and others)", "Matter, including Apple Home, Google Home and Alexa"],
+    "specs": ["tado X generation. It does not extend a tado V3+ system.", "OpenTherm asks the boiler for a water temperature instead of only on or off.", "A schedule still works without the paid Auto-Assist add-on. Geofencing is part of that add-on."],
+    "good_for": "A new tado X system on a modulating OpenTherm boiler, in a home that uses Matter.",
+    "not_for": "Adding a room to a tado V3+ system. An X product does not join those rooms.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/983934/tado-draadloze-slimme-thermostaat-x-startpakket-2e-generatie.html": {
+    "works_with": ["A modulating OpenTherm boiler (Intergas, Remeha, Nefit, Vaillant and others)", "Matter, including Apple Home, Google Home and Alexa"],
+    "specs": ["Wireless tado X starter. It is a different generation from tado V3+.", "OpenTherm asks the boiler for a water temperature instead of only on or off.", "A schedule still works without the paid Auto-Assist add-on."],
+    "good_for": "A new wireless tado X system where the thermostat does not sit on a wired wall plate.",
+    "not_for": "Extending a tado V3+ system.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/983935/tado-bedrade-slimme-thermostaat-x-multi-room-startpakket-2e-generatie-2-radiatorknoppen.html": {
+    "works_with": ["A modulating OpenTherm boiler", "Matter", "Two radiator valves in the same tado X system"],
+    "specs": ["Wired tado X multi-room starter with two radiator knobs.", "The knobs are tado X, so they do not join a V3+ system.", "OpenTherm is for the boiler. The knobs control rooms on this X system."],
+    "good_for": "Starting a wired tado X system and covering two radiators at the same time.",
+    "not_for": "Mixing these X knobs into an existing tado V3+ installation.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/983936/tado-draadloze-slimme-thermostaat-x-multi-room-startpakket-2e-generatie-2-radiatorknoppen.html": {
+    "works_with": ["A modulating OpenTherm boiler", "Matter", "Two radiator valves in the same tado X system"],
+    "specs": ["Wireless tado X multi-room starter with two radiator knobs.", "tado X and tado V3+ are separate generations.", "OpenTherm is recorded for this pack. Confirm it on your boiler plate before you order."],
+    "good_for": "A new wireless tado X system that should cover the boiler and two radiators.",
+    "not_for": "A home that already runs tado V3+ and only wants extra knobs.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/983937/tado-bedrade-slimme-thermostaat-x-2e-generatie-uitbreiding.html": {
+    "works_with": ["An existing tado X system", "OpenTherm, as recorded for this expansion", "Matter"],
+    "specs": ["Sold as an expansion, not a starter.", "It is tado X, so it does not join tado V3+ rooms."],
+    "good_for": "Another wired thermostat on a tado X system you already have.",
+    "not_for": "The first tado in the house, or any V3+ system.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/983938/tado-draadloze-temperatuursensor-x-2e-generatie.html": {
+    "works_with": ["A tado X system", "Matter"],
+    "specs": ["A temperature sensor for tado X, not a boiler thermostat by itself.", "DealFactory recorded OpenTherm and Matter on this product page. Confirm OpenTherm on the boiler if that is why you are buying it."],
+    "good_for": "Reading the temperature in another room of a tado X system.",
+    "not_for": "A tado V3+ system, or a home that does not already have tado X.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/948677/tado-slimme-radiatorknop-x-uitbreiding.html": {
+    "works_with": ["A tado X starter system", "Matter"],
+    "specs": ["One radiator knob, sold as an expansion.", "DealFactory recorded Matter for this knob, not OpenTherm.", "An X knob does not join rooms that still use tado V3+."],
+    "good_for": "One more radiator on a tado X system.",
+    "not_for": "Replacing a single V3+ knob and expecting the old rooms to follow.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/948684/tado-slimme-radiatorknop-x-4-pack-uitbreiding.html": {
+    "works_with": ["A tado X starter system", "Matter"],
+    "specs": ["Four radiator knobs, sold as an expansion.", "DealFactory recorded OpenTherm and Matter on this pack. The knobs still belong to tado X, not V3+."],
+    "good_for": "Covering several radiators on a tado X system you already started.",
+    "not_for": "A tado V3+ house, or a house with no tado X starter.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.coolblue.nl/product/948682/tado-bridge-x-uitbreiding.html": {
+    "works_with": ["tado X devices", "Matter over Wi-Fi"],
+    "specs": ["Bridge X is the tado X generation, not the bridge from a V3+ set.", "DealFactory recorded built-in Wi-Fi and Matter. OpenTherm was not recorded as true for this bridge."],
+    "good_for": "Connecting tado X devices to each other and to a Matter home over Wi-Fi.",
+    "not_for": "Linking a tado V3+ system to the internet.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://instalpunt.nl/product/remeha-etwist-slimme-klokthermostaat-v3-excl-gateway/": {
+    "works_with": ["Remeha Ace boilers", "OpenTherm"],
+    "specs": ["This listing is the eTwist without the gateway.", "Other Remeha series need the version that includes the gateway.", "OpenTherm asks a modulating boiler for a water temperature. An on/off relay does not."],
+    "good_for": "A Remeha Ace boiler that speaks OpenTherm and does not need the extra gateway.",
+    "not_for": "A Remeha boiler outside the Ace series, unless you buy the gateway version instead.",
+    "guide": "/guides/smart-home-compatibility/#tado-x"
+  },
+  "https://www.blauwestroomshop.nl/shelly-plug-s-mtr-gen3.html": {
+    "works_with": ["Matter over Wi-Fi", "A normal home Wi-Fi router"],
+    "specs": ["The Shelly Plug S MTR Gen3 joins Wi-Fi. It does not need a Thread border router.", "A Matter logo on a plug is not a reason to buy a Thread router."],
+    "good_for": "Switching a plug-in appliance in a Matter home that already has Wi-Fi.",
+    "not_for": "A home that needs a Thread border router, or a sensor that only speaks Thread.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/aqara-door-and-window-sensor-p2": {
+    "works_with": ["Matter over Thread", "One Thread border router, such as a HomePod mini, HomePod (2nd generation), Apple TV 4K from 2021, Nest Hub (2nd gen), Nest Wifi Pro, Aqara Hub M3, or Home Assistant Connect ZBT-1"],
+    "specs": ["DealFactory recorded Matter and Thread for the P2.", "Matter over Thread does not work until one border router is already in the house.", "An older Apple TV without Thread is not that router."],
+    "good_for": "A door or window sensor in a home that already has a Thread border router.",
+    "not_for": "A home with only Wi-Fi and no Thread border router.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/aqara-smart-hub-m3": {
+    "works_with": ["Matter", "Zigbee devices the M3 actually exposes", "Thread, including the Aqara Door and Window Sensor P2"],
+    "specs": ["The M3 is recorded as Matter, Zigbee and Thread.", "It can be the one Thread border router a Matter-over-Thread sensor needs.", "Aqara, Hue and IKEA hubs each expose a different set of third-party Zigbee devices."],
+    "good_for": "A home that wants one hub for Aqara Zigbee devices and Thread sensors, and a path into Matter.",
+    "not_for": "Assuming every Zigbee bulb or sensor will pair with it. Check the device against this hub first.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://www.coolblue.nl/product/890077/philips-hue-bridge.html": {
+    "works_with": ["Philips Hue lights and Hue accessories"],
+    "specs": ["DealFactory recorded Philips Hue for this bridge, not Matter.", "A Hue bridge exposes its own subset of Zigbee devices. A sensor or bulb still has to be listed for that bridge."],
+    "good_for": "A Hue system that needs the bridge those lights and sensors expect.",
+    "not_for": "A Matter-only home, or a random Zigbee device that is not supported on Hue.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://www.coolblue.nl/product/968647/philips-hue-bridge-pro.html": {
+    "works_with": ["Philips Hue", "Matter"],
+    "specs": ["DealFactory recorded Matter and Philips Hue for the Bridge Pro.", "A Hue bridge still exposes only the Zigbee devices Hue supports. Confirm a bulb or sensor against this bridge before you order."],
+    "good_for": "A Hue system that should also appear in a Matter home.",
+    "not_for": "Buying it while the shop page is out of stock, or expecting every Zigbee device to join.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://www.coolblue.nl/product/890049/philips-hue-bewegingssensor.html": {
+    "works_with": ["A Philips Hue bridge", "Zigbee, inside the Hue system"],
+    "specs": ["DealFactory recorded Zigbee and Philips Hue. Matter was not recorded.", "Hue, IKEA and Aqara hubs do not accept the same third-party Zigbee devices."],
+    "good_for": "Motion control in a house that already has a Hue bridge.",
+    "not_for": "A Matter or Thread home that has no Hue bridge.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://www.coolblue.nl/product/891435/sonos-beam-gen2-zwart.html": {
+    "works_with": ["A TV with an HDMI eARC port"],
+    "specs": ["DealFactory recorded HDMI eARC for the Beam Gen2.", "Dolby Atmos without lip-sync delay needs eARC, not only optical audio or plain ARC.", "A wall mount, if you use one, still has to match the TV's VESA spacing and weight. That is separate from the soundbar."],
+    "good_for": "A TV that has HDMI eARC and needs a soundbar on that port.",
+    "not_for": "A TV that only offers optical audio or ARC, if Atmos without lip-sync delay is the reason to buy it.",
+    "guide": "/guides/smart-home-compatibility/#heating"
+  },
+  "https://www.coolblue.nl/product/954000/philips-hepa-nanoprotect-filter-fy0900-30.html": {
+    "works_with": ["Philips air purifier AC0920"],
+    "specs": ["Philips NanoProtect filters are matched by code, not by a Matter logo.", "FY0900/30 is the code recorded for the AC0920.", "FY1410/30 and FY2422/30 are different parts."],
+    "good_for": "A replacement filter when the sticker on the purifier says AC0920.",
+    "not_for": "An AC1715, or any purifier whose label names a different filter code.",
+    "guide": "/guides/smart-home-compatibility/#matter-appliances"
+  },
+  "https://www.coolblue.nl/product/901313/philips-3in1-hepa-nanoprotect-filter-1700-serie-fy1700-30.html": {
+    "works_with": ["Philips air purifier AC1715"],
+    "specs": ["FY1700/30 is the code recorded for the AC1715.", "FY0900/30 is the other listed part, for the AC0920.", "Copy the code from the purifier label before you order."],
+    "good_for": "A replacement filter when the purifier label says AC1715.",
+    "not_for": "An AC0920, or a purifier that calls for FY1410/30 or FY2422/30.",
+    "guide": "/guides/smart-home-compatibility/#matter-appliances"
+  },
+  "https://eu.aqara.com/en-eu/products/dual-relay-module-t24-pack": {
+    "works_with": ["An Aqara Zigbee hub"],
+    "specs": ["DealFactory recorded Zigbee for the Dual Relay Module T2. Matter, Thread and Wi-Fi were not recorded."],
+    "good_for": "A relay in a house that already has a Zigbee hub.",
+    "not_for": "A Matter-only home with no Zigbee hub.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://eu.aqara.com/en-eu/products/smart-lock-u200-hub-m100": {
+    "works_with": ["Matter", "Thread"],
+    "specs": ["The kit name includes the U200 lock and Hub M100.", "DealFactory recorded Matter and Thread. Zigbee was not recorded for this kit.", "Matter over Thread still needs a border router. This kit includes a hub, so check that the M100 is the router you will use."],
+    "good_for": "A door that should join a Matter home over Thread, with the M100 hub in the same kit.",
+    "not_for": "A Zigbee-only plan. That protocol was not recorded here.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/smart-lock-u200-hub-m3-1": {
+    "works_with": ["Matter", "Zigbee", "Thread", "The included Aqara Hub M3"],
+    "specs": ["The kit pairs the U200 lock with Hub M3.", "The M3 is recorded as Matter, Zigbee and Thread, and it can be the Thread border router for a sensor such as the P2.", "Cameras and locks often put history behind a subscription. Basic local control is the part to confirm on the shop page."],
+    "good_for": "A lock plus a hub that can also carry Aqara Zigbee and Thread devices into Matter.",
+    "not_for": "A home that only wanted a lock and already has a Thread border router, if the extra hub is not useful.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/smart-lock-u2002-pack-hub-m3": {
+    "works_with": ["Matter", "Zigbee", "Thread", "Two U200 locks and one Hub M3"],
+    "specs": ["Two locks plus the M3 hub.", "The recorded fit is Matter, Zigbee and Thread, the same set as the single-lock M3 kit."],
+    "good_for": "Two doors that should share one M3 hub.",
+    "not_for": "One door, or a home that does not want the M3.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/aqara-smart-hub-m100": {
+    "works_with": ["Matter", "Zigbee", "Thread"],
+    "specs": ["DealFactory recorded Matter, Zigbee and Thread for the M100. Nothing else was recorded."],
+    "good_for": "A small hub when the home needs Matter plus Aqara Zigbee or Thread devices.",
+    "not_for": "A device that needs a protocol this page did not list.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://eu.aqara.com/en-eu/products/hub-m200": {
+    "works_with": ["Matter", "Aqara Zigbee devices", "Thread"],
+    "specs": ["DealFactory recorded Matter, Zigbee and Thread for the M200.", "The compatibility guide names the Hub M3, not the M200, as a Thread border router. Do not assume this hub is that router."],
+    "good_for": "A hub whose recorded fit is Matter, Zigbee and Thread.",
+    "not_for": "A home that needs a Thread border router, unless you have confirmed this model is one. The guide names the M3 for that job.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://eu.aqara.com/en-eu/products/aqara-camera-hub-g5-pro": {
+    "works_with": ["Matter", "Zigbee", "Thread"],
+    "specs": ["DealFactory recorded Zigbee, Thread and Matter for the G5 Pro.", "Cameras often keep history or extra detection behind a monthly plan. Check whether local control works without that plan."],
+    "good_for": "A camera that should also be the hub for Zigbee or Thread devices.",
+    "not_for": "A buyer who needs cloud history and has not checked the subscription.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://eu.aqara.com/en-eu/products/led-ceiling-light-t1m2-pack": {
+    "works_with": ["Zigbee", "An Aqara Zigbee hub"],
+    "specs": ["DealFactory recorded Zigbee for the T1M. Matter, Thread and Wi-Fi were not recorded."],
+    "good_for": "Ceiling lights in a home that already has an Aqara Zigbee hub.",
+    "not_for": "A Matter or Wi-Fi-only home with no Zigbee hub.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  },
+  "https://eu.aqara.com/en-eu/products/multi-state-sensor-p100": {
+    "works_with": ["Matter", "Zigbee", "Thread"],
+    "specs": ["DealFactory recorded Matter, Zigbee and Thread.", "Matter over Thread still needs one border router in the house. The guide lists HomePod mini, Apple TV 4K from 2021, Nest Hub (2nd gen) and the Aqara Hub M3 among those routers."],
+    "good_for": "A door and object sensor in a home that already has the hub or border router those protocols need.",
+    "not_for": "A home with none of those hubs, if you expected the sensor to work on its own.",
+    "guide": "/guides/smart-home-compatibility/#thread-routers"
+  },
+  "https://eu.aqara.com/en-eu/products/aqara-hub-m1s-gen-2": {
+    "works_with": ["Wi-Fi", "Apple HomeKit, Google Assistant, Alexa and IFTTT, as named on the product page"],
+    "specs": ["DealFactory recorded Wi-Fi for the M1S Gen 2. Matter, Zigbee and Thread were not recorded."],
+    "good_for": "A hub where the only recorded connection is Wi-Fi.",
+    "not_for": "A Matter or Thread plan. Those protocols were not recorded for this hub.",
+    "guide": "/guides/smart-home-compatibility/#protocols"
+  }
+}

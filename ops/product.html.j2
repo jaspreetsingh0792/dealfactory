@@ -24,10 +24,23 @@
       <a class="dark-button" data-retailer href="{{ item.url }}">Open shop <span aria-hidden="true">↗</span></a>
     </section>
     {% endfor %}
+    {% set note = offer.note %}
+    {% if note %}
+    <section class="fit-note">
+      <h2>What it works with</h2>
+      <ul>{% for item in note.works_with %}<li>{{ item }}</li>{% endfor %}</ul>
+      <h2>Specs DealFactory checked</h2>
+      <ul>{% for item in note.specs %}<li>{{ item }}</li>{% endfor %}</ul>
+      <div class="fit-split">
+        <div class="good-for"><h2>Good for</h2><p>{{ note.good_for }}</p></div>
+        <div class="not-for"><h2>Not for</h2><p>{{ note.not_for }}</p></div>
+      </div>
+    </section>
+    {% endif %}
     <section>
       <h2>Fit and compatibility</h2>
-      <p>The fit tags are the protocols and models named on the retailer page when DealFactory checked it. They are not a promise that the product works with every device in your home. Add what you own in the advisor if you want a check against your own setup.</p>
-      <p><a href="/guides/smart-home-compatibility/">Read the compatibility guide</a> or <a href="/deals/">back to all deals</a>.</p>
+      <p>These notes use the fit tags DealFactory recorded and the facts in our compatibility guide. They are not a promise that the product works with every device in your home. Add what you own in the advisor if you want a check against your own setup.</p>
+      <p><a href="{{ note.guide if note else '/guides/smart-home-compatibility/' }}">Read the compatibility guide</a> or <a href="/deals/">back to all deals</a>.</p>
     </section>
   </article>
 </main>
