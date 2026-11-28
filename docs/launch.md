@@ -5,7 +5,7 @@ Target: public launch before 30 November 2026 (Europe/Amsterdam). Cost cap stays
 ## Done on main
 
 - Manual device entry is the first path. Gmail import is labeled a limited beta (at most 100 test users while Google’s restricted-scope review is pending). Merged in #29 and published. No email addresses are collected. A stored waitlist was not added, because a durable counter needs D1 Edit.
-- Homepage, advisor and deals: local mobile Lighthouse was 100 performance, 100 accessibility, 100 SEO, 96 best practices. Live homepage on 27 Nov 2026: performance 99, accessibility 100, best practices 92, SEO 100.
+- Live mobile Lighthouse on 28 Nov 2026, after the fit-note publish: `/` 99/100/92/100, `/deals/` 99/100/92/100, `/advisor/` 99/100/92/100, `/deals/shelly-plug-s-mtr-gen3/` 99/100/92/100, `/nl/` 99/100/92/100 (performance, accessibility, best practices, SEO). Every category is at least 90. Earlier local runs were 100/100/96/100, and the live homepage on 27 Nov 2026 was 99/100/92/100.
 - The 404 page is noindex, so Lighthouse SEO on that URL is lower on purpose.
 - The sitemap lists the English pages, the Dutch home, deals, guide and advisor, and one URL per in-stock product. Each URL has `lastmod`. `robots.txt` points at the sitemap. The old stroller guide is not in it.
 - Cloudflare Web Analytics is already wired behind `CLOUDFLARE_WEB_ANALYTICS_TOKEN`. The snippet is omitted when the variable is empty. CSP allows `https://cloudflareinsights.com` and `https://static.cloudflareinsights.com` only when the beacon is injected into `script-src`.
