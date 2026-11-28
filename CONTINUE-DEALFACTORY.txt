@@ -14,6 +14,8 @@ https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46143869701
 
 Live smoke on 28 Nov 2026: `/deals/` still says Open shop and does not say Affiliate link, because no shop ID is set. The homepage FAQ includes “How does DealFactory make money?”. `/privacy/` and `/nl/privacy/` explain affiliate links. Variable names are in `docs/affiliates.md`. #28 stays unmerged.
 
+Live mobile Lighthouse the same day, after that publish, performance / accessibility / best practices / SEO: `/` 99/100/93/100, `/privacy/` 99/100/93/100, `/terms/` 99/100/93/100, `/nl/privacy/` 99/100/93/100, `/nl/terms/` 99/100/93/100. Every category is at least 90. Best practices is 93 because Chrome blocks a Cloudflare Insights script that is not in the page HTML. #28 (`cursor/builtin-signin-cb02` at `d2aa951`) is updated onto current main and still unmerged. Sign-in still shows coming soon when the account secrets are missing.
+
 #44 published fit notes on the product pages from `697999937d989f4b2238572aac231596c2c70bf5`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46124338049
 
