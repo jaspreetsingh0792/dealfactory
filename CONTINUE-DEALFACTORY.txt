@@ -9,6 +9,11 @@ Never print, commit or log an OAuth client secret or token.
 
 Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
 
+#47 published labelled affiliate links, off by default, from `e24ae452cbc50baa9cd49433e0ec1f916512805a`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46143869701
+
+Live smoke on 28 Nov 2026: `/deals/` still says Open shop and does not say Affiliate link, because no shop ID is set. The homepage FAQ includes “How does DealFactory make money?”. `/privacy/` and `/nl/privacy/` explain affiliate links. Variable names are in `docs/affiliates.md`. #28 stays unmerged.
+
 #44 published fit notes on the product pages from `697999937d989f4b2238572aac231596c2c70bf5`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46124338049
 
