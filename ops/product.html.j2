@@ -21,7 +21,8 @@
       {% if item.fits %}<p class="fits">Fits: {{ item.fits }}</p>{% endif %}
       {% if item.shipping %}<p class="shipping">Delivery €{{ item.shipping }}</p>{% endif %}
       <p class="price-note">Price before delivery. Confirm it at the shop.</p>
-      <a class="dark-button" data-retailer href="{{ item.url }}">Open shop <span aria-hidden="true">↗</span></a>
+      <a class="dark-button" data-retailer href="{{ item.href or item.url }}"{% if item.affiliate %} rel="sponsored nofollow noopener"{% endif %}>Open shop <span aria-hidden="true">↗</span></a>{% if item.affiliate %}<span class="affiliate-label">Affiliate link</span>{% endif %}
+      {% if item.affiliate %}<p class="affiliate-disclosure">We may earn a commission at no extra cost to you. It never changes the ranking or the recommendations.</p>{% endif %}
     </section>
     {% endfor %}
     {% set note = offer.note %}

@@ -1,0 +1,33 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% if page == "privacy" %}
+{% set title = "Privacy | DealFactory" %}
+{% set description = "Hoe DealFactory met je gegevens omgaat, en wanneer een winkellink een affiliatelink is." %}
+{% set path = "/nl/privacy/" %}
+{% else %}
+{% set title = "Voorwaarden | DealFactory" %}
+{% set description = "De voorwaarden voor DealFactory, inclusief gelabelde affiliatelinks." %}
+{% set path = "/nl/terms/" %}
+{% endif %}
+<!doctype html><html lang="nl"><head>
+{{ head(title, description, path, alternates=true) }}
+</head><body class="store">
+{{ header(dutch=true) }}
+<main id="main" class="frame prose">
+{% if page == "privacy" %}
+  <div class="label"><span class="rule"></span>PRIVACY</div>
+  <h1>Privacy van <em>de adviseur.</em></h1>
+  <p class="intro">Je setup blijft in deze browser. DealFactory verkoopt geen gegevens. De Engelse pagina staat op <a href="/privacy/">privacy</a>.</p>
+  <h2>Affiliatelinks</h2>
+  <p>Sommige links naar een winkel kunnen een affiliatelink zijn als een winkel-ID is ingesteld. De link heet Affiliatelink, gebruikt <code>rel="sponsored"</code>, en DealFactory kan een commissie ontvangen zonder extra kosten voor jou. Zonder ID is de link de gewone winkel-URL. Een affiliatelink verandert de volgorde van aanbiedingen en de aanbevelingen niet. DealFactory voegt geen eigen klikmeting, cookies of fingerprinting toe.</p>
+  <h2>Gmail</h2>
+  <p>Gmail-import is een beperkte bèta. Handmatig invoeren gebruikt geen Gmail. DealFactory's gebruik van Google-gegevens volgt de Google API Services User Data Policy, inclusief Limited Use.</p>
+{% else %}
+  <div class="label"><span class="rule"></span>VOORWAARDEN</div>
+  <h1>Voorwaarden van <em>gebruik.</em></h1>
+  <p class="intro">Door DealFactory te gebruiken ga je akkoord met deze voorwaarden. Bijgewerkt op 28 november 2026. De Engelse tekst staat op <a href="/terms/">terms</a>.</p>
+  <h2>Winkels</h2>
+  <p>DealFactory verkoopt zelf niets. Een aankoop gebeurt op de site van de winkel, onder de voorwaarden van die winkel.</p>
+  <h2>Affiliatelinks</h2>
+  <p>Als een winkel-ID is ingesteld, is de link naar de winkel gelabeld en kan DealFactory een commissie ontvangen zonder extra kosten voor jou. Dat verandert de volgorde en de aanbevelingen niet. Zonder ID is de link de gewone winkelpagina. Er is geen extra klikmeting.</p>
+{% endif %}
+</main>{{ footer(dutch=true) }}</body></html>

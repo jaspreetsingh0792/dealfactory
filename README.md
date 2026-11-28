@@ -5,6 +5,8 @@ Open-source shopping advisor: **deals near you that fit what you already own.** 
 against your home and your things, with a source for every price. Anything it can't verify is shown as
 unknown.
 
+The public site is ad-free. Honest labelled affiliate links stay off until a shop ID is set, and they never change ranking or recommendations.
+
 It has three parts. All of them use **your own AI** and keep **your data on your side**:
 
 | Part | For | Where |

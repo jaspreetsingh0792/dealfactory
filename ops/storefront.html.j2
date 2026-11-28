@@ -43,7 +43,7 @@
 {% endmacro %}
 {% macro footer(dutch=false) %}
 {% set root = "/nl/" if dutch else "/" %}
-<footer class="foot"><div class="frame foot-inner">{{ wordmark(root) }}<nav aria-label="{{ "Voettekst" if dutch else "Footer navigation" }}"><a href="{{ "/nl/advisor/" if dutch else "/advisor/" }}">{{ "Adviseur" if dutch else "Shopping advisor" }}</a><a href="{{ "/nl/deals/" if dutch else "/deals/" }}">{{ "Aanbiedingen" if dutch else "Deals" }}</a><a href="/about/">{{ "Over" if dutch else "About" }}</a><a href="/privacy/">Privacy</a><a href="/terms/">{{ "Voorwaarden" if dutch else "Terms" }}</a><a href="https://github.com/jaspreetsingh0792/dealfactory">{{ "Broncode" if dutch else "Source code" }} <span aria-hidden="true">↗</span></a></nav></div></footer>
+<footer class="foot"><div class="frame foot-inner">{{ wordmark(root) }}<nav aria-label="{{ "Voettekst" if dutch else "Footer navigation" }}"><a href="{{ "/nl/advisor/" if dutch else "/advisor/" }}">{{ "Adviseur" if dutch else "Shopping advisor" }}</a><a href="{{ "/nl/deals/" if dutch else "/deals/" }}">{{ "Aanbiedingen" if dutch else "Deals" }}</a><a href="/about/">{{ "Over" if dutch else "About" }}</a><a href="{{ "/nl/privacy/" if dutch else "/privacy/" }}">Privacy</a><a href="{{ "/nl/terms/" if dutch else "/terms/" }}">{{ "Voorwaarden" if dutch else "Terms" }}</a><a href="https://github.com/jaspreetsingh0792/dealfactory">{{ "Broncode" if dutch else "Source code" }} <span aria-hidden="true">↗</span></a></nav></div></footer>
 {% endmacro %}
 {% macro offer_grid(offers, checked_at, guide=false, fit_tokens=[], shipping_known=false, dutch=false) %}
 <div class="section-head" id="shortlist">
@@ -74,7 +74,7 @@
         </div>
       </a>
       <div class="product-actions">
-        <a class="open-shop" data-retailer href="{{ offer.url }}">{{ "Open de winkel" if dutch else "Open shop" }}</a>
+        <a class="open-shop" data-retailer href="{{ offer.href or offer.url }}"{% if offer.affiliate %} rel="sponsored nofollow noopener"{% endif %}>{{ "Open de winkel" if dutch else "Open shop" }}</a>{% if offer.affiliate %}<span class="affiliate-label">{{ "Affiliatelink" if dutch else "Affiliate link" }}</span>{% endif %}
         <p class="price-note">{{ "Prijs zonder bezorging. Bevestig die bij de winkel." if dutch else "Price before delivery. Confirm it at the shop." }}</p>
         {% if offer.shipping %}<p class="shipping">Delivery €{{ offer.shipping }}</p>{% endif %}
       </div>
@@ -82,6 +82,8 @@
     {% endfor %}
   </div>
   <p class="sr-only" id="filter-feedback" role="status"></p>
+  {% set ns = namespace(affiliate=false) %}{% for offer in offers %}{% if offer.affiliate %}{% set ns.affiliate = true %}{% endif %}{% endfor %}
+  {% if ns.affiliate %}<p class="affiliate-disclosure">{{ "We kunnen een commissie ontvangen, zonder extra kosten voor jou. Het verandert de volgorde en de aanbevelingen niet." if dutch else "We may earn a commission at no extra cost to you. It never changes the ranking or the recommendations." }}</p>{% endif %}
 </div>
 {% endif %}
 {% endmacro %}
