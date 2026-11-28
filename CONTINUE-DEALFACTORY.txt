@@ -9,6 +9,11 @@ Never print, commit or log an OAuth client secret or token.
 
 Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
 
+#44 published fit notes on the product pages from `697999937d989f4b2238572aac231596c2c70bf5`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46124338049
+
+Live smoke on 28 Nov 2026: `/deals/shelly-plug-s-mtr-gen3/` includes “Good for”, “Not for”, and the note that this Matter plug does not need a Thread border router. `/deals/philips-hue-bridge-pro/` is HTTP 200 and is in the sitemap, because the Coolblue page had one in-stock euro price on 28 Nov 2026. The stroller guide is still a 301 and is still absent from the sitemap. #28 stays unmerged.
+
 #42 published the Dutch pages and the checked product pages from `06018eeb29fac8a30ed338434510a2f80337d483`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46084025085
 
