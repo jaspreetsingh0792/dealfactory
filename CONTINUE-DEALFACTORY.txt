@@ -7,7 +7,7 @@ Never print, commit or log an OAuth client secret or token.
 
 ## Strategy: sign in, then free AI (not deployed)
 
-Jaspreet chose the free-only path. Bring-your-own AI is an optional upgrade, not the default. Branch `cursor/builtin-signin-cb02` is a pull request only. Do not merge or deploy until he confirms.
+Jaspreet chose the free-only path. Bring-your-own AI is an optional upgrade, not the default. Branch `cursor/builtin-signin-cb02` is updated onto current main and remains a pull request only. Do not merge or deploy until he confirms.
 
 Built-in model: `@cf/meta/llama-3.1-8b-instruct-fp8-fast` on Cloudflare Workers AI. It is an 8B instruct model on the free catalog. Published rates are about 4,119 neurons per million input tokens and 34,868 per million output tokens, so a capped answer is reserved at 20 neurons. The site ceiling defaults to 8,000 neurons per UTC day (under the 10,000 free allocation). Each signed-in person gets 20 answers per UTC day, with a 3 second gap. A 429 names the reset at 00:00 UTC.
 
@@ -16,14 +16,47 @@ Owner-only, before any deploy of this branch:
 - Create a Google web OAuth client separate from the Gmail import client. Scopes: openid, email, profile only. Never add Gmail scopes to this client. Redirect URIs: `https://deals.agentsealteam.com/auth/callback/google` and `http://127.0.0.1:8788/auth/callback/google`.
 - Create a GitHub OAuth App. Homepage `https://deals.agentsealteam.com`. Callback `https://deals.agentsealteam.com/auth/callback/github`.
 - Set Pages secrets `GOOGLE_AUTH_CLIENT_ID`, `GOOGLE_AUTH_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. Optional: `AI_DAILY_USER_LIMIT`, `AI_DAILY_NEURON_CEILING`, `AI_NEURONS_PER_REQUEST`.
-- Create D1 database `dealfactory-accounts`, run `ops/d1/0001_accounts.sql`, and set `DEALFACTORY_AUTH_DATABASE_ID`. The deployment token still needs D1 Edit. Bind it as `AUTH` and bind Workers AI as `AI`.
+- Create D1 database `dealfactory-accounts`, run `ops/d1/0001_accounts.sql` and `ops/d1/0002_user_state.sql`, and set `DEALFACTORY_AUTH_DATABASE_ID`. The deployment token still needs D1 Edit. Bind it as `AUTH` and bind Workers AI as `AI`.
 - Do not publish `deals@agentsealteam.com`.
 
 Details are in `docs/accounts.md`. Gmail import stays the existing separate `gmail.readonly` consent.
 
-If Google, GitHub, D1 or Workers AI is not configured, sign-in shows “coming soon” and returns HTTP 200, and `/api/ai` returns 503. Bring-your-own AI still works. There is no HTTP 500.
+If Google, GitHub, D1 or Workers AI is not configured, sign-in shows “coming soon” and returns HTTP 200, and `/api/ai` returns 503. Bring-your-own AI still works while signed out. There is no HTTP 500.
 
 Opt-in account sync is on the same branch and is also not deployed. The session cookie and the D1 session row last 30 days, refresh on use after the first day, and logout revokes them. Sync defaults off. When on, D1 stores only the home device list and preferences (`ops/d1/0002_user_state.sql`, 64 KB cap). It never stores Gmail messages, receipts, bring-your-own keys, or tokens. A new device loads the account copy when the browser is empty, and asks which copy to keep when both exist.
+
+## Launch
+
+Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
+
+#44 published fit notes on the product pages from `697999937d989f4b2238572aac231596c2c70bf5`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46124338049
+
+Live smoke on 28 Nov 2026: `/deals/shelly-plug-s-mtr-gen3/` includes “Good for”, “Not for”, and the note that this Matter plug does not need a Thread border router. `/deals/philips-hue-bridge-pro/` is HTTP 200 and is in the sitemap, because the Coolblue page had one in-stock euro price on 28 Nov 2026. The stroller guide is still a 301 and is still absent from the sitemap. #28 stays unmerged.
+
+#42 published the Dutch pages and the checked product pages from `06018eeb29fac8a30ed338434510a2f80337d483`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46084025085
+
+Live smoke on 27 Nov 2026 after that deploy:
+
+- `/guides/stroller-footmuffs/` is HTTP 301 to `/deals/`. It is not in `sitemap.xml`.
+- `/deals/` has protocol chips, “Price before delivery. Confirm it at the shop.”, and an Open shop label.
+- `/deals/shelly-plug-s-mtr-gen3/` is HTTP 200 and is listed in the sitemap.
+- `/nl/`, `/nl/deals/`, and `/nl/advisor/` are HTTP 200. The Dutch advisor title is “Adviseur: wat past bij jouw huis | DealFactory”.
+- `/advisor/` title is “Shopping advisor: what fits your home | DealFactory”, with a canonical URL of `/advisor/` and WebApplication structured data.
+
+#39 (deal filters) and #40 (product pages) are in that same tree. #35 (FAQ) and #38 (advisor search metadata) published earlier the same night. #28 stays unmerged.
+
+#29 is published from `da91f98e3998f2947a1d047bd130665291ddf2f1`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46077786013
+
+Live `/advisor/` puts Your setup before Gmail and labels Gmail import a limited beta (at most 100 test users). No email field was added. Live homepage Lighthouse on 27 Nov 2026, mobile: performance 99, accessibility 100, best practices 92, SEO 100.
+
+#30 and #31 are also on main. #32 published the SVG favicon that the homepage already linked:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46079552629
+Live `/media/favicon.svg` is HTTP 200, pine `#182e20` with a lime `#e0fa69` mark.
+
+#28 (sign-in, free AI, opt-in sync, coming-soon when secrets are missing) stays unmerged until the owner confirms. Web Analytics still needs `CLOUDFLARE_WEB_ANALYTICS_TOKEN` from the owner. D1 Edit is still missing. `deals@agentsealteam.com` stays unpublished.
 
 ## Gmail import progress
 

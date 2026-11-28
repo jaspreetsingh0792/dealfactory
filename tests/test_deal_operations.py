@@ -30,9 +30,8 @@ def test_discover_check_and_compare(tmp_path):
                  traffic=[{"page": "footmuffs", "event": "view", "n": 50}], collect_traffic=True) == 1
     deals = (output / "deals/index.html").read_text()
     assert "previously €23,00" in deals and "Example thermostat" in deals
-    guide = (output / "guides/stroller-footmuffs/index.html").read_text()
-    assert "Example thermostat" not in guide
-    assert guide.index("Checked retailer offers") < guide.index("What to check before ordering")
+    assert not (output / "guides/stroller-footmuffs/index.html").exists()
+    assert "/guides/stroller-footmuffs/ /deals/ 301" in (output / "_redirects").read_text()
     assert (output / "_worker.js").exists()
     assert json.loads((output / "_routes.json").read_text())["include"] == ["/mcp", "/auth/*", "/api/*", "/events"]
 

@@ -1,0 +1,82 @@
+{% from 'storefront.html.j2' import head, header, footer with context %}
+{% set faqs = [
+  ("Is DealFactory gratis?", "Ja. DealFactory is gratis, open source en heeft geen advertenties. Als je een betaalde AI-aanbieder koppelt, kan die aanbieder kosten rekenen voor wat je daar opvraagt."),
+  ("Leest DealFactory mijn e-mail?", "Alleen als je meedoet aan de beperkte Gmail-bèta. Google staat in de testfase hooguit 100 mensen toe zolang de controle loopt. Iedereen anders zet apparaten zelf in. De browser zoekt bonnetjes met alleen-lezen toegang, haalt herkenbare persoonlijke gegevens weg en stuurt fragmenten naar de AI-aanbieder die jij kiest. De server van DealFactory krijgt je Gmail-toegang of bontekst niet."),
+  ("Voor welke producten is dit?", "Alles wat moet passen bij wat je al hebt. Vooral slimme apparaten (Matter, Zigbee, Thread, Apple Home, Google Home, Home Assistant), slimme thermostaten, tv's en soundbars, en filters of onderdelen van apparaten."),
+  ("Heb ik een account nodig?", "Nee. Je setup blijft in deze browser. Je kunt hem als bestand bewaren of in één keer wissen."),
+  ("Verkoopt DealFactory producten?", "Nee. DealFactory controleert of iets past en linkt rechtstreeks naar de winkelpagina, zodat je de prijs daar zelf kunt nakijken."),
+  ("Welke AI gebruikt het?", "Degene die jij kiest. Log in bij OpenRouter, open je aankoopnotitie in Claude of ChatGPT, of koppel een MCP-tool."),
+] %}
+{% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
+<!doctype html><html lang="nl"><head>
+{{ head("DealFactory | Wat past bij jouw huis", "DealFactory onthoudt de slimme apparaten die je al hebt en kijkt of een volgend product past bij jouw huis.", "/nl/", alternates=true) }}
+<script type="module" src="/lib/storefront.js"></script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "FAQPage", "inLanguage": "nl", "mainEntity": entries} | tojson }}</script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "WebSite", "name": "DealFactory", "url": site_url + "/nl/", "inLanguage": "nl", "description": "DealFactory onthoudt wat er in huis staat en kijkt of een product past bij jouw huis."},
+  {"@type": "SoftwareApplication", "name": "DealFactory", "applicationCategory": "LifestyleApplication", "operatingSystem": "Web", "url": site_url + "/nl/advisor/", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Gratis browsergeheugen voor slimme apparaten. Jij kiest de AI."}
+]} | tojson }}</script>
+</head><body class="store home">
+{{ header(dutch=true) }}
+<main id="main" class="frame">
+  <section class="memory-hero" aria-labelledby="memory-title">
+    <div class="memory-copy">
+      <div class="label light"><span class="rule"></span>HET GEHEUGEN VAN JOUW HUIS</div>
+      <h1 id="memory-title">Koop wat <em>past bij jouw huis.</em></h1>
+      <p>DealFactory onthoudt de slimme apparaten die je al hebt, uit een Gmail-bon of omdat je ze zelf invoert, en kijkt of een voorstel daarbij past. De prijs komt van de winkelpagina.</p>
+      <div class="hero-actions"><a class="cta" href="/nl/advisor/#setup">Zet je huis neer <span aria-hidden="true">↗</span></a><a class="ghost" href="#how">Hoe het werkt <span aria-hidden="true">↓</span></a></div>
+      <ul class="promises" aria-label="Beloften"><li>Eerst passen, dan de prijs</li><li>Geen advertenties</li><li>Gratis en open source</li></ul>
+    </div>
+    <figure class="memory-card" aria-label="Voorbeeld van een huis en een passend voorstel">
+      <div class="memory-card-head"><strong>Jouw huis</strong><span>Voorbeeld</span></div>
+      <ul class="owned-list">
+        <li><i aria-hidden="true">◐</i><div><b>Philips Hue Bridge</b><small>Slim huis · Apple Home en Matter</small></div><span class="source gmail">Uit een Gmail-bon</span></li>
+        <li><i aria-hidden="true">◑</i><div><b>Intergas Kombi Kompakt</b><small>OpenTherm-ketel</small></div><span class="source">Zelf toegevoegd</span></li>
+        <li><i aria-hidden="true">◒</i><div><b>LG C2, 55 inch</b><small>OLED-tv · HDMI eARC</small></div><span class="source">Bevestigd</span></li>
+      </ul>
+      <p class="ask"><span>Jij vraagt</span>“Een slimme thermostaat voor Apple Home, onder €200”</p>
+      <div class="suggestion">
+        <div class="suggestion-head"><span class="label">PAST DIT</span><b>Matter-thermostaat met OpenTherm</b></div>
+        <ul><li>Stuurt je Intergas-ketel aan via OpenTherm</li><li>Werkt met Apple Home via Matter</li><li>De prijs linkt naar de winkelpagina</li></ul>
+      </div>
+    </figure>
+  </section>
+
+  <section class="steps" id="how" aria-labelledby="how-title">
+    <div class="section-head"><div><div class="label"><span class="rule"></span>HOE HET WERKT</div><h2 id="how-title">Drie stappen<span>.</span></h2></div></div>
+    <ol class="step-grid">
+      <li><span class="step-no">01</span><h3>Zet neer wat je hebt</h3><p>Typ je hubs, ketel, tv en apparaten. Een startvoorbeeld vult een gewoon huis. Gmail-import is een beperkte bèta voor hooguit 100 testgebruikers zolang Google de app bekijkt.</p></li>
+      <li><span class="step-no">02</span><h3>Vraag wat je nodig hebt</h3><p>Beschrijf het apparaat, het accessoire of het vervangende filter. DealFactory stuurt je huis, protocollen, land en munt mee.</p></li>
+      <li><span class="step-no">03</span><h3>Controleer pasvorm en prijs</h3><p>Elk voorstel wordt naast wat je hebt gelegd, met een directe link naar de winkel en een prijs die je daar zelf bevestigt.</p></li>
+    </ol>
+  </section>
+
+  <section class="why" aria-labelledby="why-title">
+    <div class="label"><span class="rule"></span>WAAROM DEALFACTORY</div>
+    <h2 id="why-title">Gebouwd rond <em>jouw huis,</em> niet rond een marktplaats.</h2>
+    <div class="why-grid">
+      <div><h3>Eerst de pasvorm</h3><p>Protocollen, hubs, ophanging en modelgeneraties gaan vóór de prijs.</p></div>
+      <div><h3>Elke winkel</h3><p>Niet vast aan Google, Amazon of Shopify. Voorstellen linken rechtstreeks naar de winkel.</p></div>
+      <div><h3>Meeneembaar naar elke AI</h3><p>Je setup is een open <a href="https://github.com/jaspreetsingh0792/dealfactory/blob/main/spec/shopping-context.md">Shopping Context</a>-bestand voor Claude, ChatGPT of een MCP-tool.</p></div>
+      <div><h3>Privé van ontwerp</h3><p>Opgeslagen in je browser. Geen advertenties, en Gmail-bonnen komen niet op onze server.</p></div>
+    </div>
+  </section>
+
+  <aside class="advisor-strip ai-strip"><div><div class="label"><span class="rule"></span>JE EIGEN AI</div><h2>Gebruik de AI <em>die je al hebt.</em></h2><p>Log in bij OpenRouter, open je notitie in Claude of ChatGPT, of koppel onze MCP-controle. DealFactory rekent geen AI-kosten.</p></div><a class="dark-button" href="/nl/advisor/#connect">Koppel je AI <span aria-hidden="true">↗</span></a></aside>
+
+  <section class="explore" aria-labelledby="explore-title">
+    <div class="section-head"><div><div class="label"><span class="rule"></span>GIDSEN</div><h2 id="explore-title">Begin bij een gids<span>.</span></h2></div></div>
+    <div class="explore-grid">
+      <a class="explore-card dark-card" href="/nl/guides/smart-home-compatibility/"><span class="label light"><span class="rule"></span>SLIM HUIS</span><h3>Wat past bij jouw huis</h3><p>Matter of Zigbee, OpenTherm-ketels, HDMI eARC en vervangende filters. Wat je nakijkt voordat je bestelt.</p><span class="go" aria-hidden="true">↗</span></a>
+      <a class="explore-card" href="/nl/deals/"><span class="label"><span class="rule"></span>GECONTROLEERD</span><h3>{% if offers %}{{ offers|length }} {{ "aanbieding" if offers|length == 1 else "aanbiedingen" }} op voorraad{% else %}Winkelaanbiedingen{% endif %}</h3><p>{% if offers %}Prijzen gelezen bij NL- en EU-winkels op <time datetime="{{ checked_at }}">{{ checked_label }}</time>.{% else %}Gecontroleerde aanbiedingen met een link naar elke winkel.{% endif %}</p><span class="go" aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-title">
+    <div class="label"><span class="rule"></span>VRAGEN</div>
+    <h2 id="faq-title">Goed om te weten<span>.</span></h2>
+    <div class="faq-list">{% for question, answer in faqs %}<details><summary>{{ question }}</summary><p>{{ answer }}</p></details>{% endfor %}</div>
+  </section>
+
+  <section class="closing" aria-labelledby="closing-title"><h2 id="closing-title">Begin met <em>jouw huis.</em></h2><p>Eén hub, tv of apparaat invoeren is zo gebeurd.</p><a class="cta" href="/nl/advisor/#setup">Zet je huis neer <span aria-hidden="true">↗</span></a></section>
+</main>{{ footer(dutch=true) }}</body></html>

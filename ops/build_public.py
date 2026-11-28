@@ -25,7 +25,10 @@ ROOT = Path(__file__).resolve().parents[1]
 GUIDE = "guides/stroller-footmuffs/"
 SMARTHOME_GUIDE = "guides/smart-home-compatibility/"
 DEALS = "deals/"
-SITEMAP = ("/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", f"/{GUIDE}", "/about/", "/privacy/", "/terms/")
+SITEMAP = (
+    "/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", "/about/", "/privacy/", "/terms/",
+    "/nl/", "/nl/advisor/", "/nl/guides/smart-home-compatibility/", "/nl/deals/",
+)
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
 
@@ -203,6 +206,97 @@ def listing_image(html, page_url):
     return None
 
 
+PREFERRED_FITS = ("Matter", "Zigbee", "Thread", "Wi-Fi", "OpenTherm")
+
+
+def offer_slug(name):
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return (slug or "offer")[:80]
+
+
+NOTES = json.loads((ROOT / "ops/product-notes.json").read_text())
+
+
+def fit_note(offer):
+    saved = NOTES.get(offer["url"])
+    if saved:
+        return saved
+    fits = [part.strip() for part in (offer.get("fits") or "").split(",") if part.strip()]
+    if not fits:
+        return {
+            "works_with": ["Not recorded yet. Confirm it on the shop page."],
+            "specs": ["DealFactory has not recorded a protocol or model code for this product."],
+            "good_for": "Only after you confirm the fit on the retailer page and against what you own.",
+            "not_for": "Buying it from the price alone. No fit tags were recorded.",
+            "guide": "/guides/smart-home-compatibility/",
+        }
+    return {
+        "works_with": fits,
+        "specs": [f"Fit tags recorded from the retailer page: {', '.join(fits)}."],
+        "good_for": f"A home already set up for {fits[0]}.",
+        "not_for": "A home that needs a protocol or model that is not in those fit tags.",
+        "guide": "/guides/smart-home-compatibility/",
+    }
+
+
+def product_structured(site_url, slug, group):
+    name = group[0]["name"]
+    prices = [Decimal(offer["price"].replace(",", ".")) for offer in group]
+    if len(group) >= 2:
+        offer_ld = {
+            "@type": "AggregateOffer",
+            "priceCurrency": "EUR",
+            "lowPrice": f"{min(prices):.2f}",
+            "highPrice": f"{max(prices):.2f}",
+            "offerCount": len(group),
+            "availability": "https://schema.org/InStock",
+        }
+    else:
+        one = group[0]
+        offer_ld = {
+            "@type": "Offer",
+            "priceCurrency": "EUR",
+            "price": f"{prices[0]:.2f}",
+            "availability": "https://schema.org/InStock",
+            "url": one["url"],
+            "seller": {"@type": "Organization", "name": one["retailer"]},
+        }
+    page = f"{site_url}/deals/{slug}/"
+    product_ld = {"@type": "Product", "name": name, "url": page, "offers": offer_ld}
+    note = group[0].get("note")
+    if note:
+        product_ld["description"] = note["good_for"]
+        product_ld["additionalProperty"] = [
+            {"@type": "PropertyValue", "name": "Works with", "value": "; ".join(note["works_with"])},
+            *({"@type": "PropertyValue", "name": "Checked fact", "value": spec} for spec in note["specs"]),
+        ]
+    return {
+        "@context": "https://schema.org",
+        "@graph": [
+            product_ld,
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+                    {"@type": "ListItem", "position": 2, "name": "Deals", "item": site_url + "/deals/"},
+                    {"@type": "ListItem", "position": 3, "name": name, "item": page},
+                ],
+            },
+        ],
+    }
+
+
+def fit_tokens(offers):
+    found = []
+    for offer in offers:
+        for part in (offer.get("fits") or "").split(","):
+            token = part.strip()
+            if token and token not in found:
+                found.append(token)
+    preferred = [token for token in PREFERRED_FITS if token in found]
+    return preferred + sorted(token for token in found if token not in PREFERRED_FITS)
+
+
 def collect_offers(sources, fetcher):
     offers = []
     for source in sources:
@@ -305,7 +399,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     )
     web = ROOT / "web"
     output.mkdir(parents=True, exist_ok=False)
-    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json", "media/*.webp", "media/*.ttf", "media/*-OFL.txt"):
+    for pattern in ("*.html", "*.css", "*.js", "lib/*.js", "spec/*.json", "media/*.webp", "media/*.svg", "media/*.ttf", "media/*-OFL.txt"):
         for path in web.glob(pattern):
             target = output / path.relative_to(web)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -338,6 +432,12 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
                 offer["previous_date"] = max(prices)
         prices[today.isoformat()] = f"{price:.2f}"
         observations[url] = prices
+    grouped = {}
+    for offer in offers:
+        offer["note"] = fit_note(offer)
+        slug = offer_slug(offer["name"])
+        offer["slug"] = slug
+        grouped.setdefault(slug, []).append(offer)
     (output / "offer-history.json").write_text(json.dumps(observations, ensure_ascii=False))
     feed = ET.Element("rss", version="2.0")
     channel = ET.SubElement(feed, "channel")
@@ -355,16 +455,14 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
     counts = {(r["page"], r["event"]): int(r["n"]) for r in traffic or []}
     guide_views = counts.get(("footmuffs", "view"), 0)
     show_offers_first = guide_views >= 30 and counts.get(("footmuffs", "outbound"), 0) < guide_views / 10
-    guide = output / GUIDE
-    guide.mkdir(parents=True)
     checked = datetime.now(UTC)
     context = dict(
         site_url=site_url, offers=offers, sources=sources, offers_first=show_offers_first,
         checked_at=checked.isoformat(timespec="minutes").replace("+00:00", "Z"),
         checked_label=checked.strftime("%d %b %Y"),
+        fit_tokens=fit_tokens(offers),
+        shipping_known=any(offer.get("shipping") for offer in offers),
     )
-    archived = {**context, "offers": [], "sources": []}
-    (guide / "index.html").write_text(templates.get_template("footmuffs.html.j2").render(**archived), encoding="utf-8")
     homepage = output / "index.html"
     advisor = output / "advisor" / "index.html"
     advisor.parent.mkdir(parents=True, exist_ok=True)
@@ -373,32 +471,127 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         original = original.replace("</head>", '<link rel="stylesheet" href="/storefront.css">\n</head>', 1)
     if 'class="df-advisor"' not in original:
         original = original.replace("<body>", '<body class="df-advisor">', 1)
+    if 'rel="canonical"' not in original:
+        original = original.replace(
+            "</head>",
+            f'<link rel="canonical" href="{site_url}/advisor/">\n</head>',
+            1,
+        )
+    if '"@type": "WebApplication"' not in original:
+        advisor_graph = {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "WebApplication",
+                    "name": "DealFactory shopping advisor",
+                    "url": site_url + "/advisor/",
+                    "applicationCategory": "LifestyleApplication",
+                    "operatingSystem": "Web",
+                    "description": "A browser advisor that checks products against what you already own.",
+                    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
+                },
+                {
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {"@type": "ListItem", "position": 1, "name": "DealFactory", "item": site_url + "/"},
+                        {"@type": "ListItem", "position": 2, "name": "Shopping advisor", "item": site_url + "/advisor/"},
+                    ],
+                },
+            ],
+        }
+        original = original.replace(
+            "</head>",
+            '<script type="application/ld+json">' + json.dumps(advisor_graph, ensure_ascii=False) + "</script>\n</head>",
+            1,
+        )
     if "your home." not in original:
         brand = templates.get_template("storefront.html.j2").module.wordmark()
         original = original.replace('<a class="brand" href="#top">DealFactory</a>', str(brand), 1)
         original = re.sub(r"<h1>[^<]+</h1>", '<h1>Buy what fits<br><em>your home.</em></h1>', original, count=1)
+    if 'rel="canonical"' not in original:
+        original = original.replace("</head>", f'<link rel="canonical" href="{site_url}/advisor/">\n</head>', 1)
+    if 'hreflang="nl"' not in original:
+        original = original.replace(
+            "</head>",
+            f'<link rel="alternate" hreflang="en" href="{site_url}/advisor/">\n'
+            f'<link rel="alternate" hreflang="nl" href="{site_url}/nl/advisor/">\n'
+            f'<link rel="alternate" hreflang="x-default" href="{site_url}/advisor/">\n</head>',
+            1,
+        )
     advisor.write_text(original, encoding="utf-8")
+    dutch_advisor = original.replace('<html lang="en">', '<html lang="nl">', 1)
+    dutch_advisor = dutch_advisor.replace(
+        "Shopping advisor: what fits your home | DealFactory",
+        "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "DealFactory | Buy what fits your home",
+        "Adviseur: wat past bij jouw huis | DealFactory",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.",
+        "Zet neer wat je al hebt en kijk wat past bij jouw huis. Je notities blijven in deze browser.",
+    )
+    dutch_advisor = dutch_advisor.replace(
+        "Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.",
+        "Zet neer wat je al hebt en kijk wat past bij jouw huis. Je notities blijven in deze browser.",
+    )
+    dutch_advisor = dutch_advisor.replace("Buy what fits<br><em>your home.</em>", "Wat<br><em>past bij jouw huis.</em>")
+    dutch_advisor = dutch_advisor.replace(
+        f'<link rel="canonical" href="{site_url}/advisor/">',
+        f'<link rel="canonical" href="{site_url}/nl/advisor/">',
+        1,
+    )
+    dutch_advisor = dutch_advisor.replace('href="/guides/smart-home-compatibility/"', 'href="/nl/guides/smart-home-compatibility/"')
+    dutch_advisor = dutch_advisor.replace('href="/deals/"', 'href="/nl/deals/"')
+    dutch_advisor = dutch_advisor.replace('href="/#how"', 'href="/nl/#how"')
+    dutch_advisor = re.sub(r'href="/"(?=[ >])', 'href="/nl/"', dutch_advisor)
+    nl_advisor = output / "nl" / "advisor" / "index.html"
+    nl_advisor.parent.mkdir(parents=True, exist_ok=True)
+    nl_advisor.write_text(dutch_advisor, encoding="utf-8")
     privacy_file = output / "privacy.html"
     if privacy_file.exists():
         privacy_dir = output / "privacy"
         privacy_dir.mkdir(parents=True, exist_ok=True)
         privacy_file.replace(privacy_dir / "index.html")
     homepage.write_text(templates.get_template("home.html.j2").render(**context), encoding="utf-8")
+    nl_home = output / "nl" / "index.html"
+    nl_home.parent.mkdir(parents=True, exist_ok=True)
+    nl_home.write_text(templates.get_template("nl-home.html.j2").render(**context), encoding="utf-8")
     smarthome = output / SMARTHOME_GUIDE / "index.html"
     smarthome.parent.mkdir(parents=True)
     smarthome.write_text(templates.get_template("smarthome.html.j2").render(**context), encoding="utf-8")
+    nl_guide = output / "nl" / "guides" / "smart-home-compatibility" / "index.html"
+    nl_guide.parent.mkdir(parents=True, exist_ok=True)
+    nl_guide.write_text(templates.get_template("nl-smarthome.html.j2").render(**context), encoding="utf-8")
     deals = output / DEALS / "index.html"
     deals.parent.mkdir(parents=True)
-    deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, **context), encoding="utf-8")
+    deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, dutch=False, **context), encoding="utf-8")
+    nl_deals = output / "nl" / "deals" / "index.html"
+    nl_deals.parent.mkdir(parents=True, exist_ok=True)
+    nl_deals.write_text(templates.get_template("storefront.html.j2").render(deals=True, dutch=True, **context), encoding="utf-8")
+    product_template = templates.get_template("product.html.j2")
+    for slug, group in grouped.items():
+        folder = output / DEALS / slug
+        folder.mkdir(parents=True)
+        (folder / "index.html").write_text(product_template.render(
+            site_url=site_url, slug=slug, offers=group, checked_at=context["checked_at"],
+            checked_label=context["checked_label"], structured=product_structured(site_url, slug, group),
+        ), encoding="utf-8")
     for page in ("about", "terms"):
         target = output / page / "index.html"
         target.parent.mkdir(parents=True)
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
-    public_pages = (homepage, smarthome, deals, guide / "index.html")
+    public_pages = (
+        homepage, smarthome, deals,
+        output / "nl/index.html", output / "nl/deals/index.html",
+        output / "nl/guides/smart-home-compatibility/index.html",
+    )
     measured_pages = (
         *public_pages,
         advisor,
+        output / "nl/advisor/index.html",
         output / "about/index.html",
         output / "terms/index.html",
         output / "privacy/index.html",
@@ -410,7 +603,12 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         script += '<link rel="alternate" type="application/rss+xml" title="Checked offers" href="/offers.xml">'
         if collect_traffic:
             script += '<meta name="dealfactory-counts" content="aggregate">'
-            markup = markup.replace("</main>", '<p class="small muted">DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies.</p>\n</main>', 1)
+            note = (
+                "DealFactory telt paginabezoeken, gedeelde gidsen en winkelklikken opgeteld. Deze tellers gebruiken geen cookies."
+                if "nl" in page_path.parts
+                else "DealFactory counts page views, guide shares, and retailer clicks in aggregate. These counters use no cookies."
+            )
+            markup = markup.replace("</main>", f'<p class="small muted">{note}</p>\n</main>', 1)
         page_path.write_text(markup.replace("</head>", script + "\n</head>", 1), encoding="utf-8")
     for page_path in measured_pages:
         if page_path in public_pages:
@@ -464,7 +662,10 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         encoding="utf-8",
     )
     (output / "_redirects").write_text(
-        "/advisor.html /advisor/ 301\n/privacy.html /privacy/ 301\n/advisor /advisor/ 301\n/privacy /privacy/ 301\n",
+        "/advisor.html /advisor/ 301\n/privacy.html /privacy/ 301\n/advisor /advisor/ 301\n/privacy /privacy/ 301\n"
+        "/guides/stroller-footmuffs /deals/ 301\n"
+        "/guides/stroller-footmuffs/ /deals/ 301\n"
+        "/guides/stroller-footmuffs/index.html /deals/ 301\n",
         encoding="utf-8",
     )
     (output / "robots.txt").write_text(f"User-agent: *\nSitemap: {site_url}/sitemap.xml\n")
@@ -473,7 +674,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
         + "".join(
-            f"<url><loc>{escape(site_url + path)}</loc><lastmod>{lastmod}</lastmod></url>" for path in SITEMAP
+            f"<url><loc>{escape(site_url + path)}</loc><lastmod>{lastmod}</lastmod></url>"
+            for path in (*SITEMAP, *(f"/deals/{slug}/" for slug in grouped))
         )
         + "</urlset>\n", encoding="utf-8"
     )

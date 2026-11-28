@@ -34,9 +34,9 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert public.build(output, "https://example.com", Fetcher(), "public-example") == 1
     assert not (output / "tests").exists()
     assert not (output / "private").exists()
-    html = (output / public.GUIDE / "index.html").read_text()
-    assert "€89,95" not in html
-    assert "stroller" in html.lower()
+    assert not (output / public.GUIDE / "index.html").exists()
+    redirects = (output / "_redirects").read_text()
+    assert "/guides/stroller-footmuffs/ /deals/ 301" in redirects
     home = (output / "index.html").read_text()
     assert 'id="memory-title"' in home and 'href="/advisor/#setup"' in home
     assert '"@type": "WebSite"' in home and '"@type": "SoftwareApplication"' in home
@@ -46,10 +46,30 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "winter-walk.webp" not in home
     assert '"@type": "FAQPage"' in home
     assert "static.cloudflareinsights.com" in home
+    assert 'rel="icon"' in home and "favicon.svg" in home
+    assert (output / "media/favicon.svg").is_file()
+    assert 'name="twitter:card"' in home and "summary_large_image" in home
+    assert "og:image" in home
     deals = (output / public.DEALS / "index.html").read_text()
     assert "€89,95" in deals and 'id="cover-title"' in deals
     assert "data-offers-checked=" in deals and "hidden data-offers-checked" not in deals
     assert "Fits: OpenTherm, Matter" in deals
+    assert 'data-protocol="Matter"' in deals and 'data-protocol="OpenTherm"' in deals
+    assert "Price before delivery. Confirm it at the shop." in deals
+    assert "Open shop" in deals
+    assert "Total with delivery" not in deals
+    assert "Delivery €" not in deals
+    product_slug = "tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie"
+    product = (output / "deals" / product_slug / "index.html").read_text()
+    assert f"<title>tado Bedrade Slimme Thermostaat X Startpakket 2e Generatie: checked price and fit | DealFactory</title>" in product
+    assert "Good for" in product and "Not for" in product
+    assert "tado V3+" in product
+    assert "What it works with" in product
+    assert '"@type": "Offer"' in product and "AggregateOffer" not in product
+    assert 'rel="canonical" href="https://example.com/deals/' + product_slug + '/"' in product
+    assert '"@type": "BreadcrumbList"' in product
+    assert "Fit and compatibility" in product
+    assert f'href="/deals/{product_slug}/"' in deals
     assert "winter-walk.webp" not in deals.split("<body", 1)[-1]
     assert "static.cloudflareinsights.com" in deals
     assert '"@type": "ItemList"' in deals and '"@type": "BreadcrumbList"' in deals
@@ -73,6 +93,11 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'http-equiv="Content-Security-Policy"' in smarthome
     assert 'name="robots" content="noindex"' in (output / "404.html").read_text()
     advisor = (output / "advisor/index.html").read_text()
+    assert "<title>Shopping advisor: what fits your home | DealFactory</title>" in advisor
+    assert "Tell DealFactory what you own" in advisor
+    assert 'rel="canonical" href="https://example.com/advisor/"' in advisor
+    assert '"@type": "WebApplication"' in advisor and '"@type": "BreadcrumbList"' in advisor
+    assert advisor.split("<title>", 1)[1].split("</title>", 1)[0] != home.split("<title>", 1)[1].split("</title>", 1)[0]
     assert not (output / "advisor.html").exists()
     assert (output / "privacy/index.html").is_file()
     assert not (output / "privacy.html").exists()
@@ -89,19 +114,33 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "/lib/guide-events.js" in privacy
     assert "Limited Use" in privacy and "deals@agentsealteam.com" not in privacy
     assert "Built-in AI" in privacy and "Delete account" in privacy
+    assert "cookieless beacon" in privacy
     routes = json.loads((output / "_routes.json").read_text())["include"]
     assert "/auth/*" in routes and "/api/*" in routes
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
     assert "/lib/guide-events.js" in (output / "terms/index.html").read_text()
-    guide = (output / public.GUIDE / "index.html").read_text()
-    assert "winter-walk.webp" in guide
     sitemap = ET.parse(output / "sitemap.xml")
     assert sitemap.find(".//map:loc[.='https://example.com/advisor/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:loc[.='https://example.com/privacy/']", SITEMAP_NS) is not None
     assert sitemap.find(".//map:lastmod", SITEMAP_NS) is not None
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.SMARTHOME_GUIDE}']", SITEMAP_NS) is not None
-    assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is not None
+    assert sitemap.find(f".//map:loc[.='https://example.com/{public.GUIDE}']", SITEMAP_NS) is None
+    assert "stroller-footmuffs" not in (output / "sitemap.xml").read_text()
     assert sitemap.find(f".//map:loc[.='https://example.com/{public.DEALS}']", SITEMAP_NS) is not None
+    dutch_home = (output / "nl/index.html").read_text()
+    assert 'lang="nl"' in dutch_home and "past bij jouw huis" in dutch_home
+    assert 'hreflang="nl"' in home and 'hreflang="x-default"' in home
+    assert 'hreflang="en"' in dutch_home and "pricewatch" not in dutch_home.lower()
+    dutch_deals = (output / "nl/deals/index.html").read_text()
+    assert "passen bij jouw huis" in dutch_deals and "Open de winkel" in dutch_deals
+    dutch_guide = (output / "nl/guides/smart-home-compatibility/index.html").read_text()
+    assert 'id="sh-title"' in dutch_guide and "past bij jouw huis" in dutch_guide
+    dutch_advisor = (output / "nl/advisor/index.html").read_text()
+    assert 'lang="nl"' in dutch_advisor and "past bij jouw huis" in dutch_advisor
+    assert "<title>Adviseur: wat past bij jouw huis | DealFactory</title>" in dutch_advisor
+    assert sitemap.find(".//map:loc[.='https://example.com/nl/']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:loc[.='https://example.com/nl/deals/']", SITEMAP_NS) is not None
+    assert sitemap.find(".//map:loc[.='https://example.com/deals/tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie/']", SITEMAP_NS) is not None
 
 
 def test_missing_ambiguous_or_unavailable_prices_are_omitted():
@@ -135,6 +174,52 @@ def test_exact_stock_price_reads_aggregate_specification_and_variants():
 
 def script(data):
     return '<script type="application/ld+json">' + json.dumps(data) + "</script>"
+
+
+def test_fit_tokens_prefer_protocols_and_shipping_sort_is_conditional():
+    tokens = public.fit_tokens([
+        {"fits": "Philips Hue, Zigbee"},
+        {"fits": "OpenTherm, Matter"},
+    ])
+    assert tokens == ["Matter", "Zigbee", "OpenTherm", "Philips Hue"]
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    env = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / "ops"), autoescape=select_autoescape(default=True))
+    html = env.get_template("storefront.html.j2").render(
+        deals=True, site_url="https://example.com", checked_at="2026-11-27T00:00Z", checked_label="27 Nov 2026",
+        fit_tokens=["Matter"], shipping_known=True,
+        offers=[{"name": "Example lock", "retailer": "Shop", "price": "10,00", "shipping": "4,95",
+                 "slug": "example-lock", "url": "https://shop.example/lock", "fits": "Matter"}],
+    )
+    assert "Total with delivery" in html
+    assert "Delivery €4,95" in html
+    assert 'data-total="14.95"' in html
+    assert "Price before delivery. Confirm it at the shop." in html
+
+
+def test_unrecorded_fit_stays_honest():
+    note = public.fit_note({"url": "https://shop.example/unknown", "fits": ""})
+    assert "not recorded" in note["specs"][0].lower()
+    assert "No fit tags" in note["not_for"]
+
+
+def test_every_curated_offer_has_a_fit_note():
+    sources = json.loads((Path(__file__).resolve().parents[1] / "ops/offer-sources.json").read_text())
+    missing = [source["url"] for source in sources if source["url"] not in public.NOTES]
+    assert missing == []
+
+
+def test_aggregate_offer_requires_two_verified_shops():
+    one = public.product_structured("https://example.com", "plug", [{
+        "name": "Plug", "price": "10,00", "url": "https://a.example/plug", "retailer": "A",
+    }])
+    assert one["@graph"][0]["offers"]["@type"] == "Offer"
+    two = public.product_structured("https://example.com", "plug", [
+        {"name": "Plug", "price": "10,00", "url": "https://a.example/plug", "retailer": "A"},
+        {"name": "Plug", "price": "12,00", "url": "https://b.example/plug", "retailer": "B"},
+    ])
+    assert two["@graph"][0]["offers"]["@type"] == "AggregateOffer"
+    assert two["@graph"][0]["offers"]["offerCount"] == 2
+    assert two["@graph"][0]["offers"]["lowPrice"] == "10.00"
 
 
 def test_listing_image_prefers_product_image():

@@ -7,7 +7,7 @@
 ] %}
 {% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
 <!doctype html><html lang="en"><head>
-{{ head("Smart home & appliance compatibility guide | DealFactory", "What to check before buying smart-home devices, OpenTherm thermostats, soundbars and replacement appliance filters in Europe.", "/guides/smart-home-compatibility/") }}
+{{ head("Smart home & appliance compatibility guide | DealFactory", "What to check before buying smart-home devices, OpenTherm thermostats, soundbars and replacement appliance filters in Europe.", "/guides/smart-home-compatibility/", alternates=true) }}
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
   {"@type": "FAQPage", "mainEntity": entries},
   {"@type": "TechArticle", "headline": "Smart home and appliance compatibility guide", "dateModified": checked_at, "inLanguage": "en", "author": {"@type": "Organization", "name": "DealFactory"}, "publisher": {"@type": "Organization", "name": "DealFactory", "url": site_url + "/"}, "mainEntityOfPage": site_url + "/guides/smart-home-compatibility/"},

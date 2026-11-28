@@ -63,11 +63,30 @@
 .image-fallback{position:absolute;inset:0;display:grid;place-content:center;color:#596a55;font:italic clamp(36px,4vw,56px)/1 var(--display)}
 .product-image.loaded .image-fallback{display:none}
 .reduction{position:absolute;top:12px;left:12px;color:#243119;background:var(--lime);border-radius:18px;padding:5px 8px;font-size:10px;letter-spacing:.04em}
-.product-info{flex:1;display:flex;flex-direction:column;padding:18px 19px 15px}
+.product-info{flex:1;display:flex;flex-direction:column;padding:18px 19px 8px}
+.product-actions{padding:0 19px 16px}
+.crumbs{margin:28px 0 8px;color:#5c6758;font-size:14px}
+.crumbs a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.product-page{max-width:720px;padding-bottom:48px}
+.product-page h1{margin:8px 0 12px;font-size:clamp(32px,5vw,52px);letter-spacing:-.045em;line-height:1.05}
+.shop-offer{margin:22px 0;padding-top:16px;border-top:1px solid var(--line)}
+.product-price{font-size:28px;letter-spacing:-.04em}
+.fit-note{margin-top:28px}
+.fit-note h2{font-size:22px;letter-spacing:-.03em;margin:22px 0 8px}
+.fit-note ul{margin:0;padding-left:18px}
+.fit-note li{margin:6px 0;line-height:1.45}
+.fit-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.fit-split div{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fit-split h2{margin-top:0}
+.good-for{border-top:4px solid var(--lime)}
+.not-for{border-top:4px solid var(--pine)}
+@media(max-width:650px){.fit-split{grid-template-columns:1fr}}
 .product-brand{text-transform:uppercase;color:var(--soft);margin-bottom:7px}
 .product-info h3{font-size:clamp(19px,1.6vw,25px);font-weight:570;letter-spacing:-.04em;line-height:1.13}
 .price-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:15px;margin-top:auto}
 .fits{display:inline-block;margin-top:8px;padding:3px 8px;border-radius:99px;background:#eef3d4;color:#182e20;font-size:12px;font-weight:650;letter-spacing:-.01em}
+.price-note,.shipping{margin:6px 0 0;color:#5c6758;font-size:12px;line-height:1.35}
+.open-shop{display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid var(--pine);border-radius:99px;background:var(--lime);color:var(--pine);font-size:12px;font-weight:700;letter-spacing:0}
 .price-line strong{font-size:20px;font-weight:580;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
 .go{border:1px solid var(--line);border-radius:50%;width:32px;height:32px;display:grid;place-content:center}
 .product a:hover .go{background:var(--lime)}
@@ -218,7 +237,8 @@
  .section-head{display:block}.dateline{margin-top:10px!important}.controls{align-items:flex-start;flex-wrap:wrap;padding-block:12px}.filters button{padding:8px 11px}
  .products{gap:13px 10px}.product{border-radius:11px}.product-image{aspect-ratio:1.15}.product-image img{padding:5px}.product-info{padding:12px 10px}.product-info h3{font-size:17px}.product-brand{font-size:9px}.price-line strong{font-size:18px}.go{width:26px;height:26px;font-size:15px}
  .guide-cover{grid-template-columns:1fr}.guide-title{padding:24px}.guide-title .crumb{margin-bottom:20px}.guide-title h1{font-size:65px}.guide-photo{height:165px;background-position:78% 52%}
- .notes-grid{grid-template-columns:1fr;gap:18px}.notes-grid h3{font-size:18px}.sources,.advisor-strip{flex-direction:column;align-items:flex-start}.foot-inner{align-items:flex-start;flex-wrap:wrap}.foot nav{gap:15px}.foot nav a{font-size:12px}
+ .notes-grid{grid-template-columns:1fr;gap:18px}.notes-grid h3{font-size:18px}.sources,.advisor-strip{flex-direction:column;align-items:flex-start}.foot-inner{align-items:flex-start;flex-wrap:wrap}.foot nav{gap:15px;flex-wrap:wrap;max-width:100%}.foot nav a{font-size:12px}
 }
+@media(max-width:420px){.memory-copy h1{font-size:clamp(36px,10vw,46px)}.mast nav{max-width:100%}.mast nav .advisor-link{white-space:normal;text-align:center}}
 @media(max-width:360px){.products{grid-template-columns:1fr}.mast nav .advisor-link{padding:9px}.frame{width:calc(100% - 24px)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}

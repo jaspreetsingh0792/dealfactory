@@ -72,6 +72,9 @@ def choose(angles, offer_count, layout):
 
 def edit(output):
     guide = output / "guides/stroller-footmuffs/index.html"
+    if not guide.is_file():
+        print("The retired footmuff guide is not published. No editorial rewrite was applied.")
+        return
     html = guide.read_text()
     feed = ET.parse(output / "offers.xml")
     count = len(feed.findall("./channel/item"))

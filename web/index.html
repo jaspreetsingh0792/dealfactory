@@ -6,9 +6,18 @@
 <!-- Built-in AI and sign-in stay on this site ('self'). connect-src still allows https so an optional custom BYO base URL can be any https origin. http is limited to localhost for Ollama. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://gmail.googleapis.com https://cloudflareinsights.com https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Compare products that fit your home and the things you own. Check retailer sources or take your shopping brief to your own AI assistant.">
-<title>DealFactory | Buy what fits your home</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23182e20'/%3E%3Cpath d='M9 17l5 5 9-12' stroke='%23e0fa69' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="description" content="Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.">
+<title>Shopping advisor: what fits your home | DealFactory</title>
+<link rel="icon" href="/media/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shopping advisor: what fits your home | DealFactory">
+<meta property="og:description" content="Tell DealFactory what you own and get a shortlist of products that fit your home. Your notes stay in this browser.">
+<meta property="og:url" content="https://deals.agentsealteam.com/advisor/">
+<meta property="og:image" content="https://deals.agentsealteam.com/media/home-setup.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Shopping advisor: what fits your home | DealFactory">
+<meta name="twitter:image" content="https://deals.agentsealteam.com/media/home-setup.png">
+<meta name="theme-color" content="#182e20">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/storefront.css">
 </head>
@@ -64,7 +73,7 @@
 
     <section id="connect">
       <h2>Connect</h2>
-      <p class="lede">Step 1 is sign-in. The free built-in AI is ready after that. Step 2 is an optional Gmail import. A starter preset still works with no account.</p>
+      <p class="lede">Add the devices you own by hand. That is the way in for everyone. Sign-in is optional, and when it is not set up yet you can still use your own AI. Gmail import is a limited beta while Google reviews the app.</p>
       <p id="connect-progress" class="small" role="status"></p>
       <div class="connect-presets" role="group" aria-label="Starter setups">
         <button type="button" class="secondary" data-preset="apple-opentherm">Apple Home + OpenTherm</button>
@@ -140,37 +149,12 @@
           <p class="small muted">Your browser talks to the provider you pick. The key stays in this browser. The provider may charge for each request. A custom address must be https, which is why this page allows https connections. The built-in AI does not use that.</p>
           </details>
         </div>
-        <div class="card connect-step" id="gmail" data-locked="true">
-          <h3><span class="step-badge" aria-hidden="true">2</span> Gmail import</h3>
-          <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
-            as <span class="tag warn">unconfirmed</span> until you confirm it. Skipped if you would rather type your devices.</p>
-          <ul class="small">
-            <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
-            <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
-            <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
-          </ul>
-          <p id="gm-status" class="small step-hint" data-gate="locked" role="status" aria-live="polite">Finish <a href="#ai">step 1</a> before importing receipts.</p>
-          <div id="gm-progress" hidden>
-            <div id="gm-bar" class="gm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%" aria-label="Gmail import progress"><span id="gm-bar-fill"></span></div>
-            <button type="button" id="gm-cancel" class="secondary" hidden>Cancel</button>
-          </div>
-          <div class="row">
-            <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
-            <label class="small">From the last
-              <select id="gm-since" disabled><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
-          </div>
-          <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
-            <ul id="gm-list" class="owned"></ul>
-            <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
-          </details>
-        </div>
       </div>
     </section>
 
     <section id="setup">
-      <h2>Your setup</h2>
-      <p class="lede">The more it knows about your home and what you own, the better the picks. Anything
-        imported from an assistant stays <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+      <h2><span class="step-badge" aria-hidden="true">2</span> Your setup</h2>
+      <p class="lede">Type what you own. A hub, boiler, TV or purifier is enough to start. A starter preset above fills a typical home if you would rather not type. Anything imported stays <span class="tag warn">unconfirmed</span> until you confirm it.</p>
       <div class="grid two">
         <div class="card">
           <h3>Home &amp; preferences</h3>
@@ -190,8 +174,39 @@
             <input id="owned-category" aria-label="Product category" placeholder="What (hub, thermostat, TV, purifier…)" required>
             <input id="owned-brand" aria-label="Brand" placeholder="Brand" required>
             <input id="owned-model" aria-label="Model" placeholder="Model" required>
-            <button type="submit" class="secondary">Add</button>
+            <button type="submit" class="primary">Add device</button>
           </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="gmail-beta" aria-labelledby="gmail-title">
+      <h2 id="gmail-title">Gmail import <span class="tag warn">Limited beta</span></h2>
+      <p class="lede">Google has this app in testing, which allows at most 100 test users. Add devices by hand above. That works for everyone today.</p>
+      <div class="connect-steps">
+        <div class="card connect-step" id="gmail" data-locked="true">
+          <h3><span class="step-badge" aria-hidden="true">3</span> Optional Gmail import</h3>
+          <p class="small">After step 1. Finds order confirmations and adds what you bought to <a href="#setup">Your setup</a>
+            as <span class="tag warn">unconfirmed</span> until you confirm it.</p>
+          <ul class="small">
+            <li>Import searches Gmail with read-only access for messages that look like purchases.</li>
+            <li>Your browser removes recognizable personal details and sends receipt excerpts to the provider you pick in step 1. Some personal details may remain.</li>
+            <li>DealFactory saves the extracted purchases in this browser. <a href="/privacy/">Read about data use and removal.</a></li>
+          </ul>
+          <p id="gm-status" class="small step-hint" data-gate="locked" role="status" aria-live="polite">Finish <a href="#ai">step 1</a> before importing receipts.</p>
+          <div id="gm-progress" hidden>
+            <div id="gm-bar" class="gm-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%" aria-label="Gmail import progress"><span id="gm-bar-fill"></span></div>
+            <button type="button" id="gm-cancel" class="secondary" hidden>Cancel</button>
+          </div>
+          <div class="row">
+            <button type="button" id="gm-connect" class="primary" disabled aria-disabled="true">Connect Gmail and import</button>
+            <label class="small">From the last
+              <select id="gm-since" disabled><option value="6m">6 months</option><option value="1y">year</option><option value="2y" selected>2 years</option><option value="5y">5 years</option></select></label>
+          </div>
+          <details class="more" id="gm-list-wrap" hidden><summary id="gm-summary">Imported purchases</summary>
+            <ul id="gm-list" class="owned"></ul>
+            <button type="button" id="gm-forget" class="link">Delete all imported purchases</button>
+          </details>
         </div>
       </div>
     </section>

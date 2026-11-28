@@ -1,29 +1,51 @@
 {% macro wordmark(root="/") -%}
 <a class="wordmark" href="{{ root }}" aria-label="DealFactory home"><i class="tag-mark" aria-hidden="true"></i>DealFactory<span class="brand-period">.</span></a>
 {%- endmacro %}
-{% macro head(title, description, path, image="/media/home-setup.png") %}
+{% macro head(title, description, path, image="/media/home-setup.png", alternates=false) %}
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>{{ title }}</title>
 <meta name="description" content="{{ description }}">
+<meta property="og:type" content="website">
 <meta property="og:title" content="{{ title }}">
 <meta property="og:description" content="{{ description }}">
 <meta property="og:url" content="{{ site_url }}{{ path }}">
 <meta property="og:image" content="{{ site_url }}{{ image }}">
-<link rel="canonical" href="{{ site_url }}{{ path }}"><link rel="stylesheet" href="/storefront.css">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title }}">
+<meta name="twitter:description" content="{{ description }}">
+<meta name="twitter:image" content="{{ site_url }}{{ image }}">
+<meta name="theme-color" content="#182e20">
+<link rel="icon" href="/media/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="{{ site_url }}{{ path }}">{% if alternates %}
+{% set en_path = "/" if path == "/nl/" else (path[3:] if path.startswith("/nl/") else path) %}
+{% set nl_path = "/nl/" if path == "/" else ("/nl" + path if not path.startswith("/nl") else path) %}
+<link rel="alternate" hreflang="en" href="{{ site_url }}{{ en_path }}">
+<link rel="alternate" hreflang="nl" href="{{ site_url }}{{ nl_path }}">
+<link rel="alternate" hreflang="x-default" href="{{ site_url }}{{ en_path }}">
+{% endif %}
+<link rel="stylesheet" href="/storefront.css">
 <link rel="preload" href="/media/InstrumentSerif-Italic.ttf" as="font" type="font/ttf" crossorigin>
 {% endmacro %}
-{% macro header(current="") %}
-<a class="skip" href="#main">Skip to content</a>
+{% macro header(current="", dutch=false) %}
+{% set root = "/nl/" if dutch else "/" %}
+{% set guide = "/nl/guides/smart-home-compatibility/" if dutch else "/guides/smart-home-compatibility/" %}
+{% set deals_href = "/nl/deals/" if dutch else "/deals/" %}
+{% set advisor = "/nl/advisor/" if dutch else "/advisor/" %}
+{% if current == "deals" %}{% set switch = "/deals/" if dutch else "/nl/deals/" %}
+{% elif current == "smarthome" %}{% set switch = "/guides/smart-home-compatibility/" if dutch else "/nl/guides/smart-home-compatibility/" %}
+{% else %}{% set switch = "/" if dutch else "/nl/" %}{% endif %}
+<a class="skip" href="#main">{{ "Naar de inhoud" if dutch else "Skip to content" }}</a>
 <header class="mast"><div class="frame mast-inner">
-  {{ wordmark() }}
-  <nav aria-label="Main navigation"><a class="nav-secondary" href="/#how">How it works</a><a class="nav-secondary"{% if current == "smarthome" %} aria-current="page"{% endif %} href="/guides/smart-home-compatibility/">Smart home guide</a><a class="nav-secondary"{% if current == "deals" %} aria-current="page"{% endif %} href="/deals/">Deals</a><a class="advisor-link" href="/advisor/">Open your advisor <span aria-hidden="true">↗</span></a></nav>
+  {{ wordmark(root) }}
+  <nav aria-label="{{ "Hoofdnavigatie" if dutch else "Main navigation" }}"><a class="nav-secondary" href="{{ root }}#how">{{ "Hoe het werkt" if dutch else "How it works" }}</a><a class="nav-secondary"{% if current == "smarthome" %} aria-current="page"{% endif %} href="{{ guide }}">{{ "Gids" if dutch else "Smart home guide" }}</a><a class="nav-secondary"{% if current == "deals" %} aria-current="page"{% endif %} href="{{ deals_href }}">{{ "Aanbiedingen" if dutch else "Deals" }}</a><a class="nav-secondary" hreflang="{{ "en" if dutch else "nl" }}" href="{{ switch }}">{{ "EN" if dutch else "NL" }}</a><a class="advisor-link" href="{{ advisor }}">{{ "Open de adviseur" if dutch else "Open your advisor" }} <span aria-hidden="true">↗</span></a></nav>
 </div></header>
 {% endmacro %}
-{% macro footer() %}
-<footer class="foot"><div class="frame foot-inner">{{ wordmark() }}<nav aria-label="Footer navigation"><a href="/advisor/">Shopping advisor</a><a href="/deals/">Deals</a><a href="/about/">About</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/jaspreetsingh0792/dealfactory">Source code <span aria-hidden="true">↗</span></a></nav></div></footer>
+{% macro footer(dutch=false) %}
+{% set root = "/nl/" if dutch else "/" %}
+<footer class="foot"><div class="frame foot-inner">{{ wordmark(root) }}<nav aria-label="{{ "Voettekst" if dutch else "Footer navigation" }}"><a href="{{ "/nl/advisor/" if dutch else "/advisor/" }}">{{ "Adviseur" if dutch else "Shopping advisor" }}</a><a href="{{ "/nl/deals/" if dutch else "/deals/" }}">{{ "Aanbiedingen" if dutch else "Deals" }}</a><a href="/about/">{{ "Over" if dutch else "About" }}</a><a href="/privacy/">Privacy</a><a href="/terms/">{{ "Voorwaarden" if dutch else "Terms" }}</a><a href="https://github.com/jaspreetsingh0792/dealfactory">{{ "Broncode" if dutch else "Source code" }} <span aria-hidden="true">↗</span></a></nav></div></footer>
 {% endmacro %}
-{% macro offer_grid(offers, checked_at, guide=false) %}
+{% macro offer_grid(offers, checked_at, guide=false, fit_tokens=[], shipping_known=false, dutch=false) %}
 <div class="section-head" id="shortlist">
   <div><div class="label"><span class="rule"></span>DUTCH RETAILERS</div><h2>{% if guide %}Checked retailer offers{% else %}The shortlist<span>.</span>{% endif %}</h2></div>
   {% if offers %}<p class="dateline">Last checked <time datetime="{{ checked_at }}">{{ checked_label }}</time></p>{% endif %}
@@ -32,24 +54,30 @@
 {% if offers %}
 <div data-offers-checked="{{ checked_at }}">
   <div class="controls">
-    <div class="filters" role="group" aria-label="Filter by retailer"><button type="button" data-filter="" aria-pressed="true">All offers <small>{{ offers|length }}</small></button>{% for retailer in offers|map(attribute='retailer')|unique|sort %}<button type="button" data-filter="{{ retailer }}" aria-pressed="false">{{ retailer }}</button>{% endfor %}</div>
-    <label class="sort"><span class="sr-only">Sort offers</span><select id="offer-sort" aria-label="Sort offers"><option value="asc">Price: low to high</option><option value="desc">Price: high to low</option><option value="name">Name: A to Z</option></select></label>
+    <div class="filters" role="group" aria-label="{{ "Filter op winkel" if dutch else "Filter by retailer" }}"><button type="button" data-filter="" aria-pressed="true">{{ "Alle aanbiedingen" if dutch else "All offers" }} <small>{{ offers|length }}</small></button>{% for retailer in offers|map(attribute='retailer')|unique|sort %}<button type="button" data-filter="{{ retailer }}" aria-pressed="false">{{ retailer }}</button>{% endfor %}</div>
+    {% if fit_tokens %}<div class="filters" role="group" aria-label="{{ "Filter op wat past" if dutch else "Filter by what it fits" }}"><button type="button" data-protocol="" aria-pressed="true">{{ "Alles wat past" if dutch else "All fits" }}</button>{% for token in fit_tokens %}<button type="button" data-protocol="{{ token }}" aria-pressed="false">{{ token }}</button>{% endfor %}</div>{% endif %}
+    <label class="sort"><span class="sr-only">{{ "Sorteer aanbiedingen" if dutch else "Sort offers" }}</span><select id="offer-sort" aria-label="{{ "Sorteer aanbiedingen" if dutch else "Sort offers" }}"><option value="asc">{{ "Prijs: laag naar hoog" if dutch else "Price: low to high" }}</option><option value="desc">{{ "Prijs: hoog naar laag" if dutch else "Price: high to low" }}</option><option value="name">{{ "Naam: A tot Z" if dutch else "Name: A to Z" }}</option>{% if shipping_known %}<option value="total">{{ "Totaal met bezorging" if dutch else "Total with delivery" }}</option>{% endif %}</select></label>
   </div>
   <div class="products" id="offer-grid">
     {% for offer in offers %}
-    <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}">
-      <a class="product-target" data-retailer href="{{ offer.url }}">
+    <article class="product" data-shop="{{ offer.retailer }}" data-price="{{ offer.price|replace(',', '.') }}" data-name="{{ offer.name }}"{% if offer.fits %} data-fits="{{ offer.fits }}"{% endif %}{% if offer.shipping %} data-total="{{ (offer.price|replace(',', '.')|float + offer.shipping|replace(',', '.')|float)|round(2) }}"{% endif %}>
+      <a class="product-target" href="/deals/{{ offer.slug }}/">
         <div class="product-image">
           <span class="image-fallback" aria-hidden="true">{{ offer.retailer }}</span>
           {% if offer.image %}<img src="{{ offer.image }}" loading="lazy" decoding="async" alt="" referrerpolicy="no-referrer">{% endif %}
           {% if offer.previous %}<span class="reduction">Price drop</span>{% endif %}
         </div>
         <div class="product-info"><span class="product-brand">{{ offer.retailer }}</span><h3>{{ offer.name }}</h3>
-          {% if offer.fits %}<p class="fits">Fits: {{ offer.fits }}</p>{% endif %}
-          <div class="price-line"><strong>€{{ offer.price }}</strong><span class="go" aria-hidden="true">↗</span></div>
+          {% if offer.fits %}<p class="fits">{{ "Past bij" if dutch else "Fits" }}: {{ offer.fits }}</p>{% endif %}
+          <div class="price-line"><strong>€{{ offer.price }}</strong></div>
           {% if offer.previous %}<small class="previous"> · previously €{{ offer.previous }} on {{ offer.previous_date }}</small>{% endif %}
         </div>
       </a>
+      <div class="product-actions">
+        <a class="open-shop" data-retailer href="{{ offer.url }}">{{ "Open de winkel" if dutch else "Open shop" }}</a>
+        <p class="price-note">{{ "Prijs zonder bezorging. Bevestig die bij de winkel." if dutch else "Price before delivery. Confirm it at the shop." }}</p>
+        {% if offer.shipping %}<p class="shipping">Delivery €{{ offer.shipping }}</p>{% endif %}
+      </div>
     </article>
     {% endfor %}
   </div>
@@ -58,8 +86,8 @@
 {% endif %}
 {% endmacro %}
 {% if deals %}
-<!doctype html><html lang="en"><head>
-{{ head("Checked smart home and appliance deals | DealFactory", "In-stock smart-home and appliance offers from NL and EU retailers, with euro prices DealFactory checked on the shop page.", "/deals/") }}
+<!doctype html><html lang="{{ "nl" if dutch else "en" }}"><head>
+{{ head("Aanbiedingen die passen bij jouw huis | DealFactory" if dutch else "Checked smart home and appliance deals | DealFactory", "DealFactory las deze prijzen op de winkelpagina. Kijk of het product past bij jouw huis en bevestig de prijs bij de winkel." if dutch else "In-stock smart-home and appliance offers from NL and EU retailers, with euro prices DealFactory checked on the shop page.", "/nl/deals/" if dutch else "/deals/", alternates=true) }}
 <script type="module" src="/lib/storefront.js"></script><script type="module" src="/lib/fresh-offers.js"></script>
 {% set deal_items = [] %}
 {% for offer in offers %}
@@ -75,17 +103,17 @@
   ]}
 ]} | tojson }}</script>
 </head><body class="store">
-{{ header("deals") }}
+{{ header("deals", dutch=dutch) }}
 <main id="main" class="frame">
   <section class="cover" aria-labelledby="cover-title">
     <div class="cover-copy">
-      <div class="label light"><span class="rule"></span>CHECKED DEALS</div>
-      <h1 id="cover-title">Smart home<br><em>that fits.</em></h1>
-      <p>Hubs, thermostats, plugs and filters in stock at NL and EU shops, with the price read from the retailer page.</p>
-      <a class="cta" href="/guides/smart-home-compatibility/">Read the compatibility guide <span aria-hidden="true">↗</span></a>
+      <div class="label light"><span class="rule"></span>{{ "GECONTROLEERD" if dutch else "CHECKED DEALS" }}</div>
+      <h1 id="cover-title">{% if dutch %}Aanbiedingen die<br><em>passen bij jouw huis.</em>{% else %}Smart home<br><em>that fits.</em>{% endif %}</h1>
+      <p>{% if dutch %}Hubs, thermostaten, stekkers en filters die op voorraad zijn bij NL- en EU-winkels. DealFactory las de prijs op de winkelpagina.{% else %}Hubs, thermostats, plugs and filters in stock at NL and EU shops, with the price read from the retailer page.{% endif %}</p>
+      <a class="cta" href="{{ "/nl/guides/smart-home-compatibility/" if dutch else "/guides/smart-home-compatibility/" }}">{{ "Lees de gids" if dutch else "Read the compatibility guide" }} <span aria-hidden="true">↗</span></a>
     </div>
   </section>
-  <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at) }}</section>
-  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>SHOPPING ADVISOR</div><h2>Will it fit <em>your home?</em></h2><p>Add the hub, boiler or appliance you own and the advisor checks the next purchase against it.</p></div><a class="dark-button" href="/advisor/#setup">Add what you own <span aria-hidden="true">↗</span></a></aside>
-</main>{{ footer() }}</body></html>
+  <section class="collection" aria-label="Retailer offers">{{ offer_grid(offers, checked_at, fit_tokens=fit_tokens, shipping_known=shipping_known, dutch=dutch) }}</section>
+  <aside class="advisor-strip"><div><div class="label"><span class="rule"></span>{{ "ADVISEUR" if dutch else "SHOPPING ADVISOR" }}</div><h2>{% if dutch %}Past dit bij <em>jouw huis?</em>{% else %}Will it fit <em>your home?</em>{% endif %}</h2><p>{% if dutch %}Zet de hub, ketel of apparaat die je hebt in de adviseur. Die kijkt of de volgende aankoop daarbij past.{% else %}Add the hub, boiler or appliance you own and the advisor checks the next purchase against it.{% endif %}</p></div><a class="dark-button" href="{{ "/nl/advisor/#setup" if dutch else "/advisor/#setup" }}">{{ "Zet neer wat je hebt" if dutch else "Add what you own" }} <span aria-hidden="true">↗</span></a></aside>
+</main>{{ footer(dutch=dutch) }}</body></html>
 {% endif %}
