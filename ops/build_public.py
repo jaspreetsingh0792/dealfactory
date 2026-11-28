@@ -7,6 +7,7 @@ from html import escape
 from html.parser import HTMLParser
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -28,6 +29,7 @@ DEALS = "deals/"
 SITEMAP = (
     "/", "/advisor/", f"/{SMARTHOME_GUIDE}", f"/{DEALS}", "/about/", "/privacy/", "/terms/",
     "/nl/", "/nl/advisor/", "/nl/guides/smart-home-compatibility/", "/nl/deals/",
+    "/nl/privacy/", "/nl/terms/",
 )
 ANALYTICS_SCRIPT = "https://static.cloudflareinsights.com/beacon.min.js"
 
@@ -378,8 +380,36 @@ def stamp_browser_assets(output: Path) -> None:
             path.write_text(updated, encoding="utf-8")
 
 
+def attach_affiliates(offers, env=None):
+    """Rewrite shop links when IDs are configured. The list order is unchanged."""
+    if env is None:
+        env = {}
+    selected = {key: value for key, value in env.items() if str(key).startswith("AFFILIATE_") and str(value).strip()}
+    if not offers:
+        return offers
+    if not selected:
+        for offer in offers:
+            offer["href"] = offer["url"]
+            offer["affiliate"] = False
+        return offers
+    payload = json.dumps({
+        "offers": [{"url": offer["url"], "retailer": offer.get("retailer", "")} for offer in offers],
+        "env": selected,
+    }).encode()
+    completed = subprocess.run(
+        ["node", str(ROOT / "ops/affiliate-cli.mjs")],
+        input=payload, capture_output=True, check=True,
+    )
+    rewritten = json.loads(completed.stdout)
+    for offer, row in zip(offers, rewritten):
+        offer["href"] = row["href"]
+        offer["affiliate"] = bool(row["affiliate"])
+    return offers
+
+
 def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", *,
-          history=None, traffic=None, collect_traffic=False, google_client_id="") -> int:
+          history=None, traffic=None, collect_traffic=False, google_client_id="",
+          affiliate_env=None) -> int:
     site_url = site_url.rstrip("/")
     parsed = urlsplit(site_url)
     if not re.fullmatch(r"https://[a-zA-Z0-9.-]+", site_url) or not parsed.hostname:
@@ -432,6 +462,7 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
                 offer["previous_date"] = max(prices)
         prices[today.isoformat()] = f"{price:.2f}"
         observations[url] = prices
+    attach_affiliates(offers, {} if affiliate_env is None else affiliate_env)
     grouped = {}
     for offer in offers:
         offer["note"] = fit_note(offer)
@@ -583,6 +614,10 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         target.parent.mkdir(parents=True)
         target.write_text(templates.get_template("pages.html.j2").render(page=page, **context), encoding="utf-8")
     (output / "404.html").write_text(templates.get_template("pages.html.j2").render(page="404", **context), encoding="utf-8")
+    for page in ("privacy", "terms"):
+        target = output / "nl" / page / "index.html"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(templates.get_template("nl-legal.html.j2").render(page=page, **context), encoding="utf-8")
     public_pages = (
         homepage, smarthome, deals,
         output / "nl/index.html", output / "nl/deals/index.html",
@@ -595,6 +630,8 @@ def build(output: Path, site_url: str, fetcher=None, analytics_token: str = "", 
         output / "about/index.html",
         output / "terms/index.html",
         output / "privacy/index.html",
+        output / "nl/privacy/index.html",
+        output / "nl/terms/index.html",
     )
 
     for page_path in public_pages:
@@ -714,7 +751,8 @@ def main():
     with tempfile.TemporaryDirectory() as cache:
         fetcher = PoliteFetcher(Path(cache), "DealFactoryOfferCheck/1.0") if args.refresh else None
         count = build(args.output, args.site_url, fetcher, args.analytics_token,
-                      history=history, traffic=traffic, collect_traffic=bool(args.traffic_file), google_client_id=args.google_client_id)
+                      history=history, traffic=traffic, collect_traffic=bool(args.traffic_file),
+                      google_client_id=args.google_client_id, affiliate_env=os.environ)
     print(f"Verified in-stock offers: {count}")
 
 

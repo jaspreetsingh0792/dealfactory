@@ -7,7 +7,7 @@ Never print, commit or log an OAuth client secret or token.
 
 ## Strategy: sign in, then free AI (not deployed)
 
-Jaspreet chose the free-only path. Bring-your-own AI is an optional upgrade, not the default. Branch `cursor/builtin-signin-cb02` is updated onto current main and remains a pull request only. Do not merge or deploy until he confirms.
+Jaspreet chose the free-only path. Bring-your-own AI is an optional upgrade, not the default. Branch `cursor/builtin-signin-cb02` is updated onto current main (through the #48 affiliate publish) and remains a pull request only. Do not merge or deploy until he confirms. Affiliate links stay off when no shop ID is set.
 
 Built-in model: `@cf/meta/llama-3.1-8b-instruct-fp8-fast` on Cloudflare Workers AI. It is an 8B instruct model on the free catalog. Published rates are about 4,119 neurons per million input tokens and 34,868 per million output tokens, so a capped answer is reserved at 20 neurons. The site ceiling defaults to 8,000 neurons per UTC day (under the 10,000 free allocation). Each signed-in person gets 20 answers per UTC day, with a 3 second gap. A 429 names the reset at 00:00 UTC.
 
@@ -29,10 +29,17 @@ Opt-in account sync is on the same branch and is also not deployed. The session 
 
 Target: before 30 November 2026 (Europe/Amsterdam). Checklist: `docs/launch.md`.
 
+#47 published labelled affiliate links, off by default, from `e24ae452cbc50baa9cd49433e0ec1f916512805a`:
+https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46143869701
+
+Live smoke on 28 Nov 2026: `/deals/` still says Open shop and does not say Affiliate link, because no shop ID is set. The homepage FAQ includes “How does DealFactory make money?”. `/privacy/` and `/nl/privacy/` explain affiliate links. Variable names are in `docs/affiliates.md`. #28 stays unmerged.
+
 #44 published fit notes on the product pages from `697999937d989f4b2238572aac231596c2c70bf5`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46124338049
 
 Live smoke on 28 Nov 2026: `/deals/shelly-plug-s-mtr-gen3/` includes “Good for”, “Not for”, and the note that this Matter plug does not need a Thread border router. `/deals/philips-hue-bridge-pro/` is HTTP 200 and is in the sitemap, because the Coolblue page had one in-stock euro price on 28 Nov 2026. The stroller guide is still a 301 and is still absent from the sitemap. #28 stays unmerged.
+
+Live mobile Lighthouse the same day, performance / accessibility / best practices / SEO: `/` 99/100/92/100, `/deals/` 99/100/92/100, `/advisor/` 99/100/92/100, `/deals/shelly-plug-s-mtr-gen3/` 99/100/92/100, `/nl/` 99/100/92/100. Every category is at least 90.
 
 #42 published the Dutch pages and the checked product pages from `06018eeb29fac8a30ed338434510a2f80337d483`:
 https://github.com/jaspreetsingh0792/dealfactory/actions/runs/46084025085

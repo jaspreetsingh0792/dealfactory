@@ -57,6 +57,8 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert 'data-protocol="Matter"' in deals and 'data-protocol="OpenTherm"' in deals
     assert "Price before delivery. Confirm it at the shop." in deals
     assert "Open shop" in deals
+    assert "Affiliate link" not in deals
+    assert f'href="{CHECKED}"' in deals
     assert "Total with delivery" not in deals
     assert "Delivery €" not in deals
     product_slug = "tado-bedrade-slimme-thermostaat-x-startpakket-2e-generatie"
@@ -115,6 +117,11 @@ def test_builder_ships_only_public_files_with_checked_prices(tmp_path):
     assert "Limited Use" in privacy and "deals@agentsealteam.com" not in privacy
     assert "Built-in AI" in privacy and "Delete account" in privacy
     assert "cookieless beacon" in privacy
+    assert "Affiliate links" in privacy
+    assert "Affiliate links" in (output / "terms/index.html").read_text()
+    assert "Affiliatelinks" in (output / "nl/privacy/index.html").read_text()
+    assert "Affiliatelinks" in (output / "nl/terms/index.html").read_text()
+    assert "How does DealFactory make money?" in home
     routes = json.loads((output / "_routes.json").read_text())["include"]
     assert "/auth/*" in routes and "/api/*" in routes
     assert "/lib/guide-events.js" in (output / "about/index.html").read_text()
@@ -194,6 +201,36 @@ def test_fit_tokens_prefer_protocols_and_shipping_sort_is_conditional():
     assert "Delivery €4,95" in html
     assert 'data-total="14.95"' in html
     assert "Price before delivery. Confirm it at the shop." in html
+
+
+def test_affiliate_ids_rewrite_one_shop_and_do_not_reorder(tmp_path):
+    cheap = "https://eu.aqara.com/en-eu/products/aqara-smart-hub-m3"
+    class Fetcher:
+        def get(self, url):
+            if url == cheap:
+                return (200, product_page(price="10,00"))
+            if url == CHECKED:
+                return (200, product_page(price="80,00"))
+            return None
+    plain = tmp_path / "plain"
+    assert public.build(plain, "https://example.com", Fetcher(), affiliate_env={}) >= 2
+    plain_html = (plain / "deals/index.html").read_text()
+    assert "Affiliate link" not in plain_html
+    assert f'href="{CHECKED}"' in plain_html
+    assert plain_html.index(cheap) < plain_html.index(CHECKED)
+    labelled = tmp_path / "labelled"
+    public.build(labelled, "https://example.com", Fetcher(), affiliate_env={
+        "AFFILIATE_AWIN_PUBLISHER_ID": "pub123",
+        "AFFILIATE_COOLBLUE_NETWORK": "awin",
+        "AFFILIATE_COOLBLUE_MERCHANT_ID": "mid123",
+    })
+    html = (labelled / "deals/index.html").read_text()
+    assert "Affiliate link" in html
+    assert 'rel="sponsored nofollow noopener"' in html
+    assert "never changes the ranking" in html
+    assert "awinmid=mid123" in html
+    assert f'href="{cheap}"' in html
+    assert html.index(cheap) < html.index("awin1.com")
 
 
 def test_unrecorded_fit_stays_honest():

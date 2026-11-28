@@ -6,6 +6,7 @@
   ("Do I have to bring my own AI?", "No. You can save devices and copy a shopping brief with no AI account. Connecting your own provider, or opening the brief in Claude or ChatGPT, is optional and is what produces a live search today."),
   ("Does DealFactory read my email?", "Only if you join the limited Gmail beta. Google's testing mode allows at most 100 people while verification is pending. Everyone else adds devices by hand. The browser removes recognizable personal details before any receipt excerpt is sent, and DealFactory's server never receives your Gmail access or receipt text."),
   ("What kinds of products does it help with?", "Smart-home devices and appliances that have to work with what you already own: Matter, Zigbee, Thread, Apple Home, Google Home, Home Assistant, OpenTherm boilers, TVs, soundbars, and replacement filters."),
+  ("How does DealFactory make money?", "The site is ad-free. If a shop affiliate ID is configured, some Open shop links are labelled affiliate links and DealFactory may earn a commission at no extra cost to you. That never changes the order of the deals or what is recommended. With no ID set, the link is the plain retailer page."),
 ] %}
 {% set entries = [] %}{% for question, answer in faqs %}{% set _ = entries.append({"@type": "Question", "name": question, "acceptedAnswer": {"@type": "Answer", "text": answer}}) %}{% endfor %}
 <!doctype html><html lang="en"><head>

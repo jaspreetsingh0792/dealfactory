@@ -87,6 +87,8 @@
 .fits{display:inline-block;margin-top:8px;padding:3px 8px;border-radius:99px;background:#eef3d4;color:#182e20;font-size:12px;font-weight:650;letter-spacing:-.01em}
 .price-note,.shipping{margin:6px 0 0;color:#5c6758;font-size:12px;line-height:1.35}
 .open-shop{display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid var(--pine);border-radius:99px;background:var(--lime);color:var(--pine);font-size:12px;font-weight:700;letter-spacing:0}
+.affiliate-label{display:inline-block;margin-left:8px;padding:2px 7px;border-radius:99px;background:var(--lime);color:var(--pine);font-size:11px;font-weight:700;vertical-align:middle}
+.affiliate-disclosure{margin:14px 0 0;color:var(--soft);font-size:13px;line-height:1.4}
 .price-line strong{font-size:20px;font-weight:580;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
 .go{border:1px solid var(--line);border-radius:50%;width:32px;height:32px;display:grid;place-content:center}
 .product a:hover .go{background:var(--lime)}
